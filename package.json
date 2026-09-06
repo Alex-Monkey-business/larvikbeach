@@ -1,0 +1,38 @@
+{
+  "name": "larvikbeach",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/check-blind-writes.mjs && tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "check:writes": "node scripts/check-blind-writes.mjs",
+    "qa": "node scripts/qa.mjs",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:functions": "supabase functions serve --no-verify-jwt"
+  },
+  "dependencies": {
+    "@supabase/auth-js": "^2.115.0",
+    "@supabase/functions-js": "^2.115.0",
+    "@supabase/postgrest-js": "^2.115.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^8.3.1"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "oxlint": "^1.79.0",
+    "playwright": "^1.63.0",
+    "supabase": "^2.116.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2"
+  }
+}

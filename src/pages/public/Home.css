@@ -1,0 +1,13 @@
+.home { display: grid; gap: var(--space-8); padding-top: var(--space-6); }
+.hero { display: grid; gap: var(--space-4); max-width: 900px; }
+.hero .display em { font-style: italic; color: var(--color-fog); }
+.next-card { display: grid; gap: var(--space-1); max-width: 520px; }
+.how { display: grid; gap: var(--space-5); }
+.how-list { display: grid; gap: var(--space-4); list-style: none; padding: 0; margin: 0; }
+.how-list li { display: grid; grid-template-columns: 56px 1fr; gap: var(--space-2); align-items: start; }
+.how-list .num { font-size: 48px; line-height: 1; color: var(--color-lavender); }
+.how-list strong { display: block; font-size: var(--text-body); font-weight: 500; margin-bottom: 4px; }
+@media (min-width: 720px) {
+  .how-list { grid-template-columns: repeat(3, 1fr); }
+  .how-list li { grid-template-columns: 1fr; }
+}

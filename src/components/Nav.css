@@ -1,0 +1,56 @@
+.nav-wrap {
+  position: sticky; top: 0; z-index: 10;
+  padding: var(--space-2);
+  display: flex; justify-content: center;
+  pointer-events: none;
+}
+.nav {
+  pointer-events: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  width: 100%; max-width: var(--page-max);
+  padding: 8px 8px 8px 20px;
+  background: var(--color-cream);
+  border: var(--border); border-radius: var(--radius-pill);
+}
+.nav-brand {
+  font-weight: 600; text-decoration: none; white-space: nowrap;
+  font-size: var(--text-body-sm);
+  margin-right: auto;
+}
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a:not(.btn), .nav-link-btn {
+  display: inline-flex; align-items: center;
+  min-height: 40px; padding: 0 14px;
+  border-radius: var(--radius-pill); border: 0; background: transparent;
+  text-decoration: none; font-weight: 500; font-size: var(--text-caption); cursor: pointer;
+  white-space: nowrap;
+}
+.nav-links a.active { background: var(--color-stone); }
+.nav-links a:not(.btn):hover, .nav-link-btn:hover { background: var(--color-stone); }
+
+/* Fanelinje: kun mobil, kun innlogget. */
+.tabbar {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: var(--color-cream);
+  border-top: var(--border);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+}
+.tabbar a {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  min-height: 48px; border-radius: var(--radius-pill);
+  text-decoration: none; font-weight: 500; font-size: var(--text-caption);
+}
+.tabbar a.active { background: var(--color-lavender); }
+
+@media (max-width: 719px) {
+  .nav-links-app { display: none; }
+  .tabbar { display: flex; }
+  .nav-brand { font-size: var(--text-caption); }
+  .nav-links a:not(.btn), .nav-link-btn { padding: 0 10px; }
+}
+@media (max-width: 479px) {
+  /* Uinnlogget på smal skjerm: «Om oss» ligger på forsiden, pillen får plass. */
+  .nav-links:not(.nav-links-app) a[href="/om-oss"] { display: none; }
+  .nav { padding-left: 16px; }
+}

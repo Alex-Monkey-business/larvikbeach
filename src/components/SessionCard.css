@@ -1,0 +1,10 @@
+.session-card { display: grid; gap: var(--space-3); }
+.session-card.is-going { border-color: var(--color-forest); }
+.session-card-main { display: grid; gap: var(--space-2); }
+.session-card-title { display: grid; gap: 4px; text-decoration: none; }
+.session-card-title:hover .h3 { text-decoration: underline; }
+.session-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); }
+@media (min-width: 720px) {
+  .session-card { grid-template-columns: 1fr auto; align-items: center; }
+  .session-card-actions { grid-template-columns: auto auto; }
+}

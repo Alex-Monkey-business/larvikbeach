@@ -1,0 +1,121 @@
+@font-face { font-family: 'Figtree'; font-weight: 400; font-display: swap; src: url('/fonts/figtree-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Figtree'; font-weight: 500; font-display: swap; src: url('/fonts/figtree-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Figtree'; font-weight: 600; font-display: swap; src: url('/fonts/figtree-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'EB Garamond'; font-weight: 400; font-display: swap; src: url('/fonts/eb-garamond-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'EB Garamond'; font-weight: 400; font-style: italic; font-display: swap; src: url('/fonts/eb-garamond-latin-400-italic.woff2') format('woff2'); }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: inherit; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+/* Typografi. Serif kun for overskrifter, alltid vekt 400. */
+.display, .h1, .h2, .h3, .num {
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+.display { font-size: clamp(56px, 12vw, var(--text-display)); line-height: 0.85; letter-spacing: -0.03em; }
+.h1 { font-size: clamp(40px, 7vw, var(--text-heading-lg)); line-height: 0.95; letter-spacing: -0.03em; }
+.h2 { font-size: clamp(32px, 5vw, var(--text-heading)); line-height: 0.95; letter-spacing: -0.02em; }
+.h3 { font-size: var(--text-heading-sm); line-height: 1.1; letter-spacing: -0.03em; }
+.num { font-size: var(--text-heading); line-height: 1; font-variant-numeric: tabular-nums; }
+.lede { font-size: var(--text-body); max-width: var(--measure); }
+.caption { font-size: var(--text-caption); color: var(--color-fog); }
+.muted { color: var(--color-fog); }
+.on-dark .caption, .on-dark .muted { color: var(--color-stone); }
+
+/* Layout */
+.page { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--space-2); }
+@media (min-width: 720px) { .page { padding: 0 var(--space-4); } }
+.stack > * + * { margin-top: var(--space-2); }
+.stack-lg > * + * { margin-top: var(--space-4); }
+.row { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.grid-2 { display: grid; gap: var(--space-2); grid-template-columns: 1fr; }
+@media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+
+/* Flater. Border-drevet, aldri skygge. */
+a.card { display: block; text-decoration: none; }
+.card {
+  background: var(--color-cream);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+}
+@media (min-width: 720px) { .card { padding: var(--space-4); } }
+.card-lavender { background: var(--color-lavender); }
+.card-dark, .chamber {
+  background: var(--color-ink);
+  color: var(--color-cream);
+  border-color: var(--color-ink);
+}
+.chamber {
+  border-radius: var(--radius-section);
+  padding: var(--space-5) var(--space-3);
+}
+@media (min-width: 720px) { .chamber { border-radius: 64px; padding: var(--space-8); } }
+
+/* Knapper: 2px ramme er signaturen, ikke valgfri. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+  min-height: 48px; padding: 12px 24px;
+  border: var(--border); border-radius: var(--radius-button);
+  background: var(--color-cream); color: var(--color-ink);
+  font-weight: 500; font-size: var(--text-body-sm);
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-primary { background: var(--color-lavender); }
+.btn-dark { background: var(--color-ink); color: var(--color-cream); }
+.btn-forest { background: var(--color-forest); color: var(--color-cream); border-color: var(--color-forest); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { text-decoration: underline; }
+.on-dark .btn { border-color: var(--color-cream); }
+.btn-block { width: 100%; }
+.btn-sm { min-height: 40px; padding: 8px 16px; font-size: var(--text-caption); }
+
+/* Skjema */
+.field { display: grid; gap: 6px; }
+.label { font-size: var(--text-caption); font-weight: 500; }
+.input, .select, .textarea {
+  width: 100%; min-height: 48px; padding: 12px 16px;
+  border: var(--border); border-radius: var(--radius-input);
+  background: var(--color-white); color: var(--color-ink);
+}
+.textarea { min-height: 120px; resize: vertical; }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible, .btn:focus-visible {
+  outline: 3px solid var(--color-lavender); outline-offset: 2px;
+}
+
+/* Merkelapper */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  font-size: var(--text-caption); font-weight: 500; line-height: 1.2;
+}
+.badge-forest { background: var(--color-forest); color: var(--color-cream); }
+.badge-outline { border: 1.5px solid currentColor; }
+.badge-ember { background: var(--color-ember); color: var(--color-ink); }
+.badge-stone { background: var(--color-stone); color: var(--color-ink); }
+.badge-lavender { background: var(--color-lavender); color: var(--color-ink); }
+.tag { border-radius: 8px; }
+
+/* Lister med skillelinjer i stein-farge */
+.list > * { padding: var(--space-2) 0; border-top: 1px solid var(--color-stone); }
+.list > *:first-child { border-top: 0; padding-top: 0; }
+.list > *:last-child { padding-bottom: 0; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
