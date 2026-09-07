@@ -109,3 +109,21 @@ export interface Invite {
   created_at: string
   accepted_at: string | null
 }
+
+export interface Match {
+  id: string
+  session_id: string
+  round: number
+  team_a: string[]
+  team_b: string[]
+  resting: string[]
+  winner: 'a' | 'b' | null
+}
+
+export interface SeasonStat {
+  season_id: string
+  profile_id: string
+  sessions: number
+  wins: number
+  games: number
+}

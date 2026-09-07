@@ -1,0 +1,12 @@
+.matches { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.match { display: grid; gap: 6px; }
+.match-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-1); }
+.match-vs { font-size: var(--text-caption); color: var(--color-fog); }
+.team {
+  display: grid; gap: 6px; text-align: left;
+  padding: 10px 12px; border: 2px solid var(--color-stone); border-radius: var(--radius-input);
+  background: var(--color-cream); color: var(--color-ink); cursor: pointer;
+}
+.team:disabled { cursor: default; }
+.team-won { border-color: var(--color-forest); background: var(--color-forest); color: var(--color-cream); }
+.team-lost { opacity: 0.55; }

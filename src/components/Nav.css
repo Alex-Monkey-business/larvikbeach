@@ -38,8 +38,8 @@
 }
 .tabbar a {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  min-height: 48px; border-radius: var(--radius-pill);
-  text-decoration: none; font-weight: 500; font-size: var(--text-caption);
+  min-height: 48px; padding: 0 4px; border-radius: var(--radius-pill);
+  text-decoration: none; font-weight: 500; font-size: var(--text-caption); white-space: nowrap;
 }
 .tabbar a.active { background: var(--color-lavender); }
 

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrap } from './useQuery'
-import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Profile, Season, Session, Settings } from './types'
+import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, Settings } from './types'
 
 // Alle skriv som kan filtreres bort av RLS har .select(): en update som
 // treffer null rader gir ellers «ok» uten feil.
@@ -84,6 +84,15 @@ export const api = {
   },
   setJoinRequestStatus: async (id: string, status: 'approved' | 'rejected', by: string) =>
     unwrap<JoinRequest>(await supabase.from('join_requests').update({ status, handled_at: new Date().toISOString(), handled_by: by }).eq('id', id).select().single()),
+
+  matches: async (sessionId: string) =>
+    unwrap<Match[]>(await supabase.from('matches').select('*').eq('session_id', sessionId).order('round')),
+  drawMatches: async (sessionId: string) => unwrap<Match[]>(await supabase.rpc('draw_matches', { p_session: sessionId })),
+  setMatchWinner: async (matchId: string, winner: 'a' | 'b' | null) =>
+    unwrap<Match>(await supabase.rpc('set_match_winner', { p_match: matchId, p_winner: winner })),
+
+  seasonStats: async (seasonId: string) =>
+    unwrap<SeasonStat[]>(await supabase.from('season_stats').select('*').eq('season_id', seasonId)),
 
   invites: async () => unwrap<Invite[]>(await supabase.from('invites').select('*').is('accepted_at', null).order('created_at', { ascending: false })),
   deleteInvite: async (email: string) => unwrap<Invite[]>(await supabase.from('invites').delete().eq('email', email).select()),

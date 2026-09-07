@@ -9,6 +9,7 @@ import { AttendButton } from '../../components/SessionCard'
 import { useSessions, goingQueue, mineFor, payerCount, statusLine } from './useSessions'
 import type { Profile } from '../../lib/types'
 import { Avatar } from '../../components/Avatar'
+import { Matches } from '../../components/Matches'
 
 export function SessionPage() {
   const { id = '' } = useParams()
@@ -84,6 +85,10 @@ export function SessionPage() {
         )}
 
       </section>
+
+      {session.status !== 'cancelled' && (
+        <Matches session={session} players={withSpot} canAct={isAdmin || (mine.going === true && !mine.waitlisted)} />
+      )}
 
       {isAdmin && <Link to={`/admin/okter/${id}`} className="btn">Rediger som admin</Link>}
     </div>
