@@ -123,8 +123,8 @@ a.card { display: block; text-decoration: none; }
 .check input { width: 22px; height: 22px; accent-color: var(--color-forest); flex: none; }
 .share-text { min-height: 160px; font-size: var(--text-caption); }
 
-.me-numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
-.me-numbers .num { line-height: 1; }
+.me-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: var(--space-2); }
+.me-numbers .num { line-height: 1; font-size: 40px; }
 
 .site-footer {
   display: flex; flex-wrap: wrap; gap: var(--space-2);

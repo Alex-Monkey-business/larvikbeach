@@ -7,6 +7,11 @@ import { Avatar, AvatarStack } from '../../components/Avatar'
 import type { Profile } from '../../lib/types'
 import { splitQueue } from './useSessions'
 
+/** «+12», «−4», «0». Differansen er poenget, ikke fortegnet alene. */
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : n < 0 ? `\u2212${Math.abs(n)}` : '0'
+}
+
 // Denne sesongen: oppmøte, seire, og hvem som var med når.
 export function Stats() {
   const { profile } = useAuth()
@@ -28,6 +33,7 @@ export function Stats() {
   const byId = new Map<string, Profile>(profiles.map(p => [p.id, p]))
   const rows = stats.map(s => ({ ...s, p: byId.get(s.profile_id) })).filter(r => r.p).sort((a, b) => b.sessions - a.sessions || b.wins - a.wins)
   const anyWins = rows.some(r => r.games > 0)
+  const anyPoints = rows.some(r => r.points_for > 0 || r.points_against > 0)
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
@@ -40,7 +46,7 @@ export function Stats() {
 
       {rows.length > 0 && (
         <section className="card stack">
-          <div className="row between"><h2 className="h3">Oppmøte</h2>{anyWins && <span className="caption">økter · seire</span>}</div>
+          <div className="row between"><h2 className="h3">Oppmøte</h2>{anyWins && <span className="caption">økter · seire{anyPoints ? ' · poeng' : ''}</span>}</div>
           <ul className="list">
             {rows.map(r => (
               <li key={r.profile_id} className="row between" style={{ fontWeight: r.profile_id === profile?.id ? 600 : 400 }}>
@@ -48,6 +54,7 @@ export function Stats() {
                 <span className="row" style={{ gap: 14, flexWrap: 'nowrap' }}>
                   <span className="num" style={{ fontSize: 24 }}>{r.sessions}</span>
                   {anyWins && <span className="num muted" style={{ fontSize: 24, minWidth: 28, textAlign: 'right' }}>{r.wins}</span>}
+                  {anyPoints && <span className="num muted" style={{ fontSize: 24, minWidth: 42, textAlign: 'right' }} title={`${r.points_for} scoret, ${r.points_against} sluppet inn`}>{signed(r.points_diff)}</span>}
                 </span>
               </li>
             ))}

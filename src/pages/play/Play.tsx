@@ -6,7 +6,8 @@ import { kr } from '../../lib/money'
 import { SessionCard } from '../../components/SessionCard'
 import { Notice } from '../../components/Notice'
 import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
-import type { Profile } from '../../lib/types'
+import type { Match, Profile } from '../../lib/types'
+import { sessionsFrom } from '../../lib/format'
 
 export function Play() {
   const { profile } = useAuth()
@@ -14,12 +15,14 @@ export function Play() {
   // Påmeldingsvinduet. 14 som utgangspunkt, så lista ikke blafrer før
   // innstillingene er lest.
   const windowDays = settings.data?.signup_window_days ?? 14
-  // Fra tre timer tilbake: en økt som pågår skal fortsatt stå øverst.
-  const from = new Date(Date.now() - 3 * 3600_000).toISOString()
+  // Kveldens økt blir stående med resultat til midt på dagen etter.
+  const from = sessionsFrom()
   const to = new Date(Date.now() + windowDays * 86_400_000).toISOString()
   const s = useSessions({ from, to }, [windowDays])
   const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
   const people = useQuery(() => api.profiles(), [])
+  const played = (s.data?.sessions ?? []).filter(x => new Date(x.starts_at).getTime() < Date.now()).map(x => x.id)
+  const matches = useQuery(() => api.matchesFor(played), [played.join(',')])
   const seasons = useQuery(() => api.seasons(), [])
   const byId = new Map<string, Profile>((people.data ?? []).map(p => [p.id, p]))
 
@@ -56,10 +59,23 @@ export function Play() {
             mine={mineFor(s.data!.attendance, x, profile?.id)}
             busy={s.busyId === x.id}
             signupWindowDays={windowDays}
+            winners={topWinners(matches.data ?? [], x.id, byId)}
             onToggle={going => void s.toggle(x.id, going)} />
         ))}
         <Link to="/spill/kalender" className="btn btn-ghost" style={{ justifySelf: 'start', paddingLeft: 0 }}>Hele terminlisten →</Link>
       </section>
     </div>
   )
+}
+
+/** De med flest seire på økta. Ingen resultater gir ingen vinnere. */
+function topWinners(matches: Match[], sessionId: string, byId: Map<string, Profile>): Profile[] {
+  const wins = new Map<string, number>()
+  for (const m of matches) {
+    if (m.session_id !== sessionId || !m.winner) continue
+    for (const id of m.winner === 'a' ? m.team_a : m.team_b) wins.set(id, (wins.get(id) ?? 0) + 1)
+  }
+  const best = Math.max(0, ...wins.values())
+  if (best === 0) return []
+  return [...wins.entries()].filter(([, n]) => n === best).map(([id]) => byId.get(id)).filter(Boolean) as Profile[]
 }

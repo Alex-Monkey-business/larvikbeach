@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
-import { longDate, time, endTime, signupOpen } from '../lib/format'
+import { longDate, time, endTime, isPast, signupOpen } from '../lib/format'
 import { kr, shareOre } from '../lib/money'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
@@ -14,13 +14,16 @@ interface Props {
   mine: MyState
   busy?: boolean
   signupWindowDays: number
+  winners?: Profile[]          // flest seire på en spilt økt
   onToggle?: (going: boolean) => void
 }
 
-export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, onToggle }: Props) {
+export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, winners = [], onToggle }: Props) {
   const paid = session.cost > 0
   const full = session.capacity != null && goingCount >= session.capacity
-  const heads = payerCount(session, goingCount + (mine.going === true ? 0 : 1))   // «hvis du kommer»
+  const played = isPast(session.starts_at) && session.status !== 'cancelled'
+  // Før økta: prisen «hvis du kommer». Etterpå: det den faktisk ble delt på.
+  const heads = payerCount(session, goingCount + (played || mine.going === true ? 0 : 1))
   const hasSpot = mine.going === true && !mine.waitlisted
   return (
     <article className={`session-card card ${hasSpot ? 'is-going' : ''}`}>
@@ -31,14 +34,22 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
         </Link>
         {(withSpot.length + waitlist.length) > 0 && (
           <Link to={`/spill/okter/${session.id}`} className="session-card-people" aria-label="Se hvem som kommer">
-            <AvatarStack people={withSpot} waitlisted={waitlist} />
+            <AvatarStack people={withSpot} waitlisted={played ? [] : waitlist} />
           </Link>
         )}
         <div className="row">
-          <span className={`badge ${full ? 'badge-ember' : 'badge-stone'}`}>{statusLine(session, goingCount)}</span>
-          {paid && !full && <span className="badge badge-outline">{kr(shareOre(session.cost, Math.max(heads, 1)))} hver</span>}
+          {played
+            ? <span className="badge badge-forest">{payerCount(session, goingCount)} spilte</span>
+            : <span className={`badge ${full ? 'badge-ember' : 'badge-stone'}`}>{statusLine(session, goingCount)}</span>}
+          {paid && (played || !full) && <span className="badge badge-outline">{kr(shareOre(session.cost, Math.max(heads, 1)))} hver</span>}
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
         </div>
+        {played && winners.length > 0 && winners.length <= 2 && (
+          <p className="row" style={{ gap: 8 }}>
+            <AvatarStack people={winners} size={28} />
+            <span>Flest seire: {names(winners)}</span>
+          </p>
+        )}
       </div>
       {onToggle && session.status === 'planned' && signupOpen(session.starts_at, signupWindowDays) && (
         <div className="session-card-actions">
@@ -47,6 +58,12 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
       )}
     </article>
   )
+}
+
+/** «Kari», «Kari og Ola», «Kari, Ola og Per». */
+function names(people: Profile[]): string {
+  const f = people.map(p => p.name.split(' ')[0])
+  return f.length < 2 ? (f[0] ?? '') : `${f.slice(0, -1).join(', ')} og ${f[f.length - 1]}`
 }
 
 /**

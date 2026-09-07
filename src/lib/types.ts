@@ -125,6 +125,9 @@ export interface Match {
 }
 
 export interface SeasonStat {
+  points_for: number
+  points_against: number
+  points_diff: number
   season_id: string
   profile_id: string
   sessions: number

@@ -88,6 +88,10 @@ export const api = {
 
   matches: async (sessionId: string) =>
     unwrap<Match[]>(await supabase.from('matches').select('*').eq('session_id', sessionId).order('round')),
+  matchesFor: async (sessionIds: string[]) =>
+    sessionIds.length
+      ? unwrap<Match[]>(await supabase.from('matches').select('*').in('session_id', sessionIds).order('round'))
+      : [],
   drawMatches: async (sessionId: string, append = false) =>
     unwrap<Match[]>(await supabase.rpc('draw_matches', { p_session: sessionId, p_append: append })),
   sessionTeams: async (sessionId: string) =>

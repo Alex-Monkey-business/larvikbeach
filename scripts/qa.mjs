@@ -18,6 +18,8 @@ if (!process.env.QA_NO_RESET) {
   execSync('docker exec -i supabase_db_larvikbeach psql -U postgres -v ON_ERROR_STOP=1 -q', { input: readFileSync('scripts/qa-reset.sql') })
 }
 
+const sql = (text) => execSync('docker exec -i supabase_db_larvikbeach psql -U postgres -v ON_ERROR_STOP=1 -q', { input: text })
+
 const fails = []
 const ok = (cond, msg) => { if (!cond) fails.push(msg); console.log(`${cond ? 'ok  ' : 'FEIL'} ${msg}`) }
 
@@ -78,7 +80,11 @@ try {
   await p.goto(APP); await p.waitForURL(/\/spill$/); ok(true, 'innlogget: forsiden sender rett til øktene')
   await p.waitForTimeout(300)
   await shot(p, 'm-spill')
-  const first = p.locator('article.session-card').first()
+  // Første kort er kveldens spilte økt: den blir stående til midt på dagen etter.
+  const spilt = p.locator('article.session-card').first()
+  ok(await spilt.locator('span.badge:text-is("6 spilte")').count() === 1, 'spill: spilt økt står igjen med «6 spilte»')
+  ok(await spilt.locator('button').count() === 0, 'spill: spilt økt har ingen påmeldingsknapp')
+  const first = p.locator('article.session-card').nth(1)
   // Seed: 7 påmeldt, 6 plasser, Alex meldte seg på sist → venteliste nr. 1.
   ok(await first.locator('text=Fullt · 1 på venteliste').count() === 1, 'spill: første økt viser «Fullt · 1 på venteliste»')
   ok(await first.locator('button:has-text("Venteliste nr. 1")').count() === 1, 'spill: Alex (sist i køen) står på venteliste nr. 1')
@@ -98,7 +104,7 @@ try {
   // Påmeldingsvinduet: forsiden viser bare øktene som er åpne, resten i kalenderen
   await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
   const kort = await p.locator('article.session-card').count()
-  ok(kort === 2, `spill: bare øktene i vinduet vises (${kort} kort, ventet 2)`)
+  ok(kort === 3, `spill: spilt økt pluss de to i vinduet (${kort} kort, ventet 3)`)
   await p.locator('a:has-text("Hele terminlisten")').click(); await p.waitForURL(/kalender/)
   // Vent på kalenderens egen tekst: h1 finnes også på forrige side.
   await p.locator('main >> text=dager før hver økt').waitFor({ timeout: 5000 })
@@ -154,9 +160,26 @@ try {
   ok(await p.locator('.match').count() === 6, 'kamper: «Ny runde» la til tre nye kamper')
   ok(await p.locator('button:has-text("Trekk på nytt")').count() === 0, 'kamper: «Trekk på nytt» skjult når resultater finnes')
   await shot(p, 'm-kamper')
+  // Et tydelig resultat, satt i basen så det ikke avhenger av tilfeldige lag:
+  // tre runder der lag 1 vinner to og lag 2 én. Da er toppen to spillere.
+  sql(`with h as (select id from public.sessions where status='held' order by starts_at desc limit 1)
+       delete from public.matches m using h where m.session_id = h.id and m.round > 3;
+       with h as (select id from public.sessions where status='held' order by starts_at desc limit 1)
+       update public.matches m set winner = 'a', score_a = 15, score_b = 9 from h where m.session_id = h.id;`)
+  await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
+  await p.locator('main >> text=Flest seire').first().waitFor({ timeout: 5000 })
+  const linje = await p.locator('main >> text=Flest seire').first().innerText()
+  ok(!/ og .* og /.test(linje), `spill: vinnerlinja er lesbar (${linje})`)
+  ok(await p.locator('article.session-card').first().locator('.avatar-dim').count() === 0, 'spill: spilt økt viser ikke ventelista')
+  await shot(p, 'm-spill-resultat')
   await p.goto(`${APP}/spill/statistikk`)
   await p.locator('text=økter · seire').waitFor({ timeout: 5000 })
   ok(true, 'statistikk: seire-kolonnen kom etter første resultat')
+  ok(await p.locator('text=økter · seire · poeng').count() === 1, 'statistikk: poengkolonnen kom med poengene')
+  await p.goto(`${APP}/spill/meg`)
+  await p.locator('.me-numbers').waitFor({ timeout: 5000 })
+  ok(await p.locator('.me-numbers .num').count() === 4, 'meg: fire tall, poeng er med')
+
   await p.goto(`${APP}/spill/okter/00000000-0000-0000-0000-000000000000`)
   await p.waitForSelector('text=Fant ikke økta', { timeout: 5000 })
   ok(true, 'økt: ukjent id gir «Fant ikke økta»')
@@ -164,7 +187,7 @@ try {
   await p.goto(`${APP}/spill/meg`)
   await p.locator('main >> text=nr.').first().waitFor({ timeout: 5000 }).catch(() => {})
   ok(await p.locator('input').count() === 0, 'meg: leser først, ingen skjemafelt før man velger å endre')
-  ok(await p.locator('.me-numbers .num').count() === 3, 'meg: egne tall for sesongen')
+  ok(await p.locator('.me-numbers .num').count() === 4, 'meg: egne tall for sesongen, poeng med')
   await p.locator('button:has-text("Endre navn og telefon")').click()
   await p.locator('input[type=tel]').waitFor({ timeout: 5000 })
   ok(true, 'meg: «Endre» åpner skjemaet')
@@ -195,6 +218,9 @@ try {
 
   // Spiller: melder betalt
   await login(p, PLAYER)
+  await p.goto(`${APP}/spill/meg`)
+  await p.locator('.me-numbers').waitFor({ timeout: 5000 })
+  ok(await p.locator('main >> text=sluppet inn').count() === 1, 'spiller: Meg viser scoret og sluppet inn')
   await p.goto(`${APP}/spill/betaling`)
   const claimBtn = p.locator('button:has-text("Jeg har vippset")').first()
   await claimBtn.waitFor({ timeout: 5000 }).catch(() => {})

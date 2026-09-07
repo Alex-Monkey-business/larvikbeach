@@ -195,7 +195,7 @@ function TeamBox({ players, won, lost, value, onChange, onCommit, onWin, canAct,
     <div className={`team ${won ? 'team-won' : ''} ${lost ? 'team-lost' : ''}`}>
       <button type="button" className="team-names" disabled={!canAct || busy} onClick={onWin} aria-pressed={won}
         title={canAct ? 'Trykk for å markere som vinner' : undefined}>
-        {players.map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span>{first(p)}</span></span>)}
+        {players.map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span className="team-name">{first(p)}</span></span>)}
       </button>
       <input className="score num" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={label}
         disabled={!canAct || busy} placeholder={canAct ? '–' : ''}

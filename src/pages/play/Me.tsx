@@ -6,6 +6,10 @@ import { useQuery } from '../../lib/useQuery'
 import { Avatar } from '../../components/Avatar'
 import { Notice } from '../../components/Notice'
 
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : n < 0 ? `\u2212${Math.abs(n)}` : '0'
+}
+
 // Leseflate. Redigering er et valg man tar, ikke tilstanden man lander i.
 export function Me() {
   const { profile } = useAuth()
@@ -41,7 +45,11 @@ export function Me() {
             <div><p className="num">{mine?.sessions ?? 0}</p><p className="caption">økter</p></div>
             <div><p className="num">{mine?.wins ?? 0}</p><p className="caption">seire</p></div>
             <div><p className="num">{mine?.games ?? 0}</p><p className="caption">kamper</p></div>
+            <div><p className="num">{signed(mine?.points_diff ?? 0)}</p><p className="caption">poeng</p></div>
           </div>
+          {(mine?.points_for || mine?.points_against) ? (
+            <p className="caption">{mine.points_for} scoret, {mine.points_against} sluppet inn.</p>
+          ) : null}
           <Link to="/spill/statistikk" className="btn btn-ghost btn-sm" style={{ justifySelf: 'start', paddingLeft: 0 }}>Se hele statistikken →</Link>
         </section>
       )}

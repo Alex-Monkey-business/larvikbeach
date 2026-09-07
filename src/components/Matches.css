@@ -1,19 +1,25 @@
 .matches { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
 .match { display: grid; gap: 6px; }
 .match-teams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-1); }
-@media (max-width: 359px) { .match-teams { grid-template-columns: 1fr; } }
+/* På telefon står lagene under hverandre: to bokser ved siden av hverandre
+   gir navnet under tretti piksler, og «Kristoffer» blir «K…». */
+@media (max-width: 479px) { .match-teams { grid-template-columns: 1fr; } }
 
 /* Lagboksen er laget. Vinner = skoggrønn, taper = dempet. */
+/* minmax(0, …) og min-width: 0: uten dem nekter navnekolonna å krympe, og et
+   langt fornavn dytter poengfeltet ut av boksen. */
 .team {
-  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px;
   padding: 10px 10px 10px 12px; border-radius: var(--radius-input);
   background: var(--color-stone); color: var(--color-ink);
   transition: background-color 150ms ease, opacity 150ms ease;
 }
 .team-names {
   display: grid; gap: 6px; text-align: left; padding: 0; border: 0; background: transparent; color: inherit;
-  font: inherit; cursor: pointer;
+  font: inherit; cursor: pointer; min-width: 0;
 }
+.team-names > * { min-width: 0; }
+.team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team-names:disabled { cursor: default; }
 .team-won { background: var(--color-forest); color: var(--color-cream); }
 .team-lost { opacity: 0.5; }

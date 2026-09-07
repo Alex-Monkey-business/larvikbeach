@@ -51,6 +51,17 @@ export function signupOpen(iso: string, windowDays: number): boolean {
   return now >= signupOpensAt(iso, windowDays).getTime() && now < new Date(iso).getTime()
 }
 
+/**
+ * Øktene på forsiden starter her: fra i går hvis klokka ikke har passert tolv,
+ * ellers fra i dag. Kveldens økt skal stå med resultat til dagen etter.
+ */
+export function sessionsFrom(now: Date = new Date()): string {
+  const d = new Date(now)
+  if (d.getHours() < 12) d.setDate(d.getDate() - 1)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
+}
+
 export function isPast(iso: string): boolean {
   return new Date(iso).getTime() < Date.now()
 }

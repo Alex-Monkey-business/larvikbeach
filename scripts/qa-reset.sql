@@ -20,6 +20,12 @@ update public.sessions s
                  + interval '19 hours'
   from p where s.id = p.id;
 
+-- Siste spilte økt flyttes til i dag, så resultatvisningen på forsiden prøves.
+with h as (select s.id from public.sessions s where s.status = 'held' order by s.starts_at desc limit 1)
+update public.sessions s
+   set starts_at = greatest(date_trunc('day', now()), now() - interval '2 hours')
+  from h where s.id = h.id;
+
 -- Alex bakerst i køen på første planlagte økt (7 påmeldt, 6 plasser → venteliste nr. 1)
 with s as (select id from public.sessions where status = 'planned' and starts_at > now() - interval '3 hours' order by starts_at limit 1),
      me as (select id from public.profiles where email = 'alexander.samnoy@gmail.com')
