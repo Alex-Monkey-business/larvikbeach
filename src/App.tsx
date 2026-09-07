@@ -5,6 +5,7 @@ import { Home } from './pages/public/Home'
 import { About } from './pages/public/About'
 import { Join } from './pages/public/Join'
 import { Login } from './pages/public/Login'
+import { Privacy } from './pages/public/Privacy'
 import { Play } from './pages/play/Play'
 import { SessionPage } from './pages/play/SessionPage'
 import { Billing } from './pages/play/Billing'
@@ -25,6 +26,7 @@ export function App() {
         <Route path="om-oss" element={<About />} />
         <Route path="bli-med" element={<Join />} />
         <Route path="logg-inn" element={<Login />} />
+        <Route path="personvern" element={<Privacy />} />
 
         <Route path="spill" element={<RequireAuth />}>
           <Route index element={<Play />} />
