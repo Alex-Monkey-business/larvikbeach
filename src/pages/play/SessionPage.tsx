@@ -14,13 +14,13 @@ import { Matches } from '../../components/Matches'
 export function SessionPage() {
   const { id = '' } = useParams()
   const { profile, isAdmin } = useAuth()
-  const one = useQuery(() => api.session(id), [id])
-  const s = useSessions({ from: one.data?.starts_at, to: one.data ? new Date(new Date(one.data.starts_at).getTime() + 1).toISOString() : undefined }, [one.data?.starts_at])
+  const s = useSessions({ id }, [id])
   const people = useQuery(() => api.profiles(), [])
   const charges = useQuery(() => api.charges({ sessionId: id }), [id, s.data])
 
-  const session = one.data
-  if (one.error) return <Notice>{one.error}</Notice>
+  const session = s.data?.sessions[0]
+  if (s.error) return <Notice>{s.error}</Notice>
+  if (s.data && !session) return <Notice>Fant ikke økta</Notice>
   if (!session || !s.data || !people.data) return null
 
   const att = s.data.attendance.filter(a => a.session_id === id)
@@ -70,7 +70,7 @@ export function SessionPage() {
           <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
         </div>
       )}
-      {s.error && <Notice>{s.error}</Notice>}
+      {s.actionError && <Notice>{s.actionError}</Notice>}
 
       <section className="grid-2">
         <div className="card stack">

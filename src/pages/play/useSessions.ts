@@ -9,7 +9,7 @@ export interface SessionsWithAttendance {
 }
 
 /** Økter i et tidsvindu med all påmelding, og en toggler som oppdaterer optimistisk. */
-export function useSessions(opts: { from?: string; to?: string; seasonId?: string }, deps: unknown[] = []) {
+export function useSessions(opts: { from?: string; to?: string; seasonId?: string; id?: string }, deps: unknown[] = []) {
   const q = useQuery<SessionsWithAttendance>(async () => {
     const sessions = await api.sessions(opts)
     const attendance = await api.attendance(sessions.map(s => s.id))
@@ -30,7 +30,7 @@ export function useSessions(opts: { from?: string; to?: string; seasonId?: strin
     }
   }
 
-  return { ...q, toggle, busyId, error }
+  return { ...q, toggle, busyId, actionError: error }
 }
 
 /** Påmeldte i kørekkefølge (først trykket, først plass). */

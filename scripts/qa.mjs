@@ -3,7 +3,8 @@
 // Logger inn via Mailpit (henter koden fra e-posten), går gjennom spiller- og
 // adminflaten, og måler scrollX på 390 px. Skjermbilder i qa/.
 import { chromium } from 'playwright'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 
 const APP = process.env.APP_URL ?? 'http://localhost:5173'
 const MAIL = process.env.MAIL_URL ?? 'http://127.0.0.1:55324'
@@ -11,6 +12,11 @@ const ADMIN = 'alexander.samnoy@gmail.com'
 const PLAYER = 'ola1@example.com'
 const INVITEE = `test${Date.now()}@example.com`
 mkdirSync('qa', { recursive: true })
+
+// Gjentakbar: rydd det forrige kjøring endret (kamper, regningsstatus, testbrukere).
+if (!process.env.QA_NO_RESET) {
+  execSync('docker exec -i supabase_db_larvikbeach psql -U postgres -v ON_ERROR_STOP=1 -q', { input: readFileSync('scripts/qa-reset.sql') })
+}
 
 const fails = []
 const ok = (cond, msg) => { if (!cond) fails.push(msg); console.log(`${cond ? 'ok  ' : 'FEIL'} ${msg}`) }
@@ -112,6 +118,9 @@ try {
   await p.goto(`${APP}/spill/statistikk`)
   await p.locator('text=økter · seire').waitFor({ timeout: 5000 })
   ok(true, 'statistikk: seire-kolonnen kom etter første resultat')
+  await p.goto(`${APP}/spill/okter/00000000-0000-0000-0000-000000000000`)
+  await p.waitForSelector('text=Fant ikke økta', { timeout: 5000 })
+  ok(true, 'økt: ukjent id gir «Fant ikke økta»')
   await p.goto(`${APP}/spill/betaling`); await shot(p, 'm-betaling')
   await p.goto(`${APP}/spill/meg`); await shot(p, 'm-meg')
   await p.goto(`${APP}/admin`); await shot(p, 'm-admin-okter')
@@ -152,7 +161,9 @@ try {
   await p.click('button:has-text("Logg inn")')
   await p.waitForSelector('text=Ikke tilgang ennå', { timeout: 10000 })
   ok(true, 'uinvitert: kommer inn, men ser «Ikke tilgang ennå»')
-  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
+  await p.click('button:has-text("Logg ut")')
+  await p.waitForSelector('button:has-text("Send kode")', { timeout: 5000 })
+  ok(await p.locator('text=Ikke tilgang ennå').count() === 0, 'uinvitert: «Logg ut» lander på innloggingsskjemaet')
 
   // Admin ser og bekrefter
   await login(p, ADMIN)

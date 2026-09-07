@@ -5,7 +5,7 @@ export function Layout() {
   return (
     <>
       <Nav />
-      <main className="page" style={{ paddingBottom: 'var(--space-12)' }}>
+      <main className="page" style={{ paddingBottom: 'calc(var(--space-12) + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
     </>

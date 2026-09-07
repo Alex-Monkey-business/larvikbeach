@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
-import { longDate, time, endTime } from '../lib/format'
+import { longDate, time, endTime, isPast } from '../lib/format'
 import { kr, shareOre } from '../lib/money'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
@@ -39,7 +39,7 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
         </div>
       </div>
-      {onToggle && session.status === 'planned' && (
+      {onToggle && session.status === 'planned' && !isPast(session.starts_at) && (
         <div className="session-card-actions">
           <AttendButton session={session} goingCount={goingCount} mine={mine} busy={busy} onToggle={onToggle} />
         </div>

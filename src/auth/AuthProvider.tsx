@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Provider, Session } from '@supabase/auth-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
@@ -28,28 +28,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as Profile | null) ?? null)
   }, [])
 
+  // Hvem profilen er lest for. undefined = ingen ennå.
+  const userRef = useRef<string | null | undefined>(undefined)
+  const apply = useCallback(async (s: Session | null) => {
+    setSession(s)
+    const uid = s?.user.id ?? null
+    // Samme bruker (token fornyet, fane fikk fokus): ikke rør ready. Ellers
+    // avmonteres hele siden og skjema-tilstand forsvinner hver time.
+    if (uid === userRef.current) return
+    userRef.current = uid
+    // ready går ned til profilen er lest, så vaktene ikke ser «null profil»
+    // og tolker det som inaktiv i det korte mellomrommet.
+    setReady(false)
+    await loadProfile(uid ?? undefined)
+    setReady(true)
+  }, [loadProfile])
+
   useEffect(() => {
     let alive = true
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       if (!alive) return
       // Etter Google/Microsoft ligger tokenene i #fragmentet. Sesjonen er lest
       // nå, så fragmentet skal ut av adressefeltet og historikken.
       if (window.location.hash.includes('access_token=')) {
         history.replaceState(null, '', window.location.pathname + window.location.search)
       }
-      setSession(data.session)
-      await loadProfile(data.session?.user.id)
-      setReady(true)
+      void apply(data.session)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s)
-      // ready går ned til profilen er lest, så vaktene ikke ser «null profil»
-      // og tolker det som inaktiv i det korte mellomrommet.
-      setReady(false)
-      void loadProfile(s?.user.id).then(() => setReady(true))
-    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => { void apply(s) })
     return () => { alive = false; sub.subscription.unsubscribe() }
-  }, [loadProfile])
+  }, [apply])
 
   const value = useMemo<AuthState>(() => ({
     session,

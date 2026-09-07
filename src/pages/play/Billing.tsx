@@ -56,9 +56,9 @@ export function Billing() {
         </section>
       )}
 
-      <section className="stack">
+      {inv.data && (rest.length > 0 || inv.data.length === 0) && <section className="stack">
         <h2 className="h3">Historikk</h2>
-        {inv.data && inv.data.length === 0 && <p className="muted">Ingen regninger ennå.</p>}
+        {inv.data.length === 0 && <p className="muted">Ingen regninger ennå.</p>}
         <ul className="list">
           {rest.map(i => (
             <li key={i.id} className="row between">
@@ -67,7 +67,7 @@ export function Billing() {
             </li>
           ))}
         </ul>
-      </section>
+      </section>}
     </div>
   )
 }

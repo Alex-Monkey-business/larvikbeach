@@ -54,3 +54,7 @@
   .nav-links:not(.nav-links-app) a[href="/om-oss"] { display: none; }
   .nav { padding-left: 16px; }
 }
+@media (max-width: 359px) {
+  /* 320 px: «Bli med» står i heroen, pillen beholder bare navn og Logg inn. */
+  .nav-links:not(.nav-links-app) a[href="/bli-med"] { display: none; }
+}

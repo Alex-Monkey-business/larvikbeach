@@ -42,7 +42,7 @@ export function Play() {
       <section className="stack">
         <h2 className="h3">Neste økter</h2>
         {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
-        {s.error && <Notice>{s.error}</Notice>}
+        {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
         {s.data && upcoming.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
         {upcoming.map(x => (
           <SessionCard key={x.id} session={x}

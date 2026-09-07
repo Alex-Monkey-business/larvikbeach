@@ -86,6 +86,7 @@ a.card { display: block; text-decoration: none; }
 .on-dark .btn { border-color: var(--color-cream); }
 .btn-block { width: 100%; }
 .btn-sm { min-height: 40px; padding: 8px 16px; font-size: var(--text-caption); }
+.btn-wrap { white-space: normal; text-align: center; }
 
 /* Skjema */
 .field { display: grid; gap: 6px; }

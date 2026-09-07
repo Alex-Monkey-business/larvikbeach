@@ -13,7 +13,8 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:functions": "supabase functions serve --no-verify-jwt"
+    "db:functions": "supabase functions serve --no-verify-jwt",
+    "qa:widths": "node scripts/qa-viewports.mjs"
   },
   "dependencies": {
     "@supabase/auth-js": "^2.115.0",

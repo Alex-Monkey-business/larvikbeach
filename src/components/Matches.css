@@ -1,6 +1,7 @@
 .matches { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
 .match { display: grid; gap: 6px; }
-.match-teams { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); }
+.match-teams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-1); }
+@media (max-width: 359px) { .match-teams { grid-template-columns: 1fr; } }
 
 /* Lagboksen er laget. Vinner = skoggrønn, taper = dempet. */
 .team {

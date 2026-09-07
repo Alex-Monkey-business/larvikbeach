@@ -45,9 +45,9 @@ export function AdminBilling() {
         <h2 className="h3">Månedsregning</h2>
         <p>Ufakturert akkurat nå: <strong>{kr(uninvoiced)}</strong>. Regningene lages og sendes automatisk den {q.data.settings.billing_day}. hver måned. Du kan også gjøre det nå.</p>
         <div className="row">
-          <button type="button" className="btn btn-primary" disabled={busy !== null}
+          <button type="button" className="btn btn-primary btn-wrap" disabled={busy !== null}
             onClick={() => void run('send', async () => { const r = await api.sendInvoices({ period: lastMonth }); return `${r.created} regninger laget, ${r.sent} e-poster sendt.` })}>
-            Lag og send regninger for {periodLabel(lastMonth)}
+            Lag og send regninger for {periodLabel(lastMonth).toLowerCase()}
           </button>
           <button type="button" className="btn" disabled={busy !== null}
             onClick={() => void run('create', async () => { const n = await api.createInvoices(lastMonth); return `${n} regninger laget, ingen sendt.` })}>

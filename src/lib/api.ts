@@ -23,8 +23,9 @@ export const api = {
     return unwrap<Season>(await supabase.from('seasons').insert(rest).select().single())
   },
 
-  sessions: async (opts: { from?: string; to?: string; seasonId?: string } = {}) => {
+  sessions: async (opts: { from?: string; to?: string; seasonId?: string; id?: string } = {}) => {
     let q = supabase.from('sessions').select('*').order('starts_at')
+    if (opts.id) q = q.eq('id', opts.id)
     if (opts.from) q = q.gte('starts_at', opts.from)
     if (opts.to) q = q.lt('starts_at', opts.to)
     if (opts.seasonId) q = q.eq('season_id', opts.seasonId)

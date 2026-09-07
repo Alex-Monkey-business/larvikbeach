@@ -25,6 +25,8 @@ export function Login() {
   const inactive = ready && !!session && (!profile || !profile.active)
   useEffect(() => { if (ready && session && profile?.active) nav(from, { replace: true }) }, [ready, session, profile, nav, from])
   useEffect(() => { if (step === 'code') codeRef.current?.focus() }, [step])
+  // Logget ut (fra denne siden eller menyen): tilbake til første steg.
+  useEffect(() => { if (ready && !session) { setStep('email'); setCode('') } }, [ready, session])
   // Feil fra Google/Microsoft kommer tilbake i URL-en.
   useEffect(() => {
     const desc = params.get('error_description') ?? new URLSearchParams(window.location.hash.slice(1)).get('error_description')
@@ -54,7 +56,7 @@ export function Login() {
   }
 
   // Innlogget, men ikke invitert eller satt inaktiv.
-  if (inactive || params.get('inaktiv')) {
+  if (inactive || (session && params.get('inaktiv'))) {
     return (
       <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 480 }}>
         <h1 className="h1">Ikke tilgang ennå</h1>
@@ -62,7 +64,7 @@ export function Login() {
           <p>{session?.user.email ? <><strong>{session.user.email}</strong> er ikke invitert.</> : 'Denne kontoen har ikke tilgang.'} Er du ny, be om å bli med. Er du satt inaktiv, snakk med den som styrer gjengen.</p>
           <div className="row">
             <Link to="/bli-med" className="btn btn-primary">Bli med</Link>
-            {session && <button type="button" className="btn btn-ghost" onClick={() => void signOut()}>Logg ut</button>}
+            {session && <button type="button" className="btn btn-ghost" onClick={() => void signOut().then(() => nav('/logg-inn', { replace: true }))}>Logg ut</button>}
           </div>
         </div>
       </div>
