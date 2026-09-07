@@ -118,6 +118,8 @@ export interface Match {
   team_b: string[]
   resting: string[]
   winner: 'a' | 'b' | null
+  score_a: number | null
+  score_b: number | null
 }
 
 export interface SeasonStat {
