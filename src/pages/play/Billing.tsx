@@ -24,7 +24,10 @@ export function Billing() {
 
   const open = (inv.data ?? []).filter(i => i.status === 'open' || i.status === 'notified')
   const rest = (inv.data ?? []).filter(i => !(i.status === 'open' || i.status === 'notified'))
-  const owed = bal.data?.invoiced_open ?? 0
+  const faktura = bal.data?.invoiced_open ?? 0     // regning sendt, betal nå
+  const palopt = bal.data?.uninvoiced ?? 0          // økter spilt, ikke fakturert ennå
+  const meldt = bal.data?.claimed ?? 0              // meldt betalt, venter på admin
+  const owed = faktura + palopt
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
@@ -33,10 +36,15 @@ export function Billing() {
       <section className={`card stack ${owed > 0 ? 'card-lavender' : ''}`}>
         <p className="caption" style={{ color: owed > 0 ? 'var(--color-ink)' : undefined }}>{owed > 0 ? 'Du skylder' : 'Utestående'}</p>
         <p className="num">{kr(owed)}</p>
-        {owed > 0 && settings.data?.vipps_number && (
-          <p>Vipps <strong>{kr(owed)}</strong> til <strong>{settings.data.vipps_number}</strong>{settings.data.vipps_display_name ? ` (${settings.data.vipps_display_name})` : ''}, og trykk «Jeg har vippset» under.</p>
+        {faktura > 0 && settings.data?.vipps_number && (
+          <p>Vipps <strong>{kr(faktura)}</strong> til <strong>{settings.data.vipps_number}</strong>{settings.data.vipps_display_name ? ` (${settings.data.vipps_display_name})` : ''}, og trykk «Jeg har vippset» under.</p>
         )}
-        {(bal.data?.uninvoiced ?? 0) > 0 && <p className="muted">Påløpt siden sist: {kr(bal.data!.uninvoiced)}. Kommer på neste regning.</p>}
+        {palopt > 0 && (
+          <p style={{ color: owed > 0 ? 'var(--color-ink)' : undefined }}>
+            {faktura > 0 ? `Av dette er ${kr(palopt)} økter du har spilt siden forrige regning.` : `${kr(palopt)} for økter du har spilt.`} Det kommer på regningen den {settings.data?.billing_day ?? 1}.
+          </p>
+        )}
+        {meldt > 0 && <p className="muted">{kr(meldt)} er meldt betalt og venter på bekreftelse.</p>}
       </section>
 
       {error && <Notice>{error}</Notice>}

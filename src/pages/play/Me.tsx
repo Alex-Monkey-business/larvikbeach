@@ -44,12 +44,11 @@ export function Me() {
           <div className="me-numbers">
             <div><p className="num">{mine?.sessions ?? 0}</p><p className="caption">økter</p></div>
             <div><p className="num">{mine?.wins ?? 0}</p><p className="caption">seire</p></div>
-            <div><p className="num">{mine?.games ?? 0}</p><p className="caption">kamper</p></div>
             <div><p className="num">{signed(mine?.points_diff ?? 0)}</p><p className="caption">poeng</p></div>
           </div>
-          {(mine?.points_for || mine?.points_against) ? (
-            <p className="caption">{mine.points_for} scoret, {mine.points_against} sluppet inn.</p>
-          ) : null}
+          {(mine?.games ?? 0) > 0 && (
+            <p className="caption">{mine!.games} {mine!.games === 1 ? 'kamp' : 'kamper'} · {mine!.points_for} scoret · {mine!.points_against} sluppet inn</p>
+          )}
           <Link to="/spill/statistikk" className="btn btn-ghost btn-sm" style={{ justifySelf: 'start', paddingLeft: 0 }}>Se hele statistikken →</Link>
         </section>
       )}

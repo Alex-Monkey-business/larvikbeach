@@ -207,15 +207,34 @@ function TeamBox({ players, won, lost, value, onChange, onCommit, onWin, canAct,
 
 function Standings({ matches, byId }: { matches: Match[]; byId: Map<string, Profile> }) {
   const wins = new Map<string, number>()
+  const scoret = new Map<string, number>()
+  const sluppet = new Map<string, number>()
+  const legg = (m: Map<string, number>, id: string, n: number) => m.set(id, (m.get(id) ?? 0) + n)
   for (const m of matches) {
-    if (!m.winner) continue
-    for (const id of m.winner === 'a' ? m.team_a : m.team_b) wins.set(id, (wins.get(id) ?? 0) + 1)
+    if (m.winner) for (const id of m.winner === 'a' ? m.team_a : m.team_b) legg(wins, id, 1)
+    if (m.score_a == null || m.score_b == null) continue
+    for (const id of m.team_a) { legg(scoret, id, m.score_a); legg(sluppet, id, m.score_b) }
+    for (const id of m.team_b) { legg(scoret, id, m.score_b); legg(sluppet, id, m.score_a) }
   }
-  const rows = [...byId.values()].map(p => ({ p, w: wins.get(p.id) ?? 0 })).sort((a, b) => b.w - a.w)
+  const poeng = [...byId.keys()].some(id => scoret.has(id))
+  const rows = [...byId.values()]
+    .map(p => ({ p, w: wins.get(p.id) ?? 0, d: (scoret.get(p.id) ?? 0) - (sluppet.get(p.id) ?? 0) }))
+    .sort((a, b) => b.w - a.w || b.d - a.d)
   if (matches.length === 1) return null
   return (
-    <ul className="list" aria-label="Seire">
-      {rows.map(({ p, w }) => <li key={p.id} className="row between"><span className="row" style={{ gap: 8 }}><Avatar profile={p} size={28} />{p.name}</span><span className="num" style={{ fontSize: 24 }}>{w}</span></li>)}
-    </ul>
+    <div className="stack">
+      <div className="row between"><span className="caption">Stillingen</span><span className="caption">seire{poeng ? ' · poeng' : ''}</span></div>
+      <ul className="list" aria-label="Stillingen">
+        {rows.map(({ p, w, d }) => (
+          <li key={p.id} className="row between">
+            <span className="row" style={{ gap: 8, minWidth: 0 }}><Avatar profile={p} size={28} /><span className="team-name">{p.name}</span></span>
+            <span className="row" style={{ gap: 14, flexWrap: 'nowrap' }}>
+              <span className="num" style={{ fontSize: 24 }}>{w}</span>
+              {poeng && <span className="num muted" style={{ fontSize: 24, minWidth: 42, textAlign: 'right' }}>{d > 0 ? `+${d}` : d < 0 ? `\u2212${Math.abs(d)}` : '0'}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }

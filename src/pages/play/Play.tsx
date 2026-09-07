@@ -2,79 +2,90 @@ import { Link } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
-import { kr } from '../../lib/money'
 import { SessionCard } from '../../components/SessionCard'
 import { Notice } from '../../components/Notice'
-import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
-import type { Match, Profile } from '../../lib/types'
-import { sessionsFrom } from '../../lib/format'
 import { Konfetti } from '../../components/Konfetti'
+import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
+import type { Match, Profile, Season, Session } from '../../lib/types'
+import { time, endTime } from '../../lib/format'
 
+/**
+ * Hjem er to økter: den forrige og den neste. Det første døgnet etter en økt
+ * står den øverst, med resultatet. Etter det tar den neste over toppen.
+ */
 export function Play() {
   const { profile } = useAuth()
   const settings = useQuery(() => api.settings(), [])
-  // Påmeldingsvinduet. 14 som utgangspunkt, så lista ikke blafrer før
-  // innstillingene er lest.
   const windowDays = settings.data?.signup_window_days ?? 14
-  // Hentes tre dager tilbake: kortet vises bare til midt på dagen etter, men
-  // feiringen skal finne fram til den som vant selv om det gikk et døgn.
-  const from = new Date(Date.now() - 3 * 86_400_000).toISOString()
+  // Bakover: nok til å finne forrige økt selv etter en ferie.
+  const from = new Date(Date.now() - 90 * 86_400_000).toISOString()
   const to = new Date(Date.now() + windowDays * 86_400_000).toISOString()
   const s = useSessions({ from, to }, [windowDays])
-  const visFra = sessionsFrom()
-  const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
   const people = useQuery(() => api.profiles(), [])
-  const played = (s.data?.sessions ?? []).filter(x => new Date(x.starts_at).getTime() < Date.now()).map(x => x.id)
-  const matches = useQuery(() => api.matchesFor(played), [played.join(',')])
   const seasons = useQuery(() => api.seasons(), [])
   const byId = new Map<string, Profile>((people.data ?? []).map(p => [p.id, p]))
 
-  const upcoming = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled' && x.starts_at >= visFra)
-  // Vant du sist? Da feires det én gang, når du åpner appen.
-  const sist = (s.data?.sessions ?? []).filter(x => played.includes(x.id))
-    .map(x => ({ x, vinnere: topWinners(matches.data ?? [], x.id, byId) }))
-    .filter(v => v.vinnere.length > 0).pop()
-  const feir = sist && profile && sist.vinnere.some(w => w.id === profile.id) ? sist.x.id : null
-  const notice = seasons.data?.find(se => se.id === upcoming[0]?.season_id)?.notice
-  const owed = (bal.data?.invoiced_open ?? 0)
-  const pending = (bal.data?.uninvoiced ?? 0)
+  const alle = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled')
+  const na = Date.now()
+  const forrige = alle.filter(x => new Date(x.starts_at).getTime() < na).pop()
+  const neste = alle.find(x => new Date(x.starts_at).getTime() >= na)
+  const ferskt = forrige != null && na - new Date(forrige.starts_at).getTime() < 24 * 3600_000
+  const vist = (ferskt ? [forrige, neste] : [neste, forrige]).filter(Boolean) as Session[]
+
+  const matches = useQuery(() => api.matchesFor(forrige ? [forrige.id] : []), [forrige?.id])
+  const notice = seasons.data?.find(se => se.id === (neste ?? forrige)?.season_id)?.notice
+  const vinnere = forrige ? topWinners(matches.data ?? [], forrige.id, byId) : []
+  const feir = profile && forrige && vinnere.some(w => w.id === profile.id) ? forrige.id : null
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)' }}>
       {feir && <Konfetti nokkel={`lbv-vinner-${feir}`} />}
-      <div className="row between">
-        <h1 className="h1">Hei, {profile?.name.split(' ')[0]}.</h1>
+      <h1 className="h1">Hei, {profile?.name.split(' ')[0]}.</h1>
+
+      {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
+      {s.error && <Notice>{s.error}</Notice>}
+      {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
+      {s.data && vist.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
+
+      <div className="stack-lg">
+        {vist.map(x => (
+          <section key={x.id} className="stack">
+            <p className="caption">{x.id === forrige?.id ? 'Forrige økt' : 'Neste økt'}</p>
+            <SessionCard session={x}
+              goingCount={goingCount(s.data!.attendance, x.id)}
+              {...splitQueue(s.data!.attendance, x, byId)}
+              mine={mineFor(s.data!.attendance, x, profile?.id)}
+              busy={s.busyId === x.id}
+              signupWindowDays={windowDays}
+              winners={x.id === forrige?.id ? vinnere : []}
+              subtitle={avvik(x, seasons.data ?? [], alle)}
+              onToggle={going => void s.toggle(x.id, going)} />
+          </section>
+        ))}
       </div>
 
-      {bal.data && (owed > 0 || pending > 0 || bal.data.claimed > 0) && (
-        <Link to="/spill/betaling" className={`card stack ${owed > 0 ? 'card-lavender' : ''}`} style={{ textDecoration: 'none', maxWidth: 520 }}>
-          {owed > 0
-            ? <><p className="caption" style={{ color: 'var(--color-ink)' }}>Du skylder</p><p className="num">{kr(owed)}</p><p>Trykk for å se regningen og Vipps-nummeret.</p></>
-            : bal.data.claimed > 0
-              ? <><p className="caption">Venter på bekreftelse</p><p className="num">{kr(bal.data.claimed)}</p><p>Du har meldt betalt. Admin bekrefter.</p></>
-              : <><p className="caption">Påløpt denne måneden</p><p className="num">{kr(pending)}</p><p>Kommer på regningen den 1.</p></>}
-        </Link>
-      )}
-
-      <section className="stack">
-        <h2 className="h3">Neste økter</h2>
-        {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
-        {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
-        {s.data && upcoming.length === 0 && <p className="muted">Ingen økter de neste {windowDays} dagene.</p>}
-        {upcoming.map(x => (
-          <SessionCard key={x.id} session={x}
-            goingCount={goingCount(s.data!.attendance, x.id)}
-            {...splitQueue(s.data!.attendance, x, byId)}
-            mine={mineFor(s.data!.attendance, x, profile?.id)}
-            busy={s.busyId === x.id}
-            signupWindowDays={windowDays}
-            winners={topWinners(matches.data ?? [], x.id, byId)}
-            onToggle={going => void s.toggle(x.id, going)} />
-        ))}
-        <Link to="/spill/kalender" className="btn btn-ghost" style={{ justifySelf: 'start', paddingLeft: 0 }}>Hele terminlisten →</Link>
-      </section>
+      <Link to="/spill/kalender" className="btn btn-ghost" style={{ justifySelf: 'start', paddingLeft: 0 }}>Hele terminlisten →</Link>
     </div>
   )
+}
+
+/**
+ * Alle vet at det er mandag 19–21 i hallen. Undertittelen sier bare fra når
+ * økta ikke er som de andre: annet sted, eller annen tid enn resten av sesongen.
+ */
+function avvik(x: Session, seasons: Season[], alle: Session[]): string | null {
+  const sted = x.location && x.location !== seasons.find(s => s.id === x.season_id)?.default_location ? x.location : null
+  const vanlig = vanligTid(alle.filter(a => a.season_id === x.season_id))
+  const tid = vanlig && time(x.starts_at) !== vanlig ? `${time(x.starts_at)}–${endTime(x.starts_at, x.duration_min)}` : null
+  return [tid, sted].filter(Boolean).join(' · ') || null
+}
+
+function vanligTid(sesongen: Session[]): string | null {
+  const teller = new Map<string, number>()
+  for (const s of sesongen) { const t = time(s.starts_at); teller.set(t, (teller.get(t) ?? 0) + 1) }
+  let best: string | null = null, n = 0
+  for (const [t, c] of teller) if (c > n) { best = t; n = c }
+  return n > 1 ? best : null
 }
 
 /** De med flest seire på økta. Ingen resultater gir ingen vinnere. */

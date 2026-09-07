@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
-import { longDate, time, endTime, isPast, signupOpen } from '../lib/format'
+import { longDate, isPast, signupOpen } from '../lib/format'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
 
@@ -14,10 +14,11 @@ interface Props {
   busy?: boolean
   signupWindowDays: number
   winners?: Profile[]          // flest seire på en spilt økt
+  subtitle?: string | null     // bare når økta avviker fra det vanlige
   onToggle?: (going: boolean) => void
 }
 
-export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, winners = [], onToggle }: Props) {
+export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, winners = [], subtitle, onToggle }: Props) {
   const full = session.capacity != null && goingCount >= session.capacity
   const played = isPast(session.starts_at) && session.status !== 'cancelled'
   const hasSpot = mine.going === true && !mine.waitlisted
@@ -26,7 +27,8 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
       <div className="session-card-main">
         <Link to={`/spill/okter/${session.id}`} className="session-card-title">
           <span className="h3">{longDate(session.starts_at)}</span>
-          <span className="muted">{time(session.starts_at)}–{endTime(session.starts_at, session.duration_min)}{session.location ? ` · ${session.location}` : ''}</span>
+          {subtitle && <span className="muted">{subtitle}</span>}
+          {session.note && <span className="muted">{session.note}</span>}
         </Link>
         {(withSpot.length + waitlist.length) > 0 && (
           <Link to={`/spill/okter/${session.id}`} className="session-card-people" aria-label="Se hvem som kommer">
