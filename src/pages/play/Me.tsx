@@ -2,36 +2,62 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
+import { useQuery } from '../../lib/useQuery'
+import { Avatar } from '../../components/Avatar'
 import { Notice } from '../../components/Notice'
 
+// Leseflate. Redigering er et valg man tar, ikke tilstanden man lander i.
 export function Me() {
-  const { profile, reloadProfile } = useAuth()
-  const [name, setName] = useState(profile?.name ?? '')
-  const [phone, setPhone] = useState(profile?.phone ?? '')
-  const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const [error, setError] = useState<string | null>(null)
+  const { profile } = useAuth()
+  const [editing, setEditing] = useState(false)
 
-  async function save(e: FormEvent) {
-    e.preventDefault()
-    setState('saving'); setError(null)
-    try { await api.updateMyProfile(name, phone); await reloadProfile(); setState('saved') }
-    catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt'); setState('idle') }
-  }
+  const q = useQuery(async () => {
+    const seasons = await api.seasons()
+    const today = new Date().toISOString().slice(0, 10)
+    const season = seasons.find(s => s.starts_on <= today && s.ends_on >= today) ?? seasons[0]
+    if (!season) return null
+    const stats = await api.seasonStats(season.id)
+    return { season, stats }
+  }, [])
+
+  const rows = (q.data?.stats ?? []).slice().sort((a, b) => b.sessions - a.sessions || b.wins - a.wins)
+  const mine = rows.find(r => r.profile_id === profile?.id)
+  const rank = mine ? rows.findIndex(r => r.profile_id === mine.profile_id) + 1 : null
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 560 }}>
-      <h1 className="h1">{profile?.name}</h1>
+      <header className="row" style={{ gap: 14, flexWrap: 'nowrap' }}>
+        {profile && <Avatar profile={profile} size={56} />}
+        <h1 className="h1" style={{ minWidth: 0 }}>{profile?.name}</h1>
+      </header>
 
-      <form className="card stack" onSubmit={save}>
-        <label className="field"><span className="label">Navn</span>
-          <input className="input" value={name} onChange={e => { setName(e.target.value); setState('idle') }} required /></label>
-        <label className="field"><span className="label">Telefon</span>
-          <input className="input" type="tel" value={phone} onChange={e => { setPhone(e.target.value); setState('idle') }} /></label>
-        <p className="caption">E-post: {profile?.email}. Den er innloggingen din og endres av admin.</p>
-        {error && <Notice>{error}</Notice>}
-        {state === 'saved' && <Notice kind="ok">Lagret</Notice>}
-        <button className="btn btn-primary" disabled={state === 'saving'}>Lagre</button>
-      </form>
+      {q.data && (
+        <section className="card stack">
+          <div className="row between">
+            <h2 className="h3">{q.data.season.name}</h2>
+            {rank && <span className="caption">nr. {rank} på oppmøte</span>}
+          </div>
+          <div className="me-numbers">
+            <div><p className="num">{mine?.sessions ?? 0}</p><p className="caption">økter</p></div>
+            <div><p className="num">{mine?.wins ?? 0}</p><p className="caption">seire</p></div>
+            <div><p className="num">{mine?.games ?? 0}</p><p className="caption">kamper</p></div>
+          </div>
+          <Link to="/spill/statistikk" className="btn btn-ghost btn-sm" style={{ justifySelf: 'start', paddingLeft: 0 }}>Se hele statistikken →</Link>
+        </section>
+      )}
+
+      {editing
+        ? <EditForm onDone={() => setEditing(false)} />
+        : (
+          <section className="card stack">
+            <ul className="list">
+              <li className="row between"><span className="caption">E-post</span><span>{profile?.email}</span></li>
+              <li className="row between"><span className="caption">Telefon</span><span>{profile?.phone || <span className="muted">Ikke lagt inn</span>}</span></li>
+            </ul>
+            <button type="button" className="btn" onClick={() => setEditing(true)}>Endre navn og telefon</button>
+            <p className="caption">E-posten er innloggingen din og endres av admin.</p>
+          </section>
+        )}
 
       <p className="caption">
         <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">Laget av alexmonkeybusiness.com</a>
@@ -39,5 +65,35 @@ export function Me() {
         <Link to="/personvern">Personvern</Link>
       </p>
     </div>
+  )
+}
+
+function EditForm({ onDone }: { onDone: () => void }) {
+  const { profile, reloadProfile } = useAuth()
+  const [name, setName] = useState(profile?.name ?? '')
+  const [phone, setPhone] = useState(profile?.phone ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function save(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true); setError(null)
+    try { await api.updateMyProfile(name, phone); await reloadProfile(); onDone() }
+    catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt'); setBusy(false) }
+  }
+
+  return (
+    <form className="card stack" onSubmit={save}>
+      <h2 className="h3">Endre</h2>
+      <label className="field"><span className="label">Navn</span>
+        <input className="input" value={name} onChange={e => setName(e.target.value)} required /></label>
+      <label className="field"><span className="label">Telefon</span>
+        <input className="input" type="tel" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} /></label>
+      {error && <Notice>{error}</Notice>}
+      <div className="row">
+        <button className="btn btn-primary" disabled={busy}>{busy ? 'Lagrer…' : 'Lagre'}</button>
+        <button type="button" className="btn btn-ghost" onClick={onDone}>Avbryt</button>
+      </div>
+    </form>
   )
 }
