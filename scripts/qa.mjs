@@ -69,6 +69,7 @@ try {
 
   // Admin, mobil
   await login(p, ADMIN); ok(true, 'admin: innlogget med kode fra e-post')
+  await p.goto(APP); await p.waitForURL(/\/spill$/); ok(true, 'innlogget: forsiden sender rett til øktene')
   await p.waitForTimeout(300)
   await shot(p, 'm-spill')
   const first = p.locator('article.session-card').first()

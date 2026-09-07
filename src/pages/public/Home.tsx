@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, Navigate } from 'react-router'
 import { supabase } from '../../lib/supabase'
 import { useQuery, unwrap } from '../../lib/useQuery'
 import { longDate, time } from '../../lib/format'
@@ -8,9 +8,13 @@ import './Home.css'
 interface Upcoming { id: string; starts_at: string; duration_min: number; location: string | null; kind: string; going_count: number }
 
 export function Home() {
-  const { session } = useAuth()
+  const { session, ready } = useAuth()
   const next = useQuery(async () => unwrap<Upcoming[]>(await supabase.from('public_upcoming_sessions').select('*')))
   const first = next.data?.[0]
+
+  // Innlogget: rett på øktene. Forsiden er for de som ikke er med ennå.
+  if (!ready) return null
+  if (session) return <Navigate to="/spill" replace />
 
   return (
     <div className="home">
@@ -21,12 +25,8 @@ export function Home() {
           Nivået er blandet, humøret er ikke.
         </p>
         <div className="row">
-          {session
-            ? <Link to="/spill" className="btn btn-primary">Til øktene</Link>
-            : <>
-                <Link to="/bli-med" className="btn btn-primary">Bli med</Link>
-                <Link to="/logg-inn" className="btn">Logg inn</Link>
-              </>}
+          <Link to="/bli-med" className="btn btn-primary">Bli med</Link>
+          <Link to="/logg-inn" className="btn">Logg inn</Link>
         </div>
       </section>
 
