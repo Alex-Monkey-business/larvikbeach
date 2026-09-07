@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { Notice } from '../../components/Notice'
@@ -31,6 +32,12 @@ export function Me() {
         {state === 'saved' && <Notice kind="ok">Lagret</Notice>}
         <button className="btn btn-primary" disabled={state === 'saving'}>Lagre</button>
       </form>
+
+      <p className="caption">
+        <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">Laget av alexmonkeybusiness.com</a>
+        {' · '}
+        <Link to="/personvern">Personvern</Link>
+      </p>
     </div>
   )
 }

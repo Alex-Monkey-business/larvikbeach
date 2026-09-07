@@ -125,6 +125,8 @@ a.card { display: block; text-decoration: none; }
   border-top: 1px solid var(--color-stone);
 }
 .site-footer a { text-decoration: none; }
+.site-footer .footer-by { margin-left: auto; }
+@media (max-width: 479px) { .site-footer .footer-by { margin-left: 0; flex-basis: 100%; } }
 .site-footer a:hover { text-decoration: underline; }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
