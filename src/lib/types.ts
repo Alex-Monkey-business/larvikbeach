@@ -130,3 +130,11 @@ export interface SeasonStat {
   wins: number
   games: number
 }
+
+export interface SessionTeam {
+  session_id: string
+  team_no: number
+  members: string[]
+  set_by: string | null
+  updated_at: string
+}

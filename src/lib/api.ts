@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrap } from './useQuery'
-import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, Settings } from './types'
+import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, SessionTeam, Settings } from './types'
 
 // Alle skriv som kan filtreres bort av RLS har .select(): en update som
 // treffer null rader gir ellers «ok» uten feil.
@@ -90,6 +90,10 @@ export const api = {
     unwrap<Match[]>(await supabase.from('matches').select('*').eq('session_id', sessionId).order('round')),
   drawMatches: async (sessionId: string, append = false) =>
     unwrap<Match[]>(await supabase.rpc('draw_matches', { p_session: sessionId, p_append: append })),
+  sessionTeams: async (sessionId: string) =>
+    unwrap<SessionTeam[]>(await supabase.from('session_teams').select('*').eq('session_id', sessionId).order('team_no')),
+  setSessionTeams: async (sessionId: string, teams: string[][]) =>
+    unwrap<Match[]>(await supabase.rpc('set_session_teams', { p_session: sessionId, p_teams: teams })),
   setMatchScore: async (matchId: string, a: number | null, b: number | null) =>
     unwrap<Match>(await supabase.rpc('set_match_score', { p_match: matchId, p_a: a, p_b: b })),
   setMatchWinner: async (matchId: string, winner: 'a' | 'b' | null) =>

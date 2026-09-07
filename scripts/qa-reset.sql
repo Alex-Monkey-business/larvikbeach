@@ -1,6 +1,7 @@
 -- Nullstiller det QA-kjøringen endrer, så `npm run qa` kan kjøres igjen uten db reset.
 -- Kjøres av scripts/qa.mjs via docker exec. Rører ikke Alex' innlogging.
 delete from public.matches;
+delete from public.session_teams;
 update public.invoices set status = 'open', claimed_at = null, confirmed_at = null where status in ('claimed', 'confirmed');
 delete from public.join_requests where email like 'test%@example.com' or name = 'Test Testesen';
 delete from public.invites where email like 'test%@example.com';

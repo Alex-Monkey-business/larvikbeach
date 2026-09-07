@@ -118,8 +118,29 @@ try {
   await p.locator('h2:has-text("Historikk")').waitFor({ timeout: 5000 })
   const seksSpilte = p.locator('li:has-text("6 spilte")').first()
   await seksSpilte.locator('a').click(); await p.waitForURL(/okter\//)
-  await p.locator('button:has-text("Trekk lag")').click()
+  // Lag satt opp for hånd: tapp to og to som skal spille sammen.
+  await p.locator('button:has-text("Sett opp lag")').click()
+  const par = []
+  for (let i = 0; i < 3; i++) {
+    const a = p.locator('.pick').nth(0), b = p.locator('.pick').nth(1)
+    par.push([(await a.innerText()).trim(), (await b.innerText()).trim()])
+    await a.click(); await b.click()
+  }
+  ok(await p.locator('.pick').count() === 0, 'lag: alle seks er satt opp')
+  await p.locator('button:has-text("Lagre lag")').click()
   await p.locator('.match').first().waitFor({ timeout: 5000 })
+  ok(await p.locator('.match').count() === 3, 'lag: tre lag gir tre kamper')
+  const lagTekst = await p.locator('.team-names').allInnerTexts()
+  ok(par.every(([a, b]) => lagTekst.some(t => t.includes(a) && t.includes(b))), 'lag: parene som ble tappet står som lag')
+  await shot(p, 'm-lag')
+  await p.locator('button:has-text("Ny runde")').click()
+  await p.waitForFunction(() => document.querySelectorAll('.match').length === 6, null, { timeout: 5000 })
+  const etter = await p.locator('.team-names').allInnerTexts()
+  ok(etter.slice(0, 6).join('|') === etter.slice(6).join('|'), 'lag: «Ny runde» bruker de samme lagene')
+  // Tilfeldig igjen: oppsettet glemmes, så knappen sier «Sett opp lag» på nytt.
+  await p.locator('button:has-text("Trekk på nytt")').click()
+  await p.waitForFunction(() => document.querySelectorAll('.match').length === 3, null, { timeout: 5000 })
+  ok(await p.locator('button:has-text("Sett opp lag")').count() === 1, 'lag: «Trekk på nytt» glemmer oppsettet')
   ok(await p.locator('.match').count() === 3, 'kamper: 6 spillere gir tre kamper')
   await p.locator('.match').first().locator('.team').first().click()
   await p.locator('.team-won').waitFor({ timeout: 5000 })
