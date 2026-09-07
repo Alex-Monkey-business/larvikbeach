@@ -28,3 +28,10 @@
 .team-won .score::placeholder { color: var(--color-stone); }
 .score:disabled { background: transparent; }
 .score:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 1px; }
+
+/* Sett opp lag: tapp to som skal spille sammen. Pillene arver .btn, så ramme,
+   fokus og trykk er de samme som ellers. */
+.pick-pool { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.pick { min-height: 56px; padding: 8px 20px 8px 10px; border-radius: var(--radius-pill); }
+.pick-on { background: var(--color-lavender); }
+.pick-on:focus-visible { outline-color: var(--color-ink); }
