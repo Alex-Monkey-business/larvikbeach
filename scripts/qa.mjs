@@ -76,9 +76,10 @@ try {
   ok(await first.locator('text=Fullt · 1 på venteliste').count() === 1, 'spill: første økt viser «Fullt · 1 på venteliste»')
   ok(await first.locator('button:has-text("Venteliste nr. 1")').count() === 1, 'spill: Alex (sist i køen) står på venteliste nr. 1')
   ok(await first.locator('.avatar').count() === 7 && await first.locator('.avatar-dim').count() === 1, 'spill: 7 avatarer på kortet, 1 dempet (venteliste)')
-  await first.locator('button:has-text("Kan ikke")').click()
+  ok(await first.locator('button').count() === 1, 'spill: én knapp på kortet')
+  await first.locator('button:has-text("Venteliste nr. 1")').click()   // samme knapp melder av
   await first.locator('span.badge:text-is("Fullt")').waitFor({ timeout: 5000 })
-  ok(true, 'spill: etter avmelding er det fullt uten venteliste')
+  ok(true, 'spill: trykk på knappen igjen melder av, fullt uten venteliste')
   await first.locator('button:has-text("Sett meg på venteliste")').click()
   await first.locator('button:has-text("Venteliste nr. 1")').waitFor({ timeout: 5000 })
   ok(true, 'spill: påmelding igjen gir venteliste nr. 1 (bakerst i køen)')

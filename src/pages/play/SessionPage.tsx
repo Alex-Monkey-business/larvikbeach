@@ -5,6 +5,7 @@ import { useQuery } from '../../lib/useQuery'
 import { longDate, time, endTime, isPast } from '../../lib/format'
 import { kr, shareOre } from '../../lib/money'
 import { Notice } from '../../components/Notice'
+import { AttendButton } from '../../components/SessionCard'
 import { useSessions, goingQueue, mineFor, payerCount, statusLine } from './useSessions'
 import type { Profile } from '../../lib/types'
 import { Avatar } from '../../components/Avatar'
@@ -27,12 +28,10 @@ export function SessionPage() {
   const cap = session.capacity ?? queue.length
   const withSpot = queue.slice(0, cap)
   const waitlist = queue.slice(cap)
-  const notGoing = att.filter(a => !a.going).map(a => byId.get(a.profile_id)).filter(Boolean) as Profile[]
   const mine = mineFor(att, session, profile?.id)
   const n = queue.length
   const payers = payerCount(session, n)
   const full = session.capacity != null && n >= session.capacity
-  const hasSpot = mine.going === true && !mine.waitlisted
   const open = session.status === 'planned' && !isPast(session.starts_at)
   const myCharge = charges.data?.find(c => c.profile_id === profile?.id)
 
@@ -67,10 +66,7 @@ export function SessionPage() {
 
       {open && (
         <div className="row">
-          <button type="button" className={`btn ${hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, true)}>
-            {hasSpot ? 'Du har plass' : mine.going === true ? `Venteliste nr. ${mine.spot - cap}` : full ? 'Sett meg på venteliste' : 'Jeg kommer'}
-          </button>
-          <button type="button" className={`btn ${mine.going === false ? 'btn-dark' : ''}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, false)}>Kan ikke</button>
+          <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
         </div>
       )}
       {s.error && <Notice>{s.error}</Notice>}
@@ -86,12 +82,7 @@ export function SessionPage() {
             <ul className="list">{waitlist.map((p, i) => <li key={p.id} className="row"><Avatar profile={p} dim />{i + 1}. {p.name}</li>)}</ul>
           </div>
         )}
-        {notGoing.length > 0 && (
-          <div className="card stack">
-            <h2 className="h3">Kan ikke <span className="muted">{notGoing.length}</span></h2>
-            <ul className="list">{notGoing.map(p => <li key={p.id}>{p.name}</li>)}</ul>
-          </div>
-        )}
+
       </section>
 
       {isAdmin && <Link to={`/admin/okter/${id}`} className="btn">Rediger som admin</Link>}

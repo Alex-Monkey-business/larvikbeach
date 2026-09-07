@@ -41,14 +41,35 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
       </div>
       {onToggle && session.status === 'planned' && (
         <div className="session-card-actions">
-          <button type="button" className={`btn ${hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'}`} disabled={busy} onClick={() => onToggle(true)}>
-            {hasSpot ? 'Du har plass' : mine.going === true ? `Venteliste nr. ${mine.spot - (session.capacity ?? 0)}` : full ? 'Sett meg på venteliste' : 'Jeg kommer'}
-          </button>
-          <button type="button" className={`btn ${mine.going === false ? 'btn-dark' : ''}`} disabled={busy} onClick={() => onToggle(false)}>
-            Kan ikke
-          </button>
+          <AttendButton session={session} goingCount={goingCount} mine={mine} busy={busy} onToggle={onToggle} />
         </div>
       )}
     </article>
+  )
+}
+
+/**
+ * Én knapp som viser tilstanden og bytter ved trykk. Har du plass på en full
+ * økt, spør den én gang: noen i køen tar plassen din.
+ */
+export function AttendButton({ session, goingCount, mine, busy, onToggle, block }: {
+  session: Session; goingCount: number; mine: MyState; busy?: boolean; onToggle: (going: boolean) => void; block?: boolean
+}) {
+  const full = session.capacity != null && goingCount >= session.capacity
+  const hasSpot = mine.going === true && !mine.waitlisted
+  const label = hasSpot ? 'Du har plass'
+    : mine.going === true ? `Venteliste nr. ${mine.spot - (session.capacity ?? 0)}`
+    : full ? 'Sett meg på venteliste' : 'Jeg kommer'
+  const cls = hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'
+  function click() {
+    if (mine.going !== true) return onToggle(true)
+    if (hasSpot && goingCount > (session.capacity ?? Infinity) && !confirm('Melde deg av? Den første på ventelista får plassen din.')) return
+    onToggle(false)
+  }
+  return (
+    <button type="button" className={`btn ${cls} ${block ? 'btn-block' : ''}`} disabled={busy} onClick={click}
+      aria-pressed={mine.going === true} title={mine.going === true ? 'Trykk for å melde deg av' : undefined}>
+      {label}
+    </button>
   )
 }
