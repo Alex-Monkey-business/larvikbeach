@@ -68,6 +68,10 @@ try {
   const routes = [
     ['hjem', '/', false], ['om-oss', '/om-oss', false], ['bli-med', '/bli-med', false], ['logg-inn', '/logg-inn', false],
     ['personvern', '/personvern', false], ['spill', '/spill', true], ['okt-full', fullSession, true], ['okt-holdt', heldSession, true],
+    ['lagvelger', heldSession, true, async pg => {
+      const knapp = pg.locator('button:has-text("Sett opp lag"), button:has-text("Endre lag")').first()
+      if (await knapp.count()) { await knapp.click(); await pg.locator('.pick, .pick-pool').first().waitFor({ timeout: 3000 }).catch(() => {}) }
+    }],
     ['kalender', '/spill/kalender', true], ['statistikk', '/spill/statistikk', true], ['betaling', '/spill/betaling', true], ['meg', '/spill/meg', true, async pg => { await pg.click('button:has-text("Endre navn og telefon")') }],
     ['admin', '/admin', true, async pg => { await pg.click('button:has-text("Ny økt")'); await pg.click('button:has-text("Sesong")') }],
     ['admin-okt', `/admin/okter/${heldId}`, true],

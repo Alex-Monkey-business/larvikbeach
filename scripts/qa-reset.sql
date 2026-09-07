@@ -2,10 +2,24 @@
 -- Kjøres av scripts/qa.mjs via docker exec. Rører ikke Alex' innlogging.
 delete from public.matches;
 delete from public.session_teams;
+delete from public.session_teams;
 update public.invoices set status = 'open', claimed_at = null, confirmed_at = null where status in ('claimed', 'confirmed');
 delete from public.join_requests where email like 'test%@example.com' or name = 'Test Testesen';
 delete from public.invites where email like 'test%@example.com';
 delete from auth.users where email like 'test%@example.com' or email = 'sniker@example.com';
+-- Øktene ankres til nå. Ellers råtner testen i det klokka passerer 19:00 på
+-- den datoen seed-fila tilfeldigvis valgte.
+with p as (
+  select id, row_number() over (order by starts_at) as rn
+    from public.sessions
+   where status = 'planned' and starts_at < now() + interval '30 days'
+)
+update public.sessions s
+   set starts_at = date_trunc('day', now() at time zone 'Europe/Oslo')
+                 + (case p.rn when 1 then interval '2 days' else interval '9 days' end)
+                 + interval '19 hours'
+  from p where s.id = p.id;
+
 -- Alex bakerst i køen på første planlagte økt (7 påmeldt, 6 plasser → venteliste nr. 1)
 with s as (select id from public.sessions where status = 'planned' and starts_at > now() - interval '3 hours' order by starts_at limit 1),
      me as (select id from public.profiles where email = 'alexander.samnoy@gmail.com')
