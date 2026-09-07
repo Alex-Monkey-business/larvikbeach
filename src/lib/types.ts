@@ -17,7 +17,7 @@ export interface Settings {
   vipps_number: string | null
   vipps_display_name: string | null
   billing_day: number
-  settle_after_hours: number
+  settle_after_minutes: number
   signup_window_days: number
   email_invoices: boolean
   admin_email: string | null

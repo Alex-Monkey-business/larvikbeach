@@ -32,7 +32,7 @@ export function AdminSettings() {
         <label className="field"><span className="label">Vipps-nummer det skal betales til</span><input className="input" inputMode="tel" value={f.vipps_number ?? ''} onChange={e => set({ vipps_number: e.target.value })} /></label>
         <label className="field"><span className="label">Navn som vises i Vipps</span><input className="input" value={f.vipps_display_name ?? ''} onChange={e => set({ vipps_display_name: e.target.value })} /></label>
         <label className="field"><span className="label">Regning sendes den (dag i måneden)</span><input className="input" type="number" min={1} max={28} value={f.billing_day} onChange={e => set({ billing_day: Number(e.target.value) })} /></label>
-        <label className="field"><span className="label">Regn ut økta automatisk, timer etter slutt</span><input className="input" type="number" min={0} max={72} value={f.settle_after_hours} onChange={e => set({ settle_after_hours: Number(e.target.value) })} /></label>
+        <label className="field"><span className="label">Regn ut økta automatisk, minutter etter slutt</span><input className="input" type="number" min={0} max={1440} step={15} value={f.settle_after_minutes} onChange={e => set({ settle_after_minutes: Number(e.target.value) })} /></label>
         <label className="field"><span className="label">Påmeldingen åpner, dager før økta</span><input className="input" type="number" min={1} max={365} value={f.signup_window_days} onChange={e => set({ signup_window_days: Number(e.target.value) })} /></label>
       </div>
       <label className="check">
