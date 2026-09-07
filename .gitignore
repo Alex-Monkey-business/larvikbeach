@@ -7,3 +7,6 @@ supabase/.temp
 supabase/.branches
 .DS_Store
 qa/
+
+# Local Netlify folder
+.netlify
