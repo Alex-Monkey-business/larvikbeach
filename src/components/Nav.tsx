@@ -14,7 +14,7 @@ export function Nav() {
           <div className={`nav-links ${session ? 'nav-links-app' : ''}`}>
             {session ? (
               <>
-                <NavLink to="/spill" end>Økter</NavLink>
+                <NavLink to="/spill" end>Hjem</NavLink>
                 <NavLink to="/spill/statistikk">Statistikk</NavLink>
                 <NavLink to="/spill/betaling">Betaling</NavLink>
                 <NavLink to="/spill/meg">Meg</NavLink>
@@ -33,7 +33,7 @@ export function Nav() {
       </header>
       {session && (
         <nav className="tabbar" aria-label="Sider">
-          <NavLink to="/spill" end>Økter</NavLink>
+          <NavLink to="/spill" end>Hjem</NavLink>
           <NavLink to="/spill/statistikk">Stats</NavLink>
           <NavLink to="/spill/betaling">Betaling</NavLink>
           <NavLink to="/spill/meg">Meg</NavLink>

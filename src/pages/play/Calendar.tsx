@@ -28,7 +28,7 @@ export function Calendar() {
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
-      <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Neste økter</Link>
+      <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Hjem</Link>
       <header className="stack">
         <h1 className="h1">{season.name}</h1>
         <p className="muted">{sessions.length} økter. Påmeldingen åpner {windowDays} dager før hver økt.</p>

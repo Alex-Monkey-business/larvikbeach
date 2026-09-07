@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
 import { longDate, time, endTime, isPast, signupOpen } from '../lib/format'
-import { kr, shareOre } from '../lib/money'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
 
@@ -19,11 +18,8 @@ interface Props {
 }
 
 export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, winners = [], onToggle }: Props) {
-  const paid = session.cost > 0
   const full = session.capacity != null && goingCount >= session.capacity
   const played = isPast(session.starts_at) && session.status !== 'cancelled'
-  // Før økta: prisen «hvis du kommer». Etterpå: det den faktisk ble delt på.
-  const heads = payerCount(session, goingCount + (played || mine.going === true ? 0 : 1))
   const hasSpot = mine.going === true && !mine.waitlisted
   return (
     <article className={`session-card card ${hasSpot ? 'is-going' : ''}`}>
@@ -41,13 +37,12 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
           {played
             ? <span className="badge badge-forest">{payerCount(session, goingCount)} spilte</span>
             : <span className={`badge ${full ? 'badge-ember' : 'badge-stone'}`}>{statusLine(session, goingCount)}</span>}
-          {paid && (played || !full) && <span className="badge badge-outline">{kr(shareOre(session.cost, Math.max(heads, 1)))} hver</span>}
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
         </div>
         {played && winners.length > 0 && winners.length <= 2 && (
           <p className="row" style={{ gap: 8 }}>
             <AvatarStack people={winners} size={28} />
-            <span>Flest seire: {names(winners)}</span>
+            <span>{winners.length === 1 ? 'Dagens vinner' : 'Dagens vinnere'}: {names(winners)}</span>
           </p>
         )}
       </div>

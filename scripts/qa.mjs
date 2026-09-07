@@ -98,7 +98,7 @@ try {
   ok(true, 'spill: påmelding igjen gir venteliste nr. 1 (bakerst i køen)')
   // Én med plass melder seg av → Alex rykker opp. Gjøres som admin på øktsiden senere; her holder køen.
   await first.locator('a.session-card-title').click(); await p.waitForURL(/okter\//); await shot(p, 'm-okt')
-  ok(await p.locator('text=Pris per person').count() === 1, 'økt: pris per person vises')
+  ok(await p.locator('text=Pris per person').count() === 0, 'økt: prisen står ikke på økta, bare under Betaling')
   ok(await p.locator('h2:has-text("Venteliste")').count() === 1, 'økt: ventelista vises når det er fullt (7 påmeldt, 6 plasser)')
   // Kamper på en gjennomført økt med 6 spillere (admin kan trekke)
   // Påmeldingsvinduet: forsiden viser bare øktene som er åpne, resten i kalenderen
@@ -162,15 +162,27 @@ try {
   await shot(p, 'm-kamper')
   // Et tydelig resultat, satt i basen så det ikke avhenger av tilfeldige lag:
   // tre runder der lag 1 vinner to og lag 2 én. Da er toppen to spillere.
+  // Alex vinner alt han spiller: da er toppen to spillere, og han er en av dem.
   sql(`with h as (select id from public.sessions where status='held' order by starts_at desc limit 1)
        delete from public.matches m using h where m.session_id = h.id and m.round > 3;
-       with h as (select id from public.sessions where status='held' order by starts_at desc limit 1)
-       update public.matches m set winner = 'a', score_a = 15, score_b = 9 from h where m.session_id = h.id;`)
+       with h as (select id from public.sessions where status='held' order by starts_at desc limit 1),
+            me as (select id from public.profiles where email = '${ADMIN}')
+       update public.matches m
+          set winner  = case when me.id = any(m.team_a) then 'a' else 'b' end,
+              score_a = case when me.id = any(m.team_a) then 15 else 9 end,
+              score_b = case when me.id = any(m.team_a) then 9 else 15 end
+         from h, me where m.session_id = h.id;`)
   await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
-  await p.locator('main >> text=Flest seire').first().waitFor({ timeout: 5000 })
-  const linje = await p.locator('main >> text=Flest seire').first().innerText()
+  await p.locator('main >> text=Dagens vinner').first().waitFor({ timeout: 5000 })
+  const linje = await p.locator('main >> text=Dagens vinner').first().innerText()
   ok(!/ og .* og /.test(linje), `spill: vinnerlinja er lesbar (${linje})`)
+  // Konfetti: bare for den som vant, og bare én gang.
+  ok(linje.includes('Alex'), `spill: vinneren er med i linja (${linje})`)
+  ok(await p.locator('.konfetti span').count() > 20, 'spill: konfetti når du vant sist')
+  await p.reload(); await p.waitForSelector('article.session-card'); await p.waitForTimeout(800)
+  ok(await p.locator('.konfetti').count() === 0, 'spill: konfettien kommer ikke igjen ved neste åpning')
   ok(await p.locator('article.session-card').first().locator('.avatar-dim').count() === 0, 'spill: spilt økt viser ikke ventelista')
+  ok(await p.locator('article.session-card').first().locator('text=kr hver').count() === 0, 'spill: kortet nevner ikke pris')
   await shot(p, 'm-spill-resultat')
   await p.goto(`${APP}/spill/statistikk`)
   await p.locator('text=økter · seire').waitFor({ timeout: 5000 })

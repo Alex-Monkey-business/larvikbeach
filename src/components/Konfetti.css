@@ -1,0 +1,13 @@
+.konfetti {
+  position: fixed; inset: 0; z-index: 40;
+  pointer-events: none; overflow: hidden;
+}
+.konfetti span {
+  position: absolute; top: -8vh; border-radius: 2px;
+  animation-name: konfetti-fall; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes konfetti-fall {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  to { transform: translate3d(0, 120vh, 0) rotate(var(--snurr, 540deg)); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .konfetti { display: none; } }

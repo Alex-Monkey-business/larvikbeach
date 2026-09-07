@@ -8,6 +8,7 @@ import { Notice } from '../../components/Notice'
 import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
 import type { Match, Profile } from '../../lib/types'
 import { sessionsFrom } from '../../lib/format'
+import { Konfetti } from '../../components/Konfetti'
 
 export function Play() {
   const { profile } = useAuth()
@@ -15,10 +16,12 @@ export function Play() {
   // Påmeldingsvinduet. 14 som utgangspunkt, så lista ikke blafrer før
   // innstillingene er lest.
   const windowDays = settings.data?.signup_window_days ?? 14
-  // Kveldens økt blir stående med resultat til midt på dagen etter.
-  const from = sessionsFrom()
+  // Hentes tre dager tilbake: kortet vises bare til midt på dagen etter, men
+  // feiringen skal finne fram til den som vant selv om det gikk et døgn.
+  const from = new Date(Date.now() - 3 * 86_400_000).toISOString()
   const to = new Date(Date.now() + windowDays * 86_400_000).toISOString()
   const s = useSessions({ from, to }, [windowDays])
+  const visFra = sessionsFrom()
   const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
   const people = useQuery(() => api.profiles(), [])
   const played = (s.data?.sessions ?? []).filter(x => new Date(x.starts_at).getTime() < Date.now()).map(x => x.id)
@@ -26,13 +29,19 @@ export function Play() {
   const seasons = useQuery(() => api.seasons(), [])
   const byId = new Map<string, Profile>((people.data ?? []).map(p => [p.id, p]))
 
-  const upcoming = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled')
+  const upcoming = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled' && x.starts_at >= visFra)
+  // Vant du sist? Da feires det én gang, når du åpner appen.
+  const sist = (s.data?.sessions ?? []).filter(x => played.includes(x.id))
+    .map(x => ({ x, vinnere: topWinners(matches.data ?? [], x.id, byId) }))
+    .filter(v => v.vinnere.length > 0).pop()
+  const feir = sist && profile && sist.vinnere.some(w => w.id === profile.id) ? sist.x.id : null
   const notice = seasons.data?.find(se => se.id === upcoming[0]?.season_id)?.notice
   const owed = (bal.data?.invoiced_open ?? 0)
   const pending = (bal.data?.uninvoiced ?? 0)
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)' }}>
+      {feir && <Konfetti nokkel={`lbv-vinner-${feir}`} />}
       <div className="row between">
         <h1 className="h1">Hei, {profile?.name.split(' ')[0]}.</h1>
       </div>

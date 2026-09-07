@@ -26,6 +26,18 @@ update public.sessions s
    set starts_at = greatest(date_trunc('day', now()), now() - interval '2 hours')
   from h where s.id = h.id;
 
+-- Alex får plass på den spilte økta, ellers kan han aldri vinne noe å feire.
+with h as (select s.id from public.sessions s where s.status = 'held' order by s.starts_at desc limit 1),
+     me as (select id from public.profiles where email = 'alexander.samnoy@gmail.com')
+insert into public.attendance (session_id, profile_id, going, source, updated_at)
+select h.id, me.id, true, 'self',
+       coalesce((select min(a.updated_at) from public.attendance a where a.session_id = h.id), now()) - interval '1 minute'
+  from h, me
+on conflict (session_id, profile_id) do update
+  set going = true,
+      updated_at = (select coalesce(min(a.updated_at), now()) - interval '1 minute'
+                      from public.attendance a where a.session_id = public.attendance.session_id and a.profile_id <> public.attendance.profile_id);
+
 -- Alex bakerst i køen på første planlagte økt (7 påmeldt, 6 plasser → venteliste nr. 1)
 with s as (select id from public.sessions where status = 'planned' and starts_at > now() - interval '3 hours' order by starts_at limit 1),
      me as (select id from public.profiles where email = 'alexander.samnoy@gmail.com')

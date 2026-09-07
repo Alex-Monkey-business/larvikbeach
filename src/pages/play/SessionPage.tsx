@@ -3,10 +3,9 @@ import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { longDate, time, endTime, isPast, shortDate, signupOpen, signupOpensAt } from '../../lib/format'
-import { kr, shareOre } from '../../lib/money'
 import { Notice } from '../../components/Notice'
 import { AttendButton } from '../../components/SessionCard'
-import { useSessions, goingQueue, mineFor, payerCount, statusLine } from './useSessions'
+import { useSessions, goingQueue, mineFor, statusLine } from './useSessions'
 import type { Profile } from '../../lib/types'
 import { Avatar } from '../../components/Avatar'
 import { Matches } from '../../components/Matches'
@@ -17,7 +16,6 @@ export function SessionPage() {
   const s = useSessions({ id }, [id])
   const settings = useQuery(() => api.settings(), [])
   const people = useQuery(() => api.profiles(), [])
-  const charges = useQuery(() => api.charges({ sessionId: id }), [id, s.data])
 
   const session = s.data?.sessions[0]
   if (s.error) return <Notice>{s.error}</Notice>
@@ -32,16 +30,14 @@ export function SessionPage() {
   const waitlist = queue.slice(cap)
   const mine = mineFor(att, session, profile?.id)
   const n = queue.length
-  const payers = payerCount(session, n)
   const full = session.capacity != null && n >= session.capacity
   const windowDays = settings.data?.signup_window_days ?? 14
   const open = session.status === 'planned' && signupOpen(session.starts_at, windowDays)
   const notYet = session.status === 'planned' && !isPast(session.starts_at) && !open
-  const myCharge = charges.data?.find(c => c.profile_id === profile?.id)
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
-      <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Alle økter</Link>
+      <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Hjem</Link>
       <header className="stack">
         <h1 className="h1">{longDate(session.starts_at)}</h1>
         <p className="lede">{time(session.starts_at)}–{endTime(session.starts_at, session.duration_min)}{session.location ? ` · ${session.location}` : ''}</p>
@@ -55,19 +51,6 @@ export function SessionPage() {
         </div>
       </header>
 
-      {session.cost > 0 && (
-        <section className="card card-lavender stack">
-          {session.status === 'held' ? (
-            myCharge
-              ? <><p className="caption" style={{ color: 'var(--color-ink)' }}>Din andel</p><p className="num">{kr(myCharge.amount)}</p><p>Hallen kostet {kr(session.cost)}, delt på {payers}.</p></>
-              : <><p className="caption" style={{ color: 'var(--color-ink)' }}>Hallen kostet</p><p className="num">{kr(session.cost)}</p><p>Delt på {payers}. Du var ikke med.</p></>
-          ) : (
-            <><p className="caption" style={{ color: 'var(--color-ink)' }}>Pris per person</p>
-              <p className="num">{kr(shareOre(session.cost, Math.max(payers, 1)))}</p>
-              <p>Hallen koster {kr(session.cost)} og deles på de som har plass{session.capacity ? `, maks ${session.capacity}` : ''}.</p></>
-          )}
-        </section>
-      )}
 
       {open && (
         <div className="row">
