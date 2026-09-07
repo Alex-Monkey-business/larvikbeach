@@ -5,7 +5,8 @@ import { useQuery } from '../../lib/useQuery'
 import { kr } from '../../lib/money'
 import { SessionCard } from '../../components/SessionCard'
 import { Notice } from '../../components/Notice'
-import { goingCount, mineFor, useSessions } from './useSessions'
+import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
+import type { Profile } from '../../lib/types'
 
 export function Play() {
   const { profile } = useAuth()
@@ -13,6 +14,8 @@ export function Play() {
   const from = new Date(Date.now() - 3 * 3600_000).toISOString()
   const s = useSessions({ from })
   const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
+  const people = useQuery(() => api.profiles(), [])
+  const byId = new Map<string, Profile>((people.data ?? []).map(p => [p.id, p]))
 
   const upcoming = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled')
   const owed = (bal.data?.invoiced_open ?? 0)
@@ -41,6 +44,7 @@ export function Play() {
         {upcoming.map(x => (
           <SessionCard key={x.id} session={x}
             goingCount={goingCount(s.data!.attendance, x.id)}
+            {...splitQueue(s.data!.attendance, x, byId)}
             mine={mineFor(s.data!.attendance, x, profile?.id)}
             busy={s.busyId === x.id}
             onToggle={going => void s.toggle(x.id, going)} />

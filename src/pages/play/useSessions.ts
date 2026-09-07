@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
-import type { Attendance, Session } from '../../lib/types'
+import type { Attendance, Profile, Session } from '../../lib/types'
 
 export interface SessionsWithAttendance {
   sessions: Session[]
@@ -67,4 +67,11 @@ export function statusLine(session: Session, going: number): string {
 /** Antall som deler regningen: de med plass. */
 export function payerCount(session: Session, going: number): number {
   return session.capacity ? Math.min(going, session.capacity) : going
+}
+
+/** Påmeldte som profiler, delt i de med plass og ventelista. */
+export function splitQueue(att: Attendance[], session: Session, byId: Map<string, Profile>) {
+  const queue = goingQueue(att, session.id).map(a => byId.get(a.profile_id)).filter(Boolean) as Profile[]
+  const cap = session.capacity ?? queue.length
+  return { withSpot: queue.slice(0, cap), waitlist: queue.slice(cap) }
 }

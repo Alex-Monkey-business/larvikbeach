@@ -8,3 +8,4 @@
   .session-card { grid-template-columns: 1fr auto; align-items: center; }
   .session-card-actions { grid-template-columns: auto auto; }
 }
+.session-card-people { display: inline-flex; width: fit-content; text-decoration: none; }

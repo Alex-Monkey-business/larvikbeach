@@ -75,6 +75,7 @@ try {
   // Seed: 7 påmeldt, 6 plasser, Alex meldte seg på sist → venteliste nr. 1.
   ok(await first.locator('text=Fullt · 1 på venteliste').count() === 1, 'spill: første økt viser «Fullt · 1 på venteliste»')
   ok(await first.locator('button:has-text("Venteliste nr. 1")').count() === 1, 'spill: Alex (sist i køen) står på venteliste nr. 1')
+  ok(await first.locator('.avatar').count() === 7 && await first.locator('.avatar-dim').count() === 1, 'spill: 7 avatarer på kortet, 1 dempet (venteliste)')
   await first.locator('button:has-text("Kan ikke")').click()
   await first.locator('span.badge:text-is("Fullt")').waitFor({ timeout: 5000 })
   ok(true, 'spill: etter avmelding er det fullt uten venteliste')
