@@ -44,6 +44,7 @@ export interface Season {
   default_location: string | null
   default_capacity: number | null
   default_min_players: number | null
+  notice: string | null
 }
 
 export type SessionStatus = 'planned' | 'held' | 'cancelled'

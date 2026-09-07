@@ -15,9 +15,11 @@ export function Play() {
   const s = useSessions({ from })
   const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
   const people = useQuery(() => api.profiles(), [])
+  const seasons = useQuery(() => api.seasons(), [])
   const byId = new Map<string, Profile>((people.data ?? []).map(p => [p.id, p]))
 
   const upcoming = (s.data?.sessions ?? []).filter(x => x.status !== 'cancelled')
+  const notice = seasons.data?.find(se => se.id === upcoming[0]?.season_id)?.notice
   const owed = (bal.data?.invoiced_open ?? 0)
   const pending = (bal.data?.uninvoiced ?? 0)
 
@@ -39,6 +41,7 @@ export function Play() {
 
       <section className="stack">
         <h2 className="h3">Neste økter</h2>
+        {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
         {s.error && <Notice>{s.error}</Notice>}
         {s.data && upcoming.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
         {upcoming.map(x => (

@@ -73,6 +73,7 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
     starts_on: season?.starts_on ?? today(), ends_on: season?.ends_on ?? today(),
     cost: season ? String(season.default_cost / 100) : '620', location: season?.default_location ?? '',
     capacity: season?.default_capacity ? String(season.default_capacity) : '', min: season?.default_min_players ? String(season.default_min_players) : '',
+    notice: season?.notice ?? '',
   })
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
@@ -80,7 +81,7 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
     try {
       await api.saveSeason({ id: season?.id, name: f.name, kind: f.kind as Season['kind'], starts_on: f.starts_on, ends_on: f.ends_on,
         default_cost: Math.round(Number(f.cost) * 100), default_location: f.location || null,
-        default_capacity: f.capacity ? Number(f.capacity) : null, default_min_players: f.min ? Number(f.min) : null })
+        default_capacity: f.capacity ? Number(f.capacity) : null, default_min_players: f.min ? Number(f.min) : null, notice: f.notice.trim() || null })
       await onSaved()
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
   }
@@ -99,6 +100,7 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></label>
         <label className="field"><span className="label">Maks antall (tomt = ingen grense)</span><input className="input" type="number" min={1} value={f.capacity} onChange={e => setF({ ...f, capacity: e.target.value })} /></label>
         <label className="field"><span className="label">Minst antall for å spille</span><input className="input" type="number" min={1} value={f.min} onChange={e => setF({ ...f, min: e.target.value })} /></label>
+        <label className="field" style={{ gridColumn: '1 / -1' }}><span className="label">Melding over øktene (én linje)</span><input className="input" value={f.notice} onChange={e => setF({ ...f, notice: e.target.value })} placeholder="Oppmøte Kiwi Farriseidet kl. 18 for felles transport." /></label>
       </div>
       {error && <Notice>{error}</Notice>}
       <button className="btn btn-primary">Lagre sesong</button>
