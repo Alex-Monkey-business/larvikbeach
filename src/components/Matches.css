@@ -1,20 +1,29 @@
-.matches { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.matches { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
 .match { display: grid; gap: 6px; }
-.match-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-1); }
-.match-vs { font-size: var(--text-caption); color: var(--color-fog); }
+.match-teams { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); }
+
+/* Lagboksen er laget. Vinner = skoggrønn, taper = dempet. */
 .team {
-  display: grid; gap: 6px; text-align: left;
-  padding: 10px 12px; border: 2px solid var(--color-stone); border-radius: var(--radius-input);
-  background: var(--color-cream); color: var(--color-ink); cursor: pointer;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px;
+  padding: 10px 10px 10px 12px; border-radius: var(--radius-input);
+  background: var(--color-stone); color: var(--color-ink);
+  transition: background-color 150ms ease, opacity 150ms ease;
 }
-.team:disabled { cursor: default; }
-.team-won { border-color: var(--color-forest); background: var(--color-forest); color: var(--color-cream); }
-.team-lost { opacity: 0.55; }
-.match-score { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.team-names {
+  display: grid; gap: 6px; text-align: left; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; cursor: pointer;
+}
+.team-names:disabled { cursor: default; }
+.team-won { background: var(--color-forest); color: var(--color-cream); }
+.team-lost { opacity: 0.5; }
+
 .score {
-  width: 40px; height: 36px; padding: 0; text-align: center;
-  border: 2px solid var(--color-stone); border-radius: 10px; background: var(--color-white);
-  font-size: var(--text-body-sm); font-weight: 600; font-variant-numeric: tabular-nums;
+  width: 44px; height: 44px; padding: 0; text-align: center; border: 0; border-radius: 10px;
+  background: var(--color-cream); color: var(--color-ink);
+  font-size: 26px; line-height: 1;
 }
-.score:disabled { background: transparent; border-color: transparent; }
-.score:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 1px; border-color: var(--color-ink); }
+.score::placeholder { color: var(--color-fog); }
+.team-won .score { background: rgba(255, 255, 235, 0.15); color: var(--color-cream); }
+.team-won .score::placeholder { color: var(--color-stone); }
+.score:disabled { background: transparent; }
+.score:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 1px; }

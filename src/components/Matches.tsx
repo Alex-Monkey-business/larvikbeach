@@ -67,29 +67,6 @@ function MatchRow({ m, byId, canAct, busy, onWin, onScore }: {
   onWin: (w: 'a' | 'b') => void; onScore: (a: number | null, b: number | null) => void
 }) {
   const team = (ids: string[]) => ids.map(id => byId.get(id)).filter(Boolean) as Profile[]
-  const Team = ({ ids, side }: { ids: string[]; side: 'a' | 'b' }) => {
-    const won = m.winner === side
-    const lost = m.winner && !won
-    return (
-      <button type="button" className={`team ${won ? 'team-won' : ''} ${lost ? 'team-lost' : ''}`} disabled={!canAct || busy} onClick={() => onWin(side)} aria-pressed={won}>
-        {team(ids).map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span>{p.name.split(' ')[0]}</span></span>)}
-      </button>
-    )
-  }
-  return (
-    <li className="match">
-      <span className="caption">Runde {m.round}{m.resting.length ? ` · ${team(m.resting).map(p => p.name.split(' ')[0]).join(' og ')} sitter` : ''}</span>
-      <div className="match-teams">
-        <Team ids={m.team_a} side="a" />
-        <Score m={m} canAct={canAct} busy={busy} onScore={onScore} />
-        <Team ids={m.team_b} side="b" />
-      </div>
-    </li>
-  )
-}
-
-/** Poengene mellom lagene. Lagres når begge er fylt ut; tomme felt nullstiller. */
-function Score({ m, canAct, busy, onScore }: { m: Match; canAct: boolean; busy: boolean; onScore: (a: number | null, b: number | null) => void }) {
   const [a, setA] = useState(m.score_a?.toString() ?? '')
   const [b, setB] = useState(m.score_b?.toString() ?? '')
   useEffect(() => { setA(m.score_a?.toString() ?? ''); setB(m.score_b?.toString() ?? '') }, [m.score_a, m.score_b])
@@ -99,17 +76,34 @@ function Score({ m, canAct, busy, onScore }: { m: Match; canAct: boolean; busy: 
     if ((na === null) !== (nb === null)) return          // vent til begge er fylt ut
     onScore(na, nb)
   }
-  const field = (v: string, set: (s: string) => void, label: string) => (
-    <input className="score" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={label} disabled={!canAct || busy}
-      value={v} onChange={e => set(e.target.value.replace(/\D/g, ''))} onBlur={commit}
-      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
-  )
   return (
-    <span className="match-score">
-      {field(a, setA, 'Poeng lag 1')}
-      <span className="match-vs">–</span>
-      {field(b, setB, 'Poeng lag 2')}
-    </span>
+    <li className="match">
+      <span className="caption">Runde {m.round}{m.resting.length ? ` · ${team(m.resting).map(p => p.name.split(' ')[0]).join(' og ')} sitter` : ''}</span>
+      <div className="match-teams">
+        <TeamBox players={team(m.team_a)} won={m.winner === 'a'} lost={m.winner === 'b'} value={a} onChange={setA} onCommit={commit} onWin={() => onWin('a')} canAct={canAct} busy={busy} label="Poeng lag 1" />
+        <TeamBox players={team(m.team_b)} won={m.winner === 'b'} lost={m.winner === 'a'} value={b} onChange={setB} onCommit={commit} onWin={() => onWin('b')} canAct={canAct} busy={busy} label="Poeng lag 2" />
+      </div>
+    </li>
+  )
+}
+
+// Egen komponent på toppnivå: definert inne i raden ville React bygget den på
+// nytt for hvert tastetrykk, og feltet mistet fokus før poengene ble lagret.
+function TeamBox({ players, won, lost, value, onChange, onCommit, onWin, canAct, busy, label }: {
+  players: Profile[]; won: boolean; lost: boolean; value: string
+  onChange: (s: string) => void; onCommit: () => void; onWin: () => void; canAct: boolean; busy: boolean; label: string
+}) {
+  return (
+    <div className={`team ${won ? 'team-won' : ''} ${lost ? 'team-lost' : ''}`}>
+      <button type="button" className="team-names" disabled={!canAct || busy} onClick={onWin} aria-pressed={won}
+        title={canAct ? 'Trykk for å markere som vinner' : undefined}>
+        {players.map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span>{p.name.split(' ')[0]}</span></span>)}
+      </button>
+      <input className="score num" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={label}
+        disabled={!canAct || busy} placeholder={canAct ? '–' : ''}
+        value={value} onChange={e => onChange(e.target.value.replace(/\D/g, ''))} onBlur={onCommit}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+    </div>
   )
 }
 
