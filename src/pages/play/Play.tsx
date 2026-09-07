@@ -41,7 +41,7 @@ export function Play() {
         {upcoming.map(x => (
           <SessionCard key={x.id} session={x}
             goingCount={goingCount(s.data!.attendance, x.id)}
-            mine={mineFor(s.data!.attendance, x.id, profile?.id)}
+            mine={mineFor(s.data!.attendance, x, profile?.id)}
             busy={s.busyId === x.id}
             onToggle={going => void s.toggle(x.id, going)} />
         ))}

@@ -41,6 +41,8 @@ export interface Season {
   ends_on: string
   default_cost: number
   default_location: string | null
+  default_capacity: number | null
+  default_min_players: number | null
 }
 
 export type SessionStatus = 'planned' | 'held' | 'cancelled'
@@ -54,6 +56,8 @@ export interface Session {
   cost: number
   status: SessionStatus
   note: string | null
+  capacity: number | null
+  min_players: number | null
 }
 
 export interface Attendance {

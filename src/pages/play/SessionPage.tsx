@@ -5,7 +5,7 @@ import { useQuery } from '../../lib/useQuery'
 import { longDate, time, endTime, isPast } from '../../lib/format'
 import { kr, shareOre } from '../../lib/money'
 import { Notice } from '../../components/Notice'
-import { useSessions, goingCount, mineFor } from './useSessions'
+import { useSessions, goingQueue, mineFor, payerCount, statusLine } from './useSessions'
 import type { Profile } from '../../lib/types'
 
 export function SessionPage() {
@@ -22,10 +22,16 @@ export function SessionPage() {
 
   const att = s.data.attendance.filter(a => a.session_id === id)
   const byId = new Map<string, Profile>(people.data.map(p => [p.id, p]))
-  const going = att.filter(a => a.going).map(a => byId.get(a.profile_id)).filter(Boolean) as Profile[]
+  const queue = goingQueue(att, id).map(a => byId.get(a.profile_id)).filter(Boolean) as Profile[]
+  const cap = session.capacity ?? queue.length
+  const withSpot = queue.slice(0, cap)
+  const waitlist = queue.slice(cap)
   const notGoing = att.filter(a => !a.going).map(a => byId.get(a.profile_id)).filter(Boolean) as Profile[]
-  const mine = mineFor(att, id, profile?.id)
-  const n = goingCount(att, id)
+  const mine = mineFor(att, session, profile?.id)
+  const n = queue.length
+  const payers = payerCount(session, n)
+  const full = session.capacity != null && n >= session.capacity
+  const hasSpot = mine.going === true && !mine.waitlisted
   const open = session.status === 'planned' && !isPast(session.starts_at)
   const myCharge = charges.data?.find(c => c.profile_id === profile?.id)
 
@@ -40,6 +46,7 @@ export function SessionPage() {
           {session.status === 'held' && <span className="badge badge-forest">Gjennomført</span>}
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
           {session.status === 'planned' && !open && <span className="badge badge-stone">Påmelding stengt</span>}
+          {session.status === 'planned' && <span className={`badge ${full ? 'badge-ember' : 'badge-stone'}`}>{statusLine(session, n)}</span>}
         </div>
       </header>
 
@@ -47,35 +54,43 @@ export function SessionPage() {
         <section className="card card-lavender stack">
           {session.status === 'held' ? (
             myCharge
-              ? <><p className="caption" style={{ color: 'var(--color-ink)' }}>Din andel</p><p className="num">{kr(myCharge.amount)}</p><p>Hallen kostet {kr(session.cost)}, delt på {n}.</p></>
-              : <><p className="caption" style={{ color: 'var(--color-ink)' }}>Hallen kostet</p><p className="num">{kr(session.cost)}</p><p>Delt på {n}. Du var ikke med.</p></>
+              ? <><p className="caption" style={{ color: 'var(--color-ink)' }}>Din andel</p><p className="num">{kr(myCharge.amount)}</p><p>Hallen kostet {kr(session.cost)}, delt på {payers}.</p></>
+              : <><p className="caption" style={{ color: 'var(--color-ink)' }}>Hallen kostet</p><p className="num">{kr(session.cost)}</p><p>Delt på {payers}. Du var ikke med.</p></>
           ) : (
-            <><p className="caption" style={{ color: 'var(--color-ink)' }}>Pris akkurat nå</p>
-              <p className="num">{kr(shareOre(session.cost, Math.max(n, 1)))} hver</p>
-              <p>Hallen koster {kr(session.cost)}. Jo flere som kommer, jo billigere. Rundes opp til hel krone.</p></>
+            <><p className="caption" style={{ color: 'var(--color-ink)' }}>Pris per person</p>
+              <p className="num">{kr(shareOre(session.cost, Math.max(payers, 1)))}</p>
+              <p>Hallen koster {kr(session.cost)} og deles på de som har plass{session.capacity ? `, maks ${session.capacity}` : ''}.</p></>
           )}
         </section>
       )}
 
       {open && (
         <div className="row">
-          <button type="button" className={`btn ${mine === true ? 'btn-forest' : 'btn-primary'}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, true)}>
-            {mine === true ? 'Du kommer' : 'Jeg kommer'}
+          <button type="button" className={`btn ${hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, true)}>
+            {hasSpot ? 'Du har plass' : mine.going === true ? `Venteliste nr. ${mine.spot - cap}` : full ? 'Sett meg på venteliste' : 'Jeg kommer'}
           </button>
-          <button type="button" className={`btn ${mine === false ? 'btn-dark' : ''}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, false)}>Kan ikke</button>
+          <button type="button" className={`btn ${mine.going === false ? 'btn-dark' : ''}`} disabled={s.busyId === id} onClick={() => void s.toggle(id, false)}>Kan ikke</button>
         </div>
       )}
       {s.error && <Notice>{s.error}</Notice>}
 
       <section className="grid-2">
         <div className="card stack">
-          <h2 className="h3">{session.status === 'held' ? 'Var med' : 'Kommer'} <span className="muted">{going.length}</span></h2>
-          <ul className="list">{going.map(p => <li key={p.id}>{p.name}</li>)}{going.length === 0 && <li className="muted">Ingen ennå</li>}</ul>
+          <h2 className="h3">{session.status === 'held' ? 'Var med' : 'Har plass'} <span className="muted">{withSpot.length}{session.capacity ? ` av ${session.capacity}` : ''}</span></h2>
+          <ul className="list">{withSpot.map(p => <li key={p.id}>{p.name}</li>)}{withSpot.length === 0 && <li className="muted">Ingen ennå</li>}</ul>
         </div>
-        <div className="card stack">
-          <h2 className="h3">Kan ikke <span className="muted">{notGoing.length}</span></h2>
-          <ul className="list">{notGoing.map(p => <li key={p.id}>{p.name}</li>)}{notGoing.length === 0 && <li className="muted">Ingen</li>}</ul>
-        </div>
+        {waitlist.length > 0 && (
+          <div className="card stack">
+            <h2 className="h3">Venteliste <span className="muted">{waitlist.length}</span></h2>
+            <ul className="list">{waitlist.map((p, i) => <li key={p.id}>{i + 1}. {p.name}</li>)}</ul>
+          </div>
+        )}
+        {notGoing.length > 0 && (
+          <div className="card stack">
+            <h2 className="h3">Kan ikke <span className="muted">{notGoing.length}</span></h2>
+            <ul className="list">{notGoing.map(p => <li key={p.id}>{p.name}</li>)}</ul>
+          </div>
+        )}
       </section>
 
       {isAdmin && <Link to={`/admin/okter/${id}`} className="btn">Rediger som admin</Link>}

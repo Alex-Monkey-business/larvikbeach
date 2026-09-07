@@ -28,7 +28,10 @@ export function AdminSession() {
   if (q.error) return <Notice>{q.error}</Notice>
   if (!q.data) return null
   const { session, attendance, profiles, charges } = q.data
-  const going = new Set(attendance.filter(a => a.going).map(a => a.profile_id))
+  const queue = attendance.filter(a => a.going).sort((a, b) => a.updated_at.localeCompare(b.updated_at)).map(a => a.profile_id)
+  const going = new Set(queue)
+  const spotOf = (id: string) => queue.indexOf(id) + 1
+  const cap = session.capacity
   const answered = new Set(attendance.map(a => a.profile_id))
   const invoiced = charges.some(c => c.invoice_id)
 
@@ -41,18 +44,18 @@ export function AdminSession() {
 
       <section className="card stack">
         <div className="row between">
-          <h2 className="h3">Oppmøte <span className="muted">{going.size}</span></h2>
-          {session.cost > 0 && going.size > 0 && <span className="badge badge-lavender">{kr(Math.ceil(session.cost / going.size / 100) * 100)} hver</span>}
+          <h2 className="h3">Oppmøte <span className="muted">{cap ? `${Math.min(going.size, cap)} av ${cap}` : going.size}{cap && going.size > cap ? ` · ${going.size - cap} på venteliste` : ''}</span></h2>
+          {session.cost > 0 && going.size > 0 && <span className="badge badge-lavender">{kr(Math.ceil(session.cost / Math.min(going.size, cap ?? going.size) / 100) * 100)} hver</span>}
         </div>
         <ul className="list">
           {profiles.map(p => {
             const isGoing = going.has(p.id)
             return (
               <li key={p.id} className="row between">
-                <span>{p.name}{!answered.has(p.id) && <span className="caption"> · ikke svart</span>}</span>
-                <button type="button" className={`btn btn-sm ${isGoing ? 'btn-forest' : ''}`} disabled={invoiced || busy === p.id}
+                <span>{p.name}{!answered.has(p.id) && <span className="caption"> · ikke svart</span>}{isGoing && cap && spotOf(p.id) > cap && <span className="caption"> · venteliste {spotOf(p.id) - cap}</span>}</span>
+                <button type="button" className={`btn btn-sm ${isGoing && (!cap || spotOf(p.id) <= cap) ? 'btn-forest' : isGoing ? 'btn-dark' : ''}`} disabled={invoiced || busy === p.id}
                   onClick={() => void run(p.id, () => api.setAttendance(id, !isGoing, p.id))}>
-                  {isGoing ? (session.status === 'held' ? 'Var med' : 'Kommer') : 'Ikke med'}
+                  {isGoing ? (cap && spotOf(p.id) > cap ? 'Venteliste' : session.status === 'held' ? 'Var med' : 'Har plass') : 'Ikke med'}
                 </button>
               </li>
             )
@@ -73,13 +76,15 @@ export function AdminSession() {
 }
 
 function SessionForm({ session, locked, onSaved }: { session: Session; locked: boolean; onSaved: () => Promise<void> }) {
-  const [f, setF] = useState({ when: toLocalInput(session.starts_at), duration: String(session.duration_min), location: session.location ?? '', cost: String(session.cost / 100), note: session.note ?? '' })
+  const [f, setF] = useState({ when: toLocalInput(session.starts_at), duration: String(session.duration_min), location: session.location ?? '', cost: String(session.cost / 100), note: session.note ?? '',
+    capacity: session.capacity ? String(session.capacity) : '', min: session.min_players ? String(session.min_players) : '' })
   const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null); setState('saving')
     try {
-      await api.saveSession({ id: session.id, starts_at: fromLocalInput(f.when), duration_min: Number(f.duration), location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null })
+      await api.saveSession({ id: session.id, starts_at: fromLocalInput(f.when), duration_min: Number(f.duration), location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null,
+        capacity: f.capacity ? Number(f.capacity) : null, min_players: f.min ? Number(f.min) : null })
       if (session.status === 'held') await api.setSessionStatus(session.id, 'held')  // ny pris → regn om
       await onSaved(); setState('saved')
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt'); setState('idle') }
@@ -92,6 +97,8 @@ function SessionForm({ session, locked, onSaved }: { session: Session; locked: b
         <label className="field"><span className="label">Varighet (min)</span><input className="input" type="number" min={15} step={15} disabled={locked} value={f.duration} onChange={e => { setF({ ...f, duration: e.target.value }); setState('idle') }} /></label>
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => { setF({ ...f, location: e.target.value }); setState('idle') }} /></label>
         <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} disabled={locked} value={f.cost} onChange={e => { setF({ ...f, cost: e.target.value }); setState('idle') }} /></label>
+        <label className="field"><span className="label">Maks antall</span><input className="input" type="number" min={1} disabled={locked} value={f.capacity} onChange={e => { setF({ ...f, capacity: e.target.value }); setState('idle') }} /></label>
+        <label className="field"><span className="label">Minst antall</span><input className="input" type="number" min={1} value={f.min} onChange={e => { setF({ ...f, min: e.target.value }); setState('idle') }} /></label>
         <label className="field" style={{ gridColumn: '1 / -1' }}><span className="label">Notat til spillerne</span><input className="input" value={f.note} onChange={e => { setF({ ...f, note: e.target.value }); setState('idle') }} /></label>
       </div>
       {error && <Notice>{error}</Notice>}

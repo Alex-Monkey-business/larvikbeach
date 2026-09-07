@@ -33,11 +33,38 @@ export function useSessions(opts: { from?: string; to?: string; seasonId?: strin
   return { ...q, toggle, busyId, error }
 }
 
-export function goingCount(att: Attendance[], sessionId: string) {
-  return att.filter(a => a.session_id === sessionId && a.going).length
+/** Påmeldte i kørekkefølge (først trykket, først plass). */
+export function goingQueue(att: Attendance[], sessionId: string): Attendance[] {
+  return att.filter(a => a.session_id === sessionId && a.going)
+    .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
 }
 
-export function mineFor(att: Attendance[], sessionId: string, profileId: string | undefined): boolean | null {
-  const a = att.find(x => x.session_id === sessionId && x.profile_id === profileId)
-  return a ? a.going : null
+export function goingCount(att: Attendance[], sessionId: string) {
+  return goingQueue(att, sessionId).length
+}
+
+export type MyState = { going: false } | { going: null } | { going: true; spot: number; waitlisted: boolean }
+
+/** Mitt svar for en økt: ikke svart, kan ikke, har plass, eller på venteliste (spot = plass i køen, 1-basert). */
+export function mineFor(att: Attendance[], session: Session, profileId: string | undefined): MyState {
+  const a = att.find(x => x.session_id === session.id && x.profile_id === profileId)
+  if (!a) return { going: null }
+  if (!a.going) return { going: false }
+  const spot = goingQueue(att, session.id).findIndex(x => x.profile_id === profileId) + 1
+  return { going: true, spot, waitlisted: session.capacity != null && spot > session.capacity }
+}
+
+/** Én setning om status. Kortet viser bare denne. */
+export function statusLine(session: Session, going: number): string {
+  const cap = session.capacity
+  const min = session.min_players
+  if (min && going < min) return `${going} påmeldt, trenger ${min}`
+  if (cap && going >= cap) return going > cap ? `Fullt · ${going - cap} på venteliste` : 'Fullt'
+  if (cap) return `${going} påmeldt · ${cap - going} ${cap - going === 1 ? 'plass' : 'plasser'} igjen`
+  return `${going} påmeldt`
+}
+
+/** Antall som deler regningen: de med plass. */
+export function payerCount(session: Session, going: number): number {
+  return session.capacity ? Math.min(going, session.capacity) : going
 }

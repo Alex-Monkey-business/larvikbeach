@@ -71,14 +71,16 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
   const [f, setF] = useState({
     name: season?.name ?? '', kind: season?.kind ?? 'indoor',
     starts_on: season?.starts_on ?? today(), ends_on: season?.ends_on ?? today(),
-    cost: season ? String(season.default_cost / 100) : '1200', location: season?.default_location ?? '',
+    cost: season ? String(season.default_cost / 100) : '620', location: season?.default_location ?? '',
+    capacity: season?.default_capacity ? String(season.default_capacity) : '', min: season?.default_min_players ? String(season.default_min_players) : '',
   })
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null)
     try {
       await api.saveSeason({ id: season?.id, name: f.name, kind: f.kind as Season['kind'], starts_on: f.starts_on, ends_on: f.ends_on,
-        default_cost: Math.round(Number(f.cost) * 100), default_location: f.location || null })
+        default_cost: Math.round(Number(f.cost) * 100), default_location: f.location || null,
+        default_capacity: f.capacity ? Number(f.capacity) : null, default_min_players: f.min ? Number(f.min) : null })
       await onSaved()
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
   }
@@ -95,6 +97,8 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
         <label className="field"><span className="label">Til</span><input className="input" type="date" required value={f.ends_on} onChange={e => setF({ ...f, ends_on: e.target.value })} /></label>
         <label className="field"><span className="label">Hallpris per økt (kr)</span><input className="input" type="number" min={0} step={1} value={f.cost} onChange={e => setF({ ...f, cost: e.target.value })} /></label>
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></label>
+        <label className="field"><span className="label">Maks antall (tomt = ingen grense)</span><input className="input" type="number" min={1} value={f.capacity} onChange={e => setF({ ...f, capacity: e.target.value })} /></label>
+        <label className="field"><span className="label">Minst antall for å spille</span><input className="input" type="number" min={1} value={f.min} onChange={e => setF({ ...f, min: e.target.value })} /></label>
       </div>
       {error && <Notice>{error}</Notice>}
       <button className="btn btn-primary">Lagre sesong</button>
@@ -105,7 +109,8 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
 function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Promise<void> }) {
   const [open, setOpen] = useState(false)
   const next = new Date(); next.setDate(next.getDate() + 1); next.setHours(20, 0, 0, 0)
-  const [f, setF] = useState({ when: toLocalInput(next.toISOString()), duration: '90', location: season.default_location ?? '', cost: String(season.default_cost / 100), note: '', repeat: '1' })
+  const [f, setF] = useState({ when: toLocalInput(next.toISOString()), duration: '120', location: season.default_location ?? '', cost: String(season.default_cost / 100), note: '', repeat: '1',
+    capacity: season.default_capacity ? String(season.default_capacity) : '', min: season.default_min_players ? String(season.default_min_players) : '' })
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null)
@@ -114,7 +119,8 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
       for (let i = 0; i < n; i++) {
         const d = new Date(fromLocalInput(f.when)); d.setDate(d.getDate() + 7 * i)
         await api.saveSession({ season_id: season.id, starts_at: d.toISOString(), duration_min: Number(f.duration),
-          location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null })
+          location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null,
+          capacity: f.capacity ? Number(f.capacity) : null, min_players: f.min ? Number(f.min) : null })
       }
       setOpen(false); await onSaved()
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
@@ -128,6 +134,8 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
         <label className="field"><span className="label">Varighet (min)</span><input className="input" type="number" min={15} step={15} value={f.duration} onChange={e => setF({ ...f, duration: e.target.value })} /></label>
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></label>
         <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} value={f.cost} onChange={e => setF({ ...f, cost: e.target.value })} /></label>
+        <label className="field"><span className="label">Maks antall</span><input className="input" type="number" min={1} value={f.capacity} onChange={e => setF({ ...f, capacity: e.target.value })} /></label>
+        <label className="field"><span className="label">Minst antall</span><input className="input" type="number" min={1} value={f.min} onChange={e => setF({ ...f, min: e.target.value })} /></label>
         <label className="field"><span className="label">Gjenta ukentlig, antall uker</span><input className="input" type="number" min={1} max={30} value={f.repeat} onChange={e => setF({ ...f, repeat: e.target.value })} /></label>
         <label className="field"><span className="label">Notat</span><input className="input" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></label>
       </div>
