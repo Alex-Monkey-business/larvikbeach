@@ -5,6 +5,9 @@ import { useQuery } from '../../lib/useQuery'
 import { longDate, time, fromLocalInput, toLocalInput } from '../../lib/format'
 import { kr } from '../../lib/money'
 import { Notice } from '../../components/Notice'
+import { ShareButton } from '../../components/Share'
+import { statusLine } from '../play/useSessions'
+import { endTime } from '../../lib/format'
 import type { Session } from '../../lib/types'
 
 export function AdminSession() {
@@ -62,6 +65,20 @@ export function AdminSession() {
           })}
         </ul>
       </section>
+
+      {session.status === 'planned' && (
+        <section className="card stack">
+          <h2 className="h3">Påminnelse</h2>
+          <p className="muted">Del i Messenger-gruppa så folk husker å melde seg på.</p>
+          <ShareButton label="Del økta" text={[
+            `Beachvolley ${longDate(session.starts_at).toLowerCase()}, ${time(session.starts_at)}–${endTime(session.starts_at, session.duration_min)}`,
+            session.location ?? '',
+            statusLine(session, going.size) + '.',
+            'Meld deg på:',
+            `${window.location.origin}/spill/okter/${session.id}`,
+          ].filter(Boolean).join('\n')} />
+        </section>
+      )}
 
       <SessionForm session={session} locked={invoiced} onSaved={q.reload} />
 

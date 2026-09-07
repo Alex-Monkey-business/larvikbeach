@@ -19,6 +19,7 @@ export interface Settings {
   billing_day: number
   settle_after_hours: number
   signup_window_days: number
+  email_invoices: boolean
   admin_email: string | null
 }
 

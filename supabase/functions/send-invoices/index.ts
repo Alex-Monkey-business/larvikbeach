@@ -46,6 +46,12 @@ Deno.serve(async (req) => {
   const { data: created, error: cErr } = await admin.rpc('create_invoices', { p_period: period })
   if (cErr) return fail(`create_invoices: ${cErr.message}`, 500)
 
+  // Bryteren i innstillingene: lag regningene, men ikke send noe. Da deler
+  // admin påminnelsen selv, i Messenger eller der gjengen holder til.
+  if (settings.email_invoices === false) {
+    return json({ period, created, sent: 0, skipped_email: true })
+  }
+
   const { data: open } = await admin.from('invoices').select('*').eq('status', 'open').gt('amount', 0)
   const { data: profiles } = await admin.from('profiles').select('id, name, email, role, active')
   const byId = new Map<string, Profile>((profiles ?? []).map((p: Profile) => [p.id, p]))

@@ -56,7 +56,7 @@ async function shot(page, name) {
 const browser = await chromium.launch()
 try {
   // Offentlig, mobil
-  const m = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })
+  const m = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, permissions: ['clipboard-read', 'clipboard-write'] })
   const p = await m.newPage()
   p.on('pageerror', e => fails.push(`pageerror: ${e.message}`))
   await p.goto(APP); await shot(p, 'm-hjem')
@@ -182,6 +182,14 @@ try {
   ok(await p.locator('li:has-text("Test Testesen")').count() >= 1, 'admin: godkjent søker ligger som invitasjon (invite-member)')
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
+  // Påminnelsen: teksten skal inneholde navn, beløp, Vipps-nummer og lenke
+  await p.locator('button:has-text("Del påminnelse")').click()
+  await p.locator('text=Kopiert').waitFor({ timeout: 5000 })
+  const delt = await p.evaluate(() => navigator.clipboard.readText())
+  ok(/kr/.test(delt) && delt.includes('/spill/betaling'), 'påminnelse: beløp og lenke er med')
+  ok(delt.includes('900 00 000') || /\d{6,}/.test(delt), 'påminnelse: Vipps-nummeret er med')
+  await p.locator('span.badge:text-is("Sendt")').first().waitFor({ timeout: 5000 })
+  ok(true, 'påminnelse: regningene merkes som varslet etter deling')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
   await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(500)
 

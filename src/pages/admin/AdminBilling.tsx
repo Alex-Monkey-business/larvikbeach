@@ -5,7 +5,8 @@ import { kr } from '../../lib/money'
 import { periodLabel } from '../../lib/format'
 import { Notice } from '../../components/Notice'
 import { InvoiceBadge } from '../../components/InvoiceBadge'
-import type { Invoice, Profile } from '../../lib/types'
+import { ShareButton } from '../../components/Share'
+import type { Invoice, Profile, Settings } from '../../lib/types'
 
 export function AdminBilling() {
   const q = useQuery(async () => {
@@ -25,7 +26,7 @@ export function AdminBilling() {
 
   if (q.error) return <Notice>{q.error}</Notice>
   if (!q.data) return null
-  const { invoices, profiles, balances } = q.data
+  const { invoices, profiles, balances, settings } = q.data
   const name = (id: string) => profiles.find(p => p.id === id)?.name ?? '?'
   const uninvoiced = balances.reduce((s, b) => s + b.uninvoiced, 0)
   const lastMonth = prevPeriod()
@@ -55,6 +56,19 @@ export function AdminBilling() {
           </button>
         </div>
       </section>
+
+      {toCollect.length > 0 && (
+        <section className="card stack">
+          <h2 className="h3">Påminnelse</h2>
+          <p className="muted">Del lista i Messenger-gruppa. Regningene merkes som varslet.</p>
+          <ShareButton className="btn btn-primary" label="Del påminnelse"
+            text={reminderText(toCollect, profiles, settings, window.location.origin)}
+            onShared={() => void run('varsle', async () => {
+              for (const i of toCollect.filter(x => x.status === 'open')) await api.setInvoiceStatus(i.id, 'notified')
+              return `${toCollect.filter(x => x.status === 'open').length} regninger merket som varslet.`
+            })} />
+        </section>
+      )}
 
       {byAmount.length > 0 && (
         <section className="card card-dark on-dark stack">
@@ -119,6 +133,26 @@ export function AdminBilling() {
       })}
     </div>
   )
+}
+
+/** Meldingen som deles: hvem skylder hva, hvor det vippses, og lenke inn. */
+function reminderText(open: Invoice[], profiles: Profile[], settings: Settings, origin: string): string {
+  const name = (id: string) => profiles.find(p => p.id === id)?.name ?? '?'
+  const perioder = [...new Set(open.map(i => i.period))]
+  const rows = open.slice().sort((a, b) => name(a.profile_id).localeCompare(name(b.profile_id)))
+    .map(i => `${name(i.profile_id)} ${kr(i.amount)}`)
+  const vipps = settings.vipps_number
+    ? `Vipps til ${settings.vipps_number}${settings.vipps_display_name ? ` (${settings.vipps_display_name})` : ''}.`
+    : 'Vipps som vanlig.'
+  return [
+    `${settings.group_name}, ${perioder.length === 1 ? periodLabel(perioder[0]).toLowerCase() : 'utestående'}`,
+    '',
+    ...rows,
+    '',
+    vipps,
+    'Si fra i appen når du har betalt:',
+    `${origin}/spill/betaling`,
+  ].join('\n')
 }
 
 function prevPeriod(): string {
