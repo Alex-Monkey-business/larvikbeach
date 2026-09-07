@@ -4,6 +4,11 @@ import { useAuth } from '../../auth/AuthProvider'
 import { Notice } from '../../components/Notice'
 import './Login.css'
 
+// Microsoft krever en Entra-leier (Azure-konto) for appregistreringen. Parkert
+// 7. sep 2026; Outlook/Hotmail-folk bruker koden. Slå på når leverandøren er
+// konfigurert i Supabase (external_azure_*).
+const MICROSOFT_ENABLED = false
+
 export function Login() {
   const { session, profile, ready, requestCode, verifyCode, signInWith, signOut } = useAuth()
   const nav = useNavigate()
@@ -74,10 +79,14 @@ export function Login() {
           <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
             <GoogleMark /> Fortsett med Google
           </button>
-          <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
-            <MicrosoftMark /> Fortsett med Microsoft
-          </button>
-          <p className="caption" style={{ textAlign: 'center' }}>Microsoft dekker Outlook, Hotmail og jobbkontoer.</p>
+          {MICROSOFT_ENABLED && (
+            <>
+              <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
+                <MicrosoftMark /> Fortsett med Microsoft
+              </button>
+              <p className="caption" style={{ textAlign: 'center' }}>Microsoft dekker Outlook, Hotmail og jobbkontoer.</p>
+            </>
+          )}
         </div>
       )}
 

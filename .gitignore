@@ -10,3 +10,8 @@ qa/
 
 # Local Netlify folder
 .netlify
+
+# Nedlastede nøkkelfiler fra Google/Azure skal aldri inn i repoet
+client_secret_*.json
+*.pem
+*.p12
