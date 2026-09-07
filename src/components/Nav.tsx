@@ -10,7 +10,9 @@ export function Nav() {
     <>
       <header className="nav-wrap">
         <nav className="nav" aria-label="Hovedmeny">
-          <Link to="/" className="nav-brand">Larvik Beach Volley</Link>
+          <Link to="/" className="nav-brand" aria-label="Larvik Beach Volley – forsiden">
+            <img src="/brand/lbv-wordmark.svg" alt="Larvik Beach Volley" width="79" height="22" />
+          </Link>
           <div className={`nav-links ${session ? 'nav-links-app' : ''}`}>
             {session ? (
               <>

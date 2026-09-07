@@ -15,3 +15,6 @@ qa/
 client_secret_*.json
 *.pem
 *.p12
+
+# Arbeidsmappe for logo og eksport: prompter og konseptbilder, ikke produktfiler
+output/

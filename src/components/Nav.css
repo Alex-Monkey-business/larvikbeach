@@ -13,10 +13,14 @@
   border: var(--border); border-radius: var(--radius-pill);
 }
 .nav-brand {
+  display: inline-flex; align-items: center; flex-shrink: 0;
   font-weight: 600; text-decoration: none; white-space: nowrap;
   font-size: var(--text-body-sm);
   margin-right: auto;
 }
+/* Navnetrekket, ikke et merke: bare bokstavene i blekk. Skoggrønn er
+   forbeholdt tilstand i appen (du har plass, dette laget vant). */
+.nav-brand img { display: block; width: 79px; height: 22px; }
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-links a:not(.btn), .nav-link-btn {
   display: inline-flex; align-items: center;
