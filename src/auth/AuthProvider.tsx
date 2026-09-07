@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/auth-js'
+import type { Provider, Session } from '@supabase/auth-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
 
@@ -10,6 +10,7 @@ interface AuthState {
   isAdmin: boolean
   requestCode: (email: string) => Promise<void>
   verifyCode: (email: string, code: string) => Promise<void>
+  signInWith: (provider: 'google' | 'azure') => Promise<void>
   signOut: () => Promise<void>
   reloadProfile: () => Promise<void>
 }
@@ -31,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let alive = true
     supabase.auth.getSession().then(async ({ data }) => {
       if (!alive) return
+      // Etter Google/Microsoft ligger tokenene i #fragmentet. Sesjonen er lest
+      // nå, så fragmentet skal ut av adressefeltet og historikken.
+      if (window.location.hash.includes('access_token=')) {
+        history.replaceState(null, '', window.location.pathname + window.location.search)
+      }
       setSession(data.session)
       await loadProfile(data.session?.user.id)
       setReady(true)
@@ -50,10 +56,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     ready,
     isAdmin: profile?.role === 'admin' && profile.active,
-    // shouldCreateUser: false. Ukjente e-poster får ingen bruker og ingen
-    // tilgang. Medlemmer inviteres av admin.
+    // Første innlogging oppretter brukeren, uansett metode. Er e-posten ikke
+    // invitert, blir profilen inaktiv og hen ser ingenting (se handle_new_user).
     requestCode: async (email) => {
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
+      if (error) throw new Error(mapAuthError(error.message))
+    },
+    signInWith: async (provider) => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider as Provider,
+        options: {
+          redirectTo: `${window.location.origin}/logg-inn`,
+          // Microsoft: «common» dekker både jobbkontoer og privat Outlook/Hotmail.
+          ...(provider === 'azure' ? { scopes: 'email openid profile', queryParams: { prompt: 'select_account' } } : { queryParams: { prompt: 'select_account' } }),
+        },
+      })
       if (error) throw new Error(mapAuthError(error.message))
     },
     verifyCode: async (email, code) => {

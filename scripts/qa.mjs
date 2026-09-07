@@ -9,6 +9,7 @@ const APP = process.env.APP_URL ?? 'http://localhost:5173'
 const MAIL = process.env.MAIL_URL ?? 'http://127.0.0.1:55324'
 const ADMIN = 'alexander.samnoy@gmail.com'
 const PLAYER = 'ola1@example.com'
+const INVITEE = `test${Date.now()}@example.com`
 mkdirSync('qa', { recursive: true })
 
 const fails = []
@@ -58,7 +59,7 @@ try {
   await p.goto(`${APP}/om-oss`); await shot(p, 'm-om-oss')
   await p.goto(`${APP}/bli-med`)
   await p.fill('input[autocomplete=name]', 'Test Testesen')
-  await p.fill('input[type=email]', `test${Date.now()}@example.com`)
+  await p.fill('input[type=email]', INVITEE)
   await p.fill('textarea', 'Har spilt litt')
   await p.click('button:has-text("Send")')
   await p.waitForSelector('text=Takk.')
@@ -68,6 +69,7 @@ try {
 
   // Admin, mobil
   await login(p, ADMIN); ok(true, 'admin: innlogget med kode fra e-post')
+  await p.waitForTimeout(300)
   await shot(p, 'm-spill')
   const first = p.locator('article.session-card').first()
   await first.locator('button:has-text("Jeg kommer")').click().catch(() => {})
@@ -82,10 +84,8 @@ try {
   ok(await p.locator('text=Test Testesen').count() >= 1, 'admin: søknaden ligger i lista')
   await p.locator('button:has-text("Godkjenn og inviter")').first().click()
   await p.waitForTimeout(3000)
-  const nyRad = p.locator('li:has-text("Test Testesen")')
-  ok(await nyRad.count() >= 1, 'admin: godkjent søker ble medlem (invite-member)')
-  // Merkelappen, ikke knappen «Sett inaktiv» (text= er substring-match).
-  ok(await nyRad.locator('span.badge:text-is("Inaktiv")').count() === 0, 'admin: nytt medlem er aktivt (app_metadata.invited nådde triggeren)')
+  await p.locator('text=Invitert, ikke logget inn ennå').waitFor({ timeout: 5000 }).catch(() => {})
+  ok(await p.locator('li:has-text("Test Testesen")').count() >= 1, 'admin: godkjent søker ligger som invitasjon (invite-member)')
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
@@ -101,6 +101,22 @@ try {
   ok(await p.locator('text=Meldt betalt').count() >= 1, 'spiller: regning markert som meldt betalt')
   await shot(p, 'm-spiller-betaling-etter')
   await p.goto(`${APP}/admin`); await p.waitForURL(/\/spill$/); ok(true, 'spiller: admin-rute avvises')
+  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
+
+  // Den inviterte logger inn første gang med kode: bruker opprettes, invitasjonen aktiverer profilen
+  await login(p, INVITEE)
+  ok(p.url().includes('/spill'), 'invitert: første innlogging gir aktiv profil og /spill')
+  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
+
+  // Uinvitert logger inn med kode: bruker opprettes, men ingen tilgang
+  await p.goto(`${APP}/logg-inn`)
+  await p.fill('input[type=email]', 'sniker@example.com')
+  await p.click('button:has-text("Send kode")')
+  await p.waitForSelector('input[autocomplete=one-time-code]')
+  await p.fill('input[autocomplete=one-time-code]', await latestCode('sniker@example.com'))
+  await p.click('button:has-text("Logg inn")')
+  await p.waitForSelector('text=Ikke tilgang ennå', { timeout: 10000 })
+  ok(true, 'uinvitert: kommer inn, men ser «Ikke tilgang ennå»')
   await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
 
   // Admin ser og bekrefter

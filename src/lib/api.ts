@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrap } from './useQuery'
-import type { Attendance, Balance, Charge, Invoice, JoinRequest, Profile, Season, Session, Settings } from './types'
+import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Profile, Season, Session, Settings } from './types'
 
 // Alle skriv som kan filtreres bort av RLS har .select(): en update som
 // treffer null rader gir ellers «ok» uten feil.
@@ -85,11 +85,14 @@ export const api = {
   setJoinRequestStatus: async (id: string, status: 'approved' | 'rejected', by: string) =>
     unwrap<JoinRequest>(await supabase.from('join_requests').update({ status, handled_at: new Date().toISOString(), handled_by: by }).eq('id', id).select().single()),
 
+  invites: async () => unwrap<Invite[]>(await supabase.from('invites').select('*').is('accepted_at', null).order('created_at', { ascending: false })),
+  deleteInvite: async (email: string) => unwrap<Invite[]>(await supabase.from('invites').delete().eq('email', email).select()),
+
   // Edge Functions. service_role bor der, aldri i klienten.
   inviteMember: async (body: { name: string; email: string; phone?: string; role?: 'admin' | 'player'; join_request_id?: string }) => {
     const { data, error } = await supabase.functions.invoke('invite-member', { body })
     if (error) throw new Error(await edgeError(error))
-    return data as { id: string }
+    return data as { email: string; activated: boolean }
   },
   sendInvoices: async (body: { period?: string; dry_run?: boolean } = {}) => {
     const { data, error } = await supabase.functions.invoke('send-invoices', { body })

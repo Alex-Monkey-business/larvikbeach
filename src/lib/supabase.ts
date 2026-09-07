@@ -8,7 +8,9 @@ import { FunctionsClient } from '@supabase/functions-js'
 // storageKey er `sb-<prosjektref>-auth-token`, samme som supabase-js.
 // flowType 'implicit' fordi PKCE feiler når koden verifiseres i en annen
 // nettleser enn den som ba om den (iOS: e-post åpner Safari, appen er PWA).
-// Vi bruker uansett 6-sifret kode, ikke lenke.
+// Kode-innloggingen bruker ikke URL, men Google/Microsoft returnerer med
+// tokenene i URL-fragmentet, så detectSessionInUrl må stå på. AuthProvider
+// rydder fragmentet etterpå.
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -22,7 +24,7 @@ function makeClient(url: string, key: string) {
     headers: { Authorization: `Bearer ${key}`, apikey: key },
     storageKey,
     flowType: 'implicit',
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
     persistSession: true,
     autoRefreshToken: true,
   })

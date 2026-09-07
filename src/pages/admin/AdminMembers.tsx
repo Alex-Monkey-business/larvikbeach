@@ -3,18 +3,19 @@ import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { Notice } from '../../components/Notice'
-import type { JoinRequest, Profile } from '../../lib/types'
+import type { Invite, JoinRequest, Profile } from '../../lib/types'
 
 export function AdminMembers() {
   const { profile: me } = useAuth()
   const people = useQuery(() => api.profiles(), [])
   const reqs = useQuery(() => api.joinRequests(), [])
+  const invites = useQuery(() => api.invites(), [])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
   async function run(key: string, fn: () => Promise<unknown>) {
     setBusy(key); setError(null)
-    try { await fn(); await Promise.all([people.reload(), reqs.reload()]) }
+    try { await fn(); await Promise.all([people.reload(), reqs.reload(), invites.reload()]) }
     catch (e) { setError(e instanceof Error ? e.message : 'Noe gikk galt') }
     finally { setBusy(null) }
   }
@@ -38,6 +39,26 @@ export function AdminMembers() {
       )}
 
       <InviteForm onDone={() => run('invite', async () => {})} />
+
+      {(invites.data?.length ?? 0) > 0 && (
+        <section className="card stack">
+          <h2 className="h3">Invitert, ikke logget inn ennå <span className="muted">{invites.data!.length}</span></h2>
+          <ul className="list">
+            {invites.data!.map((i: Invite) => (
+              <li key={i.email} className="row between">
+                <div>
+                  <p style={{ fontWeight: 500 }}>{i.name}{i.role === 'admin' && <span className="badge badge-forest" style={{ marginLeft: 8 }}>Admin</span>}</p>
+                  <p className="caption">{i.email} · invitert {new Date(i.created_at).toLocaleDateString('nb-NO')}</p>
+                </div>
+                <div className="row">
+                  <button type="button" className="btn btn-sm" disabled={busy === i.email} onClick={() => void run(i.email, () => api.inviteMember({ name: i.name, email: i.email, phone: i.phone ?? undefined, role: i.role }))}>Send igjen</button>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={busy === i.email} onClick={() => void run(i.email, () => api.deleteInvite(i.email))}>Trekk tilbake</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card stack">
         <h2 className="h3">Alle <span className="muted">{people.data?.length ?? ''}</span></h2>
@@ -97,7 +118,7 @@ function InviteForm({ onDone }: { onDone: () => Promise<void> }) {
   return (
     <form className="card stack" onSubmit={submit}>
       <h2 className="h3">Inviter</h2>
-      <p className="muted">Personen får en e-post og logger inn med den adressen.</p>
+      <p className="muted">Personen får en e-post og logger inn med den adressen: Google, Microsoft eller kode.</p>
       <div className="grid-2">
         <label className="field"><span className="label">Navn</span><input className="input" required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} /></label>
         <label className="field"><span className="label">E-post</span><input className="input" type="email" required value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>

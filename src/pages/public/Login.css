@@ -1,0 +1,2 @@
+.btn-provider { justify-content: flex-start; gap: 14px; padding-left: 20px; background: var(--color-white); font-weight: 500; }
+.btn-provider:hover { background: var(--color-cream); }

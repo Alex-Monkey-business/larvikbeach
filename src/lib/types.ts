@@ -93,3 +93,13 @@ export interface Balance {
   claimed: number
   uninvoiced: number
 }
+
+export interface Invite {
+  email: string
+  name: string
+  phone: string | null
+  role: Role
+  invited_by: string | null
+  created_at: string
+  accepted_at: string | null
+}

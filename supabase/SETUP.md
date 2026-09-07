@@ -36,13 +36,35 @@ Testdata (`supabase/seed.sql`): Alex er admin (`alexander.samnoy@gmail.com`), 12
    select vault.create_secret('https://<ref>.supabase.co/functions/v1', 'functions_url');
    select vault.create_secret('<service_role key>', 'service_role_key');
    ```
-6. Første admin: kjør i SQL-editor etter at du har logget inn én gang med koden
-   (brukeren finnes da, men profilen er inaktiv):
+6. Første admin: legg e-posten i `invites` med rolle admin før første innlogging:
    ```sql
-   update profiles set role = 'admin', active = true where email = '<din e-post>';
+   insert into invites (email, name, role) values ('<din e-post>', 'Navn', 'admin');
    ```
-   Alternativ: lag brukeren med invitasjon fra en annen admin.
 7. Innstillinger i appen: Vipps-nummer, visningsnavn, regningsdag, admin-e-post.
+
+## Google- og Microsoft-innlogging
+
+Begge er OAuth-leverandører i Supabase Auth. Redirect-URL hos leverandøren er alltid
+`https://pcaibrrpmervwjfzcont.supabase.co/auth/v1/callback`.
+
+**Google:** console.cloud.google.com → nytt prosjekt → APIs & Services → OAuth consent
+screen (External, legg til deg selv som testbruker til appen er publisert) → Credentials →
+Create OAuth client ID, Web application, redirect-URL over. Ta vare på Client ID og secret.
+
+**Microsoft:** portal.azure.com → Microsoft Entra ID → App registrations → New registration.
+Supported account types: **«Accounts in any organizational directory and personal Microsoft
+accounts»** (ellers virker ikke Hotmail/Outlook). Redirect URI: Web, URL over.
+Certificates & secrets → New client secret (noter verdien, ikke ID-en).
+Token configuration → Add optional claim → ID → `email` og `xms_edov` (så e-posten regnes
+som verifisert). API permissions: `email`, `openid`, `profile`, `User.Read`.
+
+Legg inn i Supabase (Management API eller dashbordet, Authentication → Providers):
+`external_google_enabled/client_id/secret`, `external_azure_enabled/client_id/secret`,
+`external_azure_url = https://login.microsoftonline.com/common`.
+
+Invitasjonsmodellen gjør at ingen identitetskobling trengs: `invites` er en godkjent
+e-postliste, første innlogging (uansett metode) oppretter brukeren, og triggeren aktiverer
+profilen hvis e-posten står der.
 
 ## Netlify
 
@@ -51,10 +73,10 @@ Miljøvariabler: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` fra prod-prosjekt
 
 ## Sikkerhetsmodell, kort
 
-- E-postinnlogging må stå på i GoTrue for at koder skal virke. Derfor kan hvem som
-  helst opprette en bruker via /otp. Triggeren `handle_new_user` gjør profilen
-  **inaktiv** med mindre `app_metadata.invited = true`, som bare `invite-member`
-  setter. Alle lesepolicyer krever `is_member()` (aktiv profil).
+- Hvem som helst kan opprette en bruker (kode, Google, Microsoft). Triggeren
+  `handle_new_user` gjør profilen **inaktiv** med mindre e-posten står i `invites`
+  (eller `app_metadata.invited`, som seed bruker). Alle lesepolicyer krever
+  `is_member()` (aktiv profil), så en uinvitert bruker ser null rader.
 - `service_role` finnes bare i Edge Functions. Rollen leses alltid fra `profiles`.
 - Alle skriv fra klienten som RLS kan filtrere bort har `.select()`; `npm run check:writes`
   håndhever det i build.
