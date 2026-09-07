@@ -33,6 +33,7 @@ export function AdminSettings() {
         <label className="field"><span className="label">Navn som vises i Vipps</span><input className="input" value={f.vipps_display_name ?? ''} onChange={e => set({ vipps_display_name: e.target.value })} /></label>
         <label className="field"><span className="label">Regning sendes den (dag i måneden)</span><input className="input" type="number" min={1} max={28} value={f.billing_day} onChange={e => set({ billing_day: Number(e.target.value) })} /></label>
         <label className="field"><span className="label">Regn ut økta automatisk, timer etter slutt</span><input className="input" type="number" min={0} max={72} value={f.settle_after_hours} onChange={e => set({ settle_after_hours: Number(e.target.value) })} /></label>
+        <label className="field"><span className="label">Påmeldingen åpner, dager før økta</span><input className="input" type="number" min={1} max={365} value={f.signup_window_days} onChange={e => set({ signup_window_days: Number(e.target.value) })} /></label>
       </div>
       <label className="field"><span className="label">E-post som får samle-oversikten («be om penger»-lista)</span><input className="input" type="email" value={f.admin_email ?? ''} onChange={e => set({ admin_email: e.target.value })} /></label>
       {error && <Notice>{error}</Notice>}

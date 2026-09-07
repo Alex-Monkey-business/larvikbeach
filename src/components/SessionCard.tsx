@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
-import { longDate, time, endTime, isPast } from '../lib/format'
+import { longDate, time, endTime, signupOpen } from '../lib/format'
 import { kr, shareOre } from '../lib/money'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
@@ -13,10 +13,11 @@ interface Props {
   waitlist?: Profile[]
   mine: MyState
   busy?: boolean
+  signupWindowDays: number
   onToggle?: (going: boolean) => void
 }
 
-export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, onToggle }: Props) {
+export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, onToggle }: Props) {
   const paid = session.cost > 0
   const full = session.capacity != null && goingCount >= session.capacity
   const heads = payerCount(session, goingCount + (mine.going === true ? 0 : 1))   // «hvis du kommer»
@@ -39,7 +40,7 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
         </div>
       </div>
-      {onToggle && session.status === 'planned' && !isPast(session.starts_at) && (
+      {onToggle && session.status === 'planned' && signupOpen(session.starts_at, signupWindowDays) && (
         <div className="session-card-actions">
           <AttendButton session={session} goingCount={goingCount} mine={mine} busy={busy} onToggle={onToggle} />
         </div>

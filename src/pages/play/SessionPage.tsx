@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
-import { longDate, time, endTime, isPast } from '../../lib/format'
+import { longDate, time, endTime, isPast, shortDate, signupOpen, signupOpensAt } from '../../lib/format'
 import { kr, shareOre } from '../../lib/money'
 import { Notice } from '../../components/Notice'
 import { AttendButton } from '../../components/SessionCard'
@@ -15,6 +15,7 @@ export function SessionPage() {
   const { id = '' } = useParams()
   const { profile, isAdmin } = useAuth()
   const s = useSessions({ id }, [id])
+  const settings = useQuery(() => api.settings(), [])
   const people = useQuery(() => api.profiles(), [])
   const charges = useQuery(() => api.charges({ sessionId: id }), [id, s.data])
 
@@ -33,7 +34,9 @@ export function SessionPage() {
   const n = queue.length
   const payers = payerCount(session, n)
   const full = session.capacity != null && n >= session.capacity
-  const open = session.status === 'planned' && !isPast(session.starts_at)
+  const windowDays = settings.data?.signup_window_days ?? 14
+  const open = session.status === 'planned' && signupOpen(session.starts_at, windowDays)
+  const notYet = session.status === 'planned' && !isPast(session.starts_at) && !open
   const myCharge = charges.data?.find(c => c.profile_id === profile?.id)
 
   return (
@@ -46,7 +49,8 @@ export function SessionPage() {
         <div className="row">
           {session.status === 'held' && <span className="badge badge-forest">Gjennomført</span>}
           {session.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
-          {session.status === 'planned' && !open && <span className="badge badge-stone">Påmelding stengt</span>}
+          {notYet && <span className="badge badge-stone">Påmelding åpner {shortDate(signupOpensAt(session.starts_at, windowDays).toISOString())}</span>}
+          {session.status === 'planned' && !open && !notYet && <span className="badge badge-stone">Påmelding stengt</span>}
           {session.status === 'planned' && <span className={`badge ${full ? 'badge-ember' : 'badge-stone'}`}>{statusLine(session, n)}</span>}
         </div>
       </header>
@@ -70,6 +74,7 @@ export function SessionPage() {
           <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
         </div>
       )}
+      {notYet && <p className="muted">Påmeldingen åpner {shortDate(signupOpensAt(session.starts_at, windowDays).toISOString())}, {windowDays} dager før økta.</p>}
       {s.actionError && <Notice>{s.actionError}</Notice>}
 
       <section className="grid-2">

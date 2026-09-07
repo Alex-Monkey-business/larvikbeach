@@ -10,9 +10,14 @@ import type { Profile } from '../../lib/types'
 
 export function Play() {
   const { profile } = useAuth()
+  const settings = useQuery(() => api.settings(), [])
+  // Påmeldingsvinduet. 14 som utgangspunkt, så lista ikke blafrer før
+  // innstillingene er lest.
+  const windowDays = settings.data?.signup_window_days ?? 14
   // Fra tre timer tilbake: en økt som pågår skal fortsatt stå øverst.
   const from = new Date(Date.now() - 3 * 3600_000).toISOString()
-  const s = useSessions({ from })
+  const to = new Date(Date.now() + windowDays * 86_400_000).toISOString()
+  const s = useSessions({ from, to }, [windowDays])
   const bal = useQuery(() => profile ? api.myBalance(profile.id) : Promise.resolve(null), [profile?.id])
   const people = useQuery(() => api.profiles(), [])
   const seasons = useQuery(() => api.seasons(), [])
@@ -43,15 +48,17 @@ export function Play() {
         <h2 className="h3">Neste økter</h2>
         {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
         {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
-        {s.data && upcoming.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
+        {s.data && upcoming.length === 0 && <p className="muted">Ingen økter de neste {windowDays} dagene.</p>}
         {upcoming.map(x => (
           <SessionCard key={x.id} session={x}
             goingCount={goingCount(s.data!.attendance, x.id)}
             {...splitQueue(s.data!.attendance, x, byId)}
             mine={mineFor(s.data!.attendance, x, profile?.id)}
             busy={s.busyId === x.id}
+            signupWindowDays={windowDays}
             onToggle={going => void s.toggle(x.id, going)} />
         ))}
+        <Link to="/spill/kalender" className="btn btn-ghost" style={{ justifySelf: 'start', paddingLeft: 0 }}>Hele terminlisten →</Link>
       </section>
     </div>
   )

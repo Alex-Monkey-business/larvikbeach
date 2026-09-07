@@ -11,6 +11,7 @@ import { SessionPage } from './pages/play/SessionPage'
 import { Billing } from './pages/play/Billing'
 import { Me } from './pages/play/Me'
 import { Stats } from './pages/play/Stats'
+import { Calendar } from './pages/play/Calendar'
 import { AdminLayout } from './pages/admin/AdminLayout'
 import { AdminSessions } from './pages/admin/AdminSessions'
 import { AdminSession } from './pages/admin/AdminSession'
@@ -31,6 +32,7 @@ export function App() {
         <Route path="spill" element={<RequireAuth />}>
           <Route index element={<Play />} />
           <Route path="okter/:id" element={<SessionPage />} />
+          <Route path="kalender" element={<Calendar />} />
           <Route path="statistikk" element={<Stats />} />
           <Route path="betaling" element={<Billing />} />
           <Route path="meg" element={<Me />} />

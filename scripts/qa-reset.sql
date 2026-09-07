@@ -11,3 +11,10 @@ with s as (select id from public.sessions where status = 'planned' and starts_at
 insert into public.attendance (session_id, profile_id, going, source, updated_at)
 select s.id, me.id, true, 'self', now() from s, me
 on conflict (session_id, profile_id) do update set going = true, updated_at = now();
+
+-- En økt godt utenfor påmeldingsvinduet, så kalenderen og sperren kan testes.
+insert into public.sessions (season_id, starts_at, duration_min, location, cost, capacity, min_players, note)
+select se.id, date_trunc('hour', now()) + interval '35 days', 120, se.default_location, se.default_cost, se.default_capacity, se.default_min_players, 'Nøkkelboks: hent nøkkelen i boksen.'
+  from public.seasons se
+ where se.name = 'Vinter 2026/27'
+   and not exists (select 1 from public.sessions x where x.season_id = se.id and x.starts_at > now() + interval '30 days');

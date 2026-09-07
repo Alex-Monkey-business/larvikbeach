@@ -68,7 +68,7 @@ try {
   const routes = [
     ['hjem', '/', false], ['om-oss', '/om-oss', false], ['bli-med', '/bli-med', false], ['logg-inn', '/logg-inn', false],
     ['personvern', '/personvern', false], ['spill', '/spill', true], ['okt-full', fullSession, true], ['okt-holdt', heldSession, true],
-    ['statistikk', '/spill/statistikk', true], ['betaling', '/spill/betaling', true], ['meg', '/spill/meg', true],
+    ['kalender', '/spill/kalender', true], ['statistikk', '/spill/statistikk', true], ['betaling', '/spill/betaling', true], ['meg', '/spill/meg', true],
     ['admin', '/admin', true, async pg => { await pg.click('button:has-text("Ny økt")'); await pg.click('button:has-text("Sesong")') }],
     ['admin-okt', `/admin/okter/${heldId}`, true],
     ['admin-medlemmer', '/admin/medlemmer', true, async pg => { await pg.click('button:has-text("Inviter en spiller")') }],

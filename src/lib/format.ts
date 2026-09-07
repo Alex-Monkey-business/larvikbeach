@@ -22,11 +22,33 @@ export function longDate(iso: string): string {
   return `${weekday(iso)} ${dayMonth(iso)}`
 }
 
+/** «7. sep.» */
+export function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', timeZone: OSLO })
+}
+
+/** «Man 7. sep» til lister med mange rader. */
+export function compactDate(iso: string): string {
+  const d = new Date(iso)
+  const wd = d.toLocaleDateString('nb-NO', { weekday: 'short', timeZone: OSLO }).replace('.', '')
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)} ${shortDate(iso)}`
+}
+
 /** «2026-09» → «September 2026» */
 export function periodLabel(period: string): string {
   const [y, m] = period.split('-').map(Number)
   const s = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('nb-NO', { month: 'long', year: 'numeric', timeZone: 'UTC' })
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/** Påmeldingen åpner så mange dager før økta. */
+export function signupOpensAt(iso: string, windowDays: number): Date {
+  return new Date(new Date(iso).getTime() - windowDays * 86_400_000)
+}
+
+export function signupOpen(iso: string, windowDays: number): boolean {
+  const now = Date.now()
+  return now >= signupOpensAt(iso, windowDays).getTime() && now < new Date(iso).getTime()
 }
 
 export function isPast(iso: string): boolean {
