@@ -31,11 +31,27 @@ export async function authorize(req: Request, admin: SupabaseClient): Promise<{ 
   const token = header.replace(/^Bearer\s+/i, '')
   if (!token) return null
   if (token === SERVICE_KEY) return { kind: 'service' }
+  // Nøkkelen i vault kan ha et annet format enn den runtime får i env (legacy
+  // JWT vs. sb_secret). Spør GoTrue: bare en service-nøkkel får lese admin-API-et.
+  if (looksLikeServiceKey(token)) {
+    const probe = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1`, {
+      headers: { apikey: token, Authorization: `Bearer ${token}` },
+    })
+    if (probe.ok) return { kind: 'service' }
+  }
   const { data, error } = await admin.auth.getUser(token)
   if (error || !data.user) return null
   const { data: profile } = await admin.from('profiles').select('role, active').eq('id', data.user.id).maybeSingle()
   if (profile?.role === 'admin' && profile.active) return { kind: 'admin', userId: data.user.id }
   return null
+}
+
+function looksLikeServiceKey(token: string): boolean {
+  if (token.startsWith('sb_secret_')) return true
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload?.role === 'service_role'
+  } catch { return false }
 }
 
 export function kr(ore: number): string {

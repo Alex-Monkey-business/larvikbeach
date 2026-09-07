@@ -82,7 +82,10 @@ try {
   ok(await p.locator('text=Test Testesen').count() >= 1, 'admin: søknaden ligger i lista')
   await p.locator('button:has-text("Godkjenn og inviter")').first().click()
   await p.waitForTimeout(3000)
-  ok(await p.locator('li:has-text("Test Testesen")').count() >= 1, 'admin: godkjent søker ble medlem (invite-member)')
+  const nyRad = p.locator('li:has-text("Test Testesen")')
+  ok(await nyRad.count() >= 1, 'admin: godkjent søker ble medlem (invite-member)')
+  // Merkelappen, ikke knappen «Sett inaktiv» (text= er substring-match).
+  ok(await nyRad.locator('span.badge:text-is("Inaktiv")').count() === 0, 'admin: nytt medlem er aktivt (app_metadata.invited nådde triggeren)')
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
