@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Larvik Beach Volley",
+  "short_name": "LBV",
+  "description": "Påmelding, oppmøte og oppgjør for volleyballøktene.",
+  "lang": "no",
+  "start_url": "/spill",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffeb",
+  "theme_color": "#ffffeb",
+  "icons": [
+    { "src": "/brand/lbv-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/lbv-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/lbv-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Statistikk", "url": "/spill/statistikk" },
+    { "name": "Betaling", "url": "/spill/betaling" }
+  ]
+}

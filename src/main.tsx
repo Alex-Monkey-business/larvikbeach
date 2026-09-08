@@ -15,3 +15,10 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+// Tjenestearbeideren finnes bare for at appen skal kunne installeres på
+// hjemskjermen (se public/sw.js). Ikke i dev: der ville den lagt seg mellom
+// Vite og nettleseren og servert gamle moduler.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js') })
+}

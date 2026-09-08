@@ -1,0 +1,5 @@
+.installer-rad { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: center; }
+/* 22 % er iOS' egen hjørneradius. Da ser kortet ut som telefonen etterpå. */
+.installer-ikon { border-radius: 22%; }
+.installer-rad p { font-size: 15px; line-height: 1.35; }
+.installer-knapp { justify-self: start; }

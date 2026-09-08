@@ -148,6 +148,7 @@ try {
   ok(await p.locator('.tabbar').isVisible(), 'spill: fanelinja er navigasjonen')
   ok(await p.locator('main svg[class*="beach"]').count() === 0, 'spill: ingen pynt i oppgaveflata')
   await shot(p, 'm-spill')
+
   // Forrige økt står øverst det første døgnet.
   const spilt = p.locator('article.session-card').first()
   ok(await spilt.locator('span.badge:text-is("6 spilte")').count() === 1, 'spill: spilt økt står igjen med «6 spilte»')
@@ -353,6 +354,34 @@ try {
   await p.locator('main >> text=nr.').first().waitFor({ timeout: 5000 }).catch(() => {})
   ok(await p.locator('input').count() === 0, 'meg: leser først, ingen skjemafelt før man velger å endre')
   ok(await p.locator('.me-numbers .num').count() === 3, 'meg: tre tall, økter, seire og poeng')
+
+  // Hjemskjerm-kortet på Meg. Chromium på skrivebordet får ingen
+  // beforeinstallprompt, og da SKAL kortet være borte — det er en innstilling
+  // med noe å gjøre, ikke en beskjed. iOS-grenen prøves i en ny fane i SAMME
+  // kontekst: innloggingen ligger i localStorage, så det koster ingen
+  // engangskode (GoTrue ratelimiterer).
+  ok(await p.locator('.installer').count() === 0, 'meg: hjemskjerm-kortet vises ikke uten installasjonsstøtte')
+  const ios = await m.newPage()
+  await ios.addInitScript(() => Object.defineProperty(navigator, 'userAgent',
+    { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' }))
+  // Innom Hjem først: kortet må virke etter navigasjon inne i appen, ikke bare
+  // ved direkte lasting av /spill/meg. Det er der beforeinstallprompt-fella lå.
+  await ios.goto(`${APP}/spill`); await ios.waitForSelector('article.session-card')
+  await ios.locator('.tabbar a:has-text("Meg")').click(); await ios.waitForURL(/\/meg$/)
+  const boks = ios.locator('.installer')
+  await boks.waitFor({ timeout: 5000 }).catch(() => {})
+  ok(await boks.count() === 1, 'iOS: hjemskjerm-kortet står på Meg')
+  ok((await boks.locator('h2').innerText()) === 'Appen på mobilen', 'iOS: kortet har egen overskrift som de andre på Meg')
+  ok((await boks.locator('.caption').innerText()).includes('Del-knappen'), 'iOS: kortet peker på Del-knappen i Safari')
+  ok(await boks.locator('img').getAttribute('src') === '/brand/lbv-192.png', 'iOS: kortet viser ikonet som havner på telefonen')
+  ok(await boks.locator('button').count() === 0, 'iOS: ingen knapp å trykke — iOS har ingen installasjons-API')
+  // Rekkefølgen: kortet er en innstilling og hører over «Logg ut».
+  const overLoggUt = await ios.locator('.me-page > .installer ~ button:has-text("Logg ut")').count()
+  ok(overLoggUt === 1, 'iOS: kortet står over «Logg ut»')
+  await shot(ios, 'm-installer')
+  await ios.setViewportSize({ width: 320, height: 700 })
+  await shot(ios, 'm-installer-320')
+  await ios.close()
   ok(await p.locator('main button:has-text("Logg ut")').count() === 1, 'meg: «Logg ut» bor her')
   await p.locator('button[aria-label="Endre navn og telefon"]').click()
   await p.locator('input[type=tel]').waitFor({ timeout: 5000 })
