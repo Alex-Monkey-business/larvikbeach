@@ -265,6 +265,33 @@ try {
   ok(true, 'statistikk: seire-kolonnen kom etter første resultat')
   const kolonner = await p.locator('.stats-table thead th').allInnerTexts()
   ok(kolonner.join(' · ') === 'Spiller · Økter · Seire · +/−', `statistikk: poengkolonnen kom med poengene (${kolonner.join(' · ')})`)
+
+  // Ledertavla og søylene. Begge animeres i JS eller mot en egendefinert
+  // CSS-verdi, så det som sjekkes er at de LANDER på riktig sluttilstand —
+  // en opptelling som stopper på 3 av 4, eller en søyle som blir stående på
+  // scaleX(0), ser ut som en designfeil og er en logisk feil.
+  await p.locator('.leder').waitFor({ timeout: 5000 })
+  const forsteRad = p.locator('.stats-table tbody tr').first()
+  const flest = (await forsteRad.locator('td').first().innerText()).trim()
+  await p.waitForTimeout(1500)
+  const tavletall = (await p.locator('.leder .num').innerText()).trim()
+  ok(tavletall === flest, `statistikk: opptellingen lander på lederens økter (${tavletall} mot tabellens ${flest})`)
+  ok((await forsteRad.getAttribute('class') ?? '').includes('stats-leder'), 'statistikk: lederraden er merket i tabellen')
+  const soyle = await forsteRad.locator('.stats-bar').evaluate(el => el.getBoundingClientRect().width)
+  ok(soyle > 8, `statistikk: søyla sveiper inn og blir stående (${Math.round(soyle)} px)`)
+  ok(await p.locator('.leder-ball[aria-hidden="true"][tabindex="-1"]').count() === 1,
+    'statistikk: ballen er dekor, ikke et stopp på tabturen')
+  ok(await p.locator('.leder .badge').count() === 1, 'statistikk: seiersledelsen står som merkelapp på tavla')
+  await shot(p, 'm-statistikk-tavle')
+
+  await p.emulateMedia({ reducedMotion: 'reduce' })
+  await p.reload(); await p.locator('.leder .num').waitFor({ timeout: 5000 })
+  ok((await p.locator('.leder .num').innerText()).trim() === flest,
+    'statistikk: redusert bevegelse viser tallet med en gang')
+  const roligSoyle = await p.locator('.stats-table tbody tr').first().locator('.stats-bar')
+    .evaluate(el => el.getBoundingClientRect().width)
+  ok(roligSoyle > 8, `statistikk: søyla står uten animasjon også (${Math.round(roligSoyle)} px)`)
+  await p.emulateMedia({ reducedMotion: 'no-preference' })
   await p.goto(`${APP}/spill/meg`)
   await p.locator('.me-numbers').waitFor({ timeout: 5000 })
   ok(await p.locator('.me-numbers .num').count() === 3, 'meg: tre tall, økter, seire og poeng')

@@ -1,0 +1,57 @@
+/* Sida bygger seg selv ovenfra: tittel, tavle, tabell, historikk. Rekkefølgen
+   er lesrekkefølgen, ikke en effekt for effektens skyld. */
+.stats-side > * { animation: seksjon-inn 560ms cubic-bezier(.2, .7, .3, 1) both; }
+.stats-side > *:nth-child(2) { animation-delay: 70ms; }
+.stats-side > *:nth-child(3) { animation-delay: 140ms; }
+.stats-side > *:nth-child(4) { animation-delay: 210ms; }
+@keyframes seksjon-inn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ledertavla. Skogsgrønn flate, ballen serves inn i hjørnet. */
+.leder {
+  position: relative;
+  background: var(--color-forest);
+  border-color: var(--color-forest);
+  color: var(--color-cream);
+}
+
+/* Hel ball, ikke beskåret: en avkuttet ball leser som en klatt. Dekor, så den
+   ligger utenfor tabrekkefølgen — men den er fortsatt til å slå på. */
+.leder-ball {
+  position: absolute; top: 14px; right: 14px; width: 92px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.leder-ball svg { display: block; width: 100%; height: auto; }
+
+.leder > .caption { padding-right: 104px; }
+.leder-tall { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 6px 0 0; }
+.leder-tall > .num { font-size: clamp(64px, 17vw, 108px); letter-spacing: -0.04em; }
+.leder-av { font-size: var(--text-body-sm); color: var(--color-stone); }
+.leder-navn { display: flex; align-items: center; gap: 10px; margin-top: var(--space-2); font-size: var(--text-body); }
+/* Identitetsfargene bor på lyse flater. Her ville skogsgrønne fjes forsvinne
+   i bakgrunnen, så alle får krem: lesbarhet slår gjenkjenning på ett kort. */
+.leder-navn .avatar { background: var(--color-cream); color: var(--color-forest); }
+.leder-seire { margin-top: var(--space-2); }
+
+/* Søylene som lå skjult i tabellen: hver rad er sin andel av øktene, i full
+   radbredde. Et tynt spor, ikke en fylt flate — en fylt flate bak navnet
+   leser som «valgt rad», ikke som et tall. */
+.stats-table tbody tr {
+  position: relative;
+  animation: rad-inn 460ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 45ms + 260ms);
+}
+@keyframes rad-inn { from { opacity: 0; } to { opacity: 1; } }
+.stats-bar {
+  position: absolute; left: 0; right: 0; bottom: 3px; height: 5px;
+  border-radius: var(--radius-pill); background: var(--color-stone);
+  transform: scaleX(var(--andel)); transform-origin: left center;
+  animation: bar-inn 760ms cubic-bezier(.2, .7, .3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 300ms);
+}
+@keyframes bar-inn { from { transform: scaleX(0); } to { transform: scaleX(var(--andel)); } }
+.stats-leder .stats-bar { background: var(--color-forest); }
+.stats-leder th { font-weight: 600; }
