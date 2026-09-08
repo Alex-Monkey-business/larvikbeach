@@ -5,8 +5,8 @@ import assert from 'node:assert/strict'
 const env = readFileSync('.env.local', 'utf8')
 const backend = new URL(env.match(/^VITE_SUPABASE_URL=["']?([^\s"']+)/m)[1])
 const storageKey = `sb-${backend.hostname.split('.')[0]}-auth-token`
-const app = 'http://127.0.0.1:5173'
-const out = 'qa/ui-review'
+const app = process.env.QA_APP ?? 'http://127.0.0.1:5174'
+const out = 'qa/leaderboard'
 mkdirSync(out, { recursive: true })
 const people = ['Alexander Samnøy', 'Ola Nordmann', 'Kari Hansen', 'Per Berg', 'Ingrid Solheim', 'Jonas Lie', 'Maria Aas'].map((name, i) => ({ id: `p${i}`, name, email: `spiller${i}@example.com`, role: i ? 'player' : 'admin', active: true, avatar_url: null, phone: null }))
 const season = { id: 'season1', name: 'Høsten 2026', starts_on: '2026-01-01', ends_on: '2027-12-31', kind: 'indoor', default_location: 'Grenland Folkehøgskole', default_capacity: 6, default_min_players: 4, default_cost: 600, notice: null }
@@ -51,57 +51,52 @@ async function context(auth, width) {
   }, {storageKey})
   return c
 }
+
 try {
-  for (const width of (process.env.QA_UI_WIDTHS?.split(',').map(Number) ?? [320, 390, 768, 1440])) {
-    for (const auth of [false, true]) {
-      const c = await context(auth, width), p = await c.newPage()
-      p.on('pageerror', e => errors.push(e.message))
-      for (const route of auth ? ['/spill','/spill/statistikk','/spill/kalender','/spill/betaling','/spill/meg','/spill/okter/s1','/admin','/admin/medlemmer','/admin/betaling','/admin/innstillinger'] : ['/','/om-oss','/bli-med','/logg-inn','/personvern','/ukjent']) {
-        await p.goto(app+route); await p.waitForTimeout(450)
-        await p.locator('h1').first().waitFor()
-        const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)
-        assert.equal(overflow, false, `overflow ${width} ${route}`)
-        results.push(`${width} ${route}: OK`); console.log(results.at(-1))
-        if ([390,1440].includes(width)) { await p.waitForTimeout(1400); await p.screenshot({ path: `${out}/${width}-${route.replaceAll('/','_')||'home'}.png`, fullPage: true }) }
-      }
-      await c.close()
-    }
+  sessions.splice(0, sessions.length, ...Array.from({length: 7}, (_, i) => ({id: `s${i}`, season_id: season.id, starts_at: new Date(Date.now() - (7-i) * 86400000).toISOString(), duration_min: 120, location: 'Grenland Folkehøgskole', cost: 600, status: 'held', capacity: 10, min_players: 4, note: null})))
+  attendance = people.flatMap((p, i) => sessions.slice(0, 7-i).map(s => ({session_id: s.id, profile_id: p.id, going: true, updated_at: new Date(Date.now()-864000000).toISOString()})))
+  data.season_stats.forEach((r, i) => { r.wins = [5, 9, 7, 3, 6, 2, 1][i] })
+  for (const width of [320, 390, 768, 1440]) {
+    const c = await context(true, width), p = await c.newPage()
+    p.on('pageerror', e => errors.push(e.message))
+    await p.goto(app + '/spill/statistikk')
+    await p.locator('.leader-list').waitFor()
+    assert.equal(await p.locator('.leader-row').first().getAttribute('data-player'), 'p1')
+    assert.equal(await p.locator('.stats-details').getAttribute('open'), null)
+    await p.waitForTimeout(1600)
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    if ([390, 1440].includes(width)) await p.screenshot({path: `${out}/${width}.png`, fullPage: true})
+    await p.getByRole('button', {name:'Oppmøte',exact:true}).click()
+    assert.equal(await p.locator('.leader-row').first().getAttribute('data-player'), 'p0')
+    assert.ok(await p.locator('.leader-row').evaluateAll(rows => rows.some(row => row.getAnimations().length > 0)), 'Rank changes animate')
+    await p.waitForTimeout(800)
+    await p.locator('.stats-details summary').click()
+    await p.getByRole('heading', {name:'Historikk'}).waitFor()
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+    await p.emulateMedia({reducedMotion:'reduce'})
+    await p.getByRole('button', {name:'Seire',exact:true}).click()
+    assert.equal(await p.locator('.leader-spotlight').evaluate(el => getComputedStyle(el).animationName), 'none')
+    assert.equal(await p.locator('.leader-total strong').textContent(), '9')
+    await c.close()
   }
-  const c = await context(true, 390), p = await c.newPage()
-  const fixedNow = Date.now()
-  await p.clock.setFixedTime(new Date(fixedNow))
-  for (const age of [24 * 3600000 - 1000, 24 * 3600000, 24 * 3600000 + 1000]) {
-    sessions[0].starts_at = new Date(fixedNow - age).toISOString()
-    await p.goto(app+'/spill')
-    await p.locator('article.session-card').first().waitFor()
-    assert.equal(await p.locator('.play-home section > .caption').first().textContent(), age < 24 * 3600000 ? 'Forrige økt' : 'Neste økt')
-  }
-  await p.goto(app+'/spill')
-  await p.getByRole('button', { name: 'Meld meg av', exact: true }).waitFor()
-  assert.equal(await p.getByRole('button', { name: 'Du har plass', exact: true }).count(), 0)
-  p.once('dialog', d => d.dismiss())
-  await p.getByRole('button', {name:'Meld meg av',exact:true}).click()
-  assert.equal(await p.getByRole('button', {name:'Meld meg av',exact:true}).count(),1)
-  p.once('dialog', d => d.accept())
-  await p.getByRole('button', {name:'Meld meg av',exact:true}).click()
-  await p.getByRole('button', {name:'Jeg kommer',exact:true}).waitFor()
-  await p.getByRole('button', {name:'Jeg kommer',exact:true}).click()
-  await p.getByRole('button', {name:'Meld meg av',exact:true}).waitFor()
-  fail = 'season_stats'
-  await p.goto(app+'/spill/statistikk'); await p.getByRole('alert').waitFor()
-  fail = ''; await p.getByRole('button',{name:'Prøv igjen'}).click(); await p.locator('.leader-list .leader-row').first().waitFor()
-  empty = true; await p.goto(app+'/spill/kalender'); await p.getByText('Ingen sesong er lagt inn ennå.').waitFor(); empty = false
-  fail = 'balances'; await p.goto(app+'/spill/betaling'); await p.getByRole('alert').waitFor(); assert.equal(await p.getByText('Utestående', {exact:true}).count(),0); fail = ''
-  await p.emulateMedia({ reducedMotion: 'reduce' }); await p.goto(app+'/spill')
-  assert.equal(await p.locator('.beach-ball').evaluate(el => getComputedStyle(el).animationName), 'none')
+  const c = await context(true, 320), p = await c.newPage()
+  p.on('pageerror', e => errors.push(e.message))
+  data.season_stats[0].wins = 9
   people[0].name = 'Alexander Et Veldig Langt Mellomnavn Samnøy'
-  people[0].email = 'alexander.et.veldig.langt.navn@example.com'
-  await p.setViewportSize({ width: 320, height: 844 })
-  for (const path of ['/spill', '/spill/statistikk', '/spill/meg']) {
-    await p.goto(app + path); await p.waitForTimeout(400)
-    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `Long name: ${path}`)
-  }
-  await c.close()
-  assert.deepEqual(errors, [])
-  console.log(`PASS: ${results.length} viewport/route combinations; RSVP cancel/confirm/rejoin; error/retry; empty; billing failure; reduced motion; long names/email; 24-hour ordering boundary; no runtime errors.`)
+  await p.goto(app + '/spill/statistikk'); await p.locator('.leader-list').waitFor()
+  assert.equal(await p.locator('.leader-winner').count(), 2)
+  // Sifferet er dekor og plasseringen står som skjult tekst ved siden av, så
+  // teksten leses fra det synlige sifferet.
+  assert.equal(await p.locator('.leader-row .leader-rank [aria-hidden="true"]').allTextContents().then(x=>x.slice(0,3).join(',')), '01,01,03')
+  assert.equal(await p.locator('.leader-row .leader-rank .visually-hidden').first().textContent(), '1. plass')
+  assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+  await p.getByRole('button',{name:'Spill lederanimasjonen på nytt'}).focus(); await p.keyboard.press('Enter')
+  data.season_stats.forEach(r => { r.wins = 0 })
+  await p.reload(); await p.locator('.leader-empty').waitFor()
+  assert.equal(await p.locator('.leader-winner').count(), 0)
+  fail = 'season_stats'; await p.reload(); await p.getByRole('alert').waitFor()
+  fail = ''; await p.getByRole('button',{name:'Prøv igjen'}).click(); await p.locator('.leader-list').waitFor()
+  data.season_stats = []; await p.reload(); await p.getByText('Ingen økter er gjennomført ennå.').waitFor()
+  await c.close(); assert.deepEqual(errors, [])
+  console.log('PASS: leaderboard order, metric switching, 4 widths, details, reduced motion, ties, long names, zero scores, empty, error/retry, keyboard replay, no runtime errors.')
 } finally { await browser.close() }

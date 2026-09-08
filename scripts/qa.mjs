@@ -195,7 +195,9 @@ try {
   ok(await p.locator('text=Påmeldingen åpner').count() >= 1, 'økt langt fram: sier når påmeldingen åpner')
   ok(await p.locator('button:has-text("Jeg kommer")').count() === 0, 'økt langt fram: ingen påmeldingsknapp')
   await p.goto(`${APP}/spill/statistikk`); await shot(p, 'm-statistikk')
-  ok(await p.locator('h2:has-text("Oppmøte")').count() === 1, 'statistikk: oppmøtelista vises')
+  ok(await p.locator('.leader-list .leader-row').count() > 0, 'statistikk: leaderboardet vises')
+  // Kamper, rutenett og historikk ligger bak «Mer fra sesongen» nå.
+  await p.locator('.stats-details > summary').click()
   await p.locator('h2:has-text("Historikk")').waitFor({ timeout: 5000 })
   const seksSpilte = p.locator('li:has-text("6 spilte")').first()
   await seksSpilte.locator('a').click(); await p.waitForURL(/okter\//)
@@ -260,52 +262,73 @@ try {
   ok(await p.locator('article.session-card').first().locator('text=kr hver').count() === 0, 'spill: kortet nevner ikke pris')
   await shot(p, 'm-spill-resultat')
   await p.goto(`${APP}/spill/statistikk`)
-  // Statistikken er en tabell nå: kolonnene har ekte overskrifter.
-  await p.locator('th:has-text("Seire")').waitFor({ timeout: 5000 })
-  ok(true, 'statistikk: seire-kolonnen kom etter første resultat')
+  await p.locator('.leader-spotlight').waitFor({ timeout: 5000 })
+
+  // Standardvalget er seire så snart det finnes kamper. Det valget tok Codex,
+  // ikke Alex — testen fester det så en endring blir synlig.
+  ok(await p.locator('.leader-switch button[aria-pressed="true"]').innerText() === 'Seire',
+    'statistikk: seire er valgt når det finnes kamper')
+
+  // Delt plassering er konkurranserangering: 1, 1, 3 — ikke 1, 2, 3. To med
+  // like mange seire skal ha samme nummer, og neste skal hoppe over plassen.
+  const plasser = await p.locator('.leader-list .leader-rank [aria-hidden="true"]').allInnerTexts()
+  ok(plasser[0] === '01' && plasser[1] === '01' && plasser[2] === '03',
+    `statistikk: like tall gir delt plassering (${plasser.slice(0, 4).join(' ')})`)
+  ok(await p.locator('.leader-winners .leader-winner').count() === 2,
+    'statistikk: begge lederne står i lederseksjonen')
+  // textContent, ikke innerText: øyenbrynet har text-transform: uppercase, og
+  // innerText gir den rendrede teksten («DELT FØRSTEPLASS»).
+  ok(await p.locator('.leader-eyebrow').textContent() === 'Delt førsteplass',
+    `statistikk: delt førsteplass sies med ord (${await p.locator('.leader-eyebrow').textContent()})`)
+
+  // Opptellingen er rAF og stoppes ikke av CSS-regelen for redusert bevegelse.
+  // Den må LANDE på øverste rads tall; stopper den på 7 av 8 ser det ut som
+  // en designfeil og er en logisk feil.
+  const toppScore = () => p.locator('.leader-list .leader-score').first().innerText()
+  await p.waitForTimeout(1600)
+  const tavle = (await p.locator('.leader-total strong').innerText()).trim()
+  ok(tavle === (await toppScore()).trim() && Number(tavle) > 0,
+    `statistikk: opptellingen lander på lederens tall (${tavle} mot ${await toppScore()})`)
+
+  // Måleren bak raden animeres mot en inline scaleX. Blir den stående på 0,
+  // er søyla borte uten at noe feiler.
+  const maler = await p.locator('.leader-list .leader-row').first().locator('.leader-meter > span')
+    .evaluate(el => el.getBoundingClientRect().width)
+  ok(maler > 20, `statistikk: lederens måler blir stående, ikke på null (${Math.round(maler)} px)`)
+
+  // Kategoribytte: rangeringen skal regnes om, ikke bare merkes om.
+  const seireSum = () => p.locator('.leader-list .leader-score').evaluateAll(els => els.map(e => e.textContent).join(','))
+  const forSeire = await seireSum()
+  await p.locator('.leader-switch button:has-text("Oppmøte")').click()
+  await p.waitForTimeout(900)
+  ok(await seireSum() !== forSeire, 'statistikk: bytte til oppmøte regner om rangeringen')
+  ok(await p.locator('.leader-list .leader-diff').count() === 0, 'statistikk: +/− hører bare til seire')
+
+  // Fasit for oppmøtet er databasens egen telling. Rutene og leaderboardet må
+  // ende på samme sum, ellers regner klienten oppmøte etter en annen regel
+  // enn season_stats og tallene spriker uten at noen ser hvorfor.
+  const sumOppmote = await p.locator('.leader-list .leader-score')
+    .evaluateAll(els => els.reduce((n, e) => n + Number(e.textContent), 0))
+  await p.locator('.stats-details > summary').click()
+  await p.locator('h2:has-text("Økt for økt")').waitFor({ timeout: 5000 })
+  const ruter = await p.locator('.rute-med').count()
+  ok(ruter === sumOppmote, `statistikk: rutenettet og leaderboardet ender på samme sum (${ruter} mot ${sumOppmote})`)
   const kolonner = await p.locator('.stats-table thead th').allInnerTexts()
   ok(kolonner.join(' · ') === 'Spiller · Kamper · Seire · +/−', `statistikk: kamptabellen har egne kolonner (${kolonner.join(' · ')})`)
+  await shot(p, 'm-statistikk-leaderboard')
 
-  // Plakaten, løpet og rutenettet. Alt tre animeres, så det som sjekkes er at
-  // de LANDER: en opptelling som stopper på 3 av 4, eller en søyle som blir
-  // stående på 0, ser ut som en designfeil og er en logisk feil.
-  await p.locator('.plakat').waitFor({ timeout: 5000 })
-  const summer = () => p.locator('.lop-tall').evaluateAll(els => els.reduce((n, e) => n + Number(e.textContent), 0))
-  const underveis = await summer()
-  await p.waitForTimeout(2600)
-  const ferdig = await summer()
-  ok(ferdig > underveis, `statistikk: sesongen spilles av, den står ikke ferdig (${underveis} → ${ferdig})`)
-
-  // Fasit for løpet er databasens egen telling. Ruter og søyler skal ende på
-  // samme sum — ellers regner klienten oppmøte etter en annen regel enn
-  // season_stats, og tallene spriker uten at noen ser hvorfor.
-  const ruter = await p.locator('.rute-med').count()
-  ok(ruter === ferdig, `statistikk: rutenettet og løpet ender på samme sum (${ruter} mot ${ferdig})`)
-  const okter = Number((await p.locator('.plakat-fakta .num').innerText()).trim())
-  const topp = Number((await p.locator('.lop tbody tr').first().locator('.lop-tall').innerText()).trim())
-  ok(okter === topp && topp > 0, `statistikk: plakaten viser samme tall som toppen av løpet (${okter} mot ${topp})`)
-  ok((await p.locator('.lop tbody tr').first().getAttribute('class') ?? '').includes('lop-front'),
-    'statistikk: ledelsen lyser på øverste rad når løpet er ferdig')
-  const bredde = await p.locator('.lop tbody tr').first().locator('.lop-fyll')
-    .evaluate(el => el.getBoundingClientRect().width)
-  ok(bredde > 20, `statistikk: søyla blir stående, ikke på null (${Math.round(bredde)} px)`)
-  // Breddene ligger på <col> fordi en position:absolute <caption> slår ut
-  // px-bredder på cellene i en fixed-layout tabell — da ble alle fire
-  // kolonnene like brede og søyla halvparten så lang som den skulle.
-  const kol = await p.locator('.lop tbody tr').first().evaluate(tr =>
-    [...tr.children].map(e => Math.round(e.getBoundingClientRect().width)))
-  ok(kol[2] > kol[1] * 1.5, `statistikk: søylekolonna er den brede (${kol.join(' / ')})`)
-  ok(await p.locator('.plakat-ball[aria-hidden="true"][tabindex="-1"]').count() === 1,
-    'statistikk: ballen er dekor, ikke et stopp på tabturen')
-  ok(await p.locator('.plakat .display, .plakat .h2').count() > 0, 'statistikk: lederens navn er det største på plakaten')
-  await shot(p, 'm-statistikk-plakat')
-
-  await p.locator('button:has-text("Spill av sesongen")').click()
-  ok(await summer() < ferdig, 'statistikk: «Spill av sesongen» starter løpet på nytt')
+  await p.locator('.leader-switch button:has-text("Seire")').click()
+  await p.locator('.leader-replay').click()
+  ok(Number((await p.locator('.leader-total strong').innerText()).trim()) < Number(tavle),
+    'statistikk: replay starter opptellingen på nytt')
 
   await p.emulateMedia({ reducedMotion: 'reduce' })
-  await p.reload(); await p.locator('.lop-tall').first().waitFor({ timeout: 5000 })
-  ok(await summer() === ferdig, 'statistikk: redusert bevegelse hopper rett til sluttilstanden')
+  await p.reload(); await p.locator('.leader-total strong').waitFor({ timeout: 5000 })
+  ok((await p.locator('.leader-total strong').innerText()).trim() === tavle,
+    'statistikk: redusert bevegelse viser tallet med en gang')
+  const roligMaler = await p.locator('.leader-list .leader-row').first().locator('.leader-meter > span')
+    .evaluate(el => el.getBoundingClientRect().width)
+  ok(roligMaler > 20, `statistikk: måleren står uten animasjon også (${Math.round(roligMaler)} px)`)
   await p.emulateMedia({ reducedMotion: 'no-preference' })
   await p.goto(`${APP}/spill/meg`)
   await p.locator('.me-numbers').waitFor({ timeout: 5000 })

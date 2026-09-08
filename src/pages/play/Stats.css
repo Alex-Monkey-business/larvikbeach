@@ -1,77 +1,14 @@
-/* Sida bygger seg selv ovenfra: tittel, plakat, løp, kamper, rutenett,
-   historikk. Rekkefølgen er lesrekkefølgen, ikke en effekt for effektens skyld. */
-.stats-side > * { animation: seksjon-inn 560ms cubic-bezier(.2, .7, .3, 1) both; }
-.stats-side > *:nth-child(2) { animation-delay: 70ms; }
-.stats-side > *:nth-child(3) { animation-delay: 140ms; }
-.stats-side > *:nth-child(4) { animation-delay: 210ms; }
-.stats-side > *:nth-child(n+5) { animation-delay: 280ms; }
-@keyframes seksjon-inn {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Plakaten. Personen er saken, så navnet er det største på sida. Full bredde
-   på mobil — den ene gangen kortspråket brytes, og den er med vilje. */
-.plakat {
-  position: relative;
-  overflow: hidden;
-  margin-inline: calc(var(--space-2) * -1);
-  padding: var(--space-4) var(--space-2) var(--space-3);
-  background: var(--color-forest);
-  color: var(--color-cream);
-}
-@media (min-width: 720px) {
-  .plakat { margin-inline: 0; border-radius: var(--radius-card); padding: var(--space-6) var(--space-4) var(--space-4); }
-}
-
-/* Ballen blør ut over hjørnet. En avkuttet sirkel leser fortsatt som en ball,
-   i motsetning til et avkuttet siffer. Dekor: utenfor tabrekkefølgen. */
-.plakat-ball {
-  position: absolute; top: -30px; right: -26px; width: 152px;
-  padding: 0; border: 0; background: none; cursor: pointer;
-  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-}
-.plakat-ball svg { display: block; width: 100%; height: auto; }
-
-/* Hatten og tallet deler toppen med ballen, navnet får hele bredden under
-   den. Sto navnet øverst, traff et langt fornavn ballen på smale skjermer. */
-.plakat-hatt { color: var(--color-stone); padding-right: 118px; }
-.plakat-fakta { padding-right: 118px; }
-.plakat-navn { display: grid; margin: var(--space-3) 0 0; }
-.plakat-navn .display { font-size: clamp(46px, 12.5vw, 84px); line-height: .88; letter-spacing: -0.04em; }
-.plakat-flere { gap: 2px; }
-.plakat-flere .h2 { font-size: clamp(30px, 8vw, 46px); line-height: 1.02; }
-.plakat-fakta { display: flex; align-items: baseline; gap: 10px; margin: var(--space-1) 0 0; color: var(--color-stone); }
-.plakat-fakta .num { color: var(--color-cream); font-size: clamp(40px, 11vw, 64px); }
-.plakat-fot {
-  display: flex; align-items: baseline; gap: 10px;
-  margin: var(--space-3) 0 0; padding-top: var(--space-2);
-  border-top: 1px solid color-mix(in oklab, var(--color-cream) 26%, var(--color-forest));
-}
-.plakat-fot .caption { color: var(--color-stone); }
-
-/* Løpet. Alle søylene deler venstrekant, så det er lengden som leses. Ledelsen
-   lyser i ember og bytter rad mens sesongen spilles av — ingen rader flytter
-   seg, for rader som bytter plass mens du leser dem er uleselige. */
-.lop { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.lop th, .lop td { padding: 4px 0; border: 0; vertical-align: middle; }
-.kol-fjes { width: 26px; }
-.kol-navn { width: 74px; }
-.kol-tall { width: 30px; }
-.lop-navn {
-  padding: 4px 12px 4px 14px; text-align: left; font-weight: 400;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.lop-spor { display: block; height: 22px; border-radius: var(--radius-pill); background: var(--color-stone); overflow: hidden; }
-.lop-fyll {
-  display: block; height: 100%; border-radius: var(--radius-pill);
-  background: var(--color-forest);
-  transition: width 260ms cubic-bezier(.2, .7, .3, 1), background-color 220ms ease;
-}
-.lop-front .lop-fyll { background: var(--color-ember); }
-.lop-tall { padding-left: 10px; text-align: right; font-variant-numeric: tabular-nums; }
-.lop-meg .lop-navn, .lop-meg .lop-tall, .lop-meg .rutenett-navn { color: var(--color-forest); font-weight: 600; }
-
+.stats-side { margin-inline: auto; }
+.stats-side > header { display: grid; gap: 8px; }
+.stats-side > header .h1 { font-size: clamp(36px, 7vw, 52px); }
+.stats-details { border-top: 1px solid var(--color-stone); }
+.stats-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 0; cursor: pointer; list-style: none; font-size: 20px; }
+.stats-details > summary::-webkit-details-marker { display: none; }
+.stats-details summary small { display: block; font-size: 14px; color: var(--color-fog); margin-top: 4px; }
+.stats-details-plus { font-size: 28px; transition: transform 220ms; }
+.stats-details[open] .stats-details-plus { transform: rotate(45deg); }
+.stats-details-body { padding-block: 8px 24px; }
+.rutenett-meg .rutenett-navn { color: var(--color-forest); font-weight: 600; }
 /* Rutenettet: én rute per økt. Rullbart, for en vintersesong er 34 mandager.
    Navnekolonna klistrer seg, ellers ruller navnet ut av bildet. */
 .rutenett-skall { overflow-x: auto; overscroll-behavior-x: contain; }
@@ -87,7 +24,9 @@
   display: block; width: 15px; height: 15px; margin: 3px 0;
   border-radius: 4px; background: var(--color-stone);
   animation: rute-inn 320ms cubic-bezier(.2, .7, .3, 1) both;
-  animation-delay: calc((var(--x, 0) + var(--y, 0)) * 14ms + 300ms);
+  /* 60 ms, ikke 300: seksjonen åpnes med et klikk nå, og da er ventetid
+     før første rute bare treghet. Bølgen på tvers står. */
+  animation-delay: calc((var(--x, 0) + var(--y, 0)) * 14ms + 60ms);
 }
 .rute-med { background: var(--color-forest); }
 @keyframes rute-inn {

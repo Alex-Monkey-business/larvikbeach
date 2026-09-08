@@ -10,6 +10,13 @@ import './Home.css'
 // 7. sep 2026; Outlook/Hotmail-folk bruker koden. Slå på når leverandøren er
 // konfigurert i Supabase (external_azure_*).
 const MICROSOFT_ENABLED = false
+// Den lokale Supabase-stacken har ingen Google-nøkler, så koden er eneste vei
+// inn her. Hintet peker på testinnboksen. Skjermen skal ellers se HELT lik ut
+// lokalt og i prod: dette er den ene flyten som aldri får lov til å knekke, og
+// da må testene se det brukerne ser.
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? 'http://ukjent.invalid'
+const LOKAL_INNBOKS = import.meta.env.DEV
+  && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(supabaseUrl).hostname)
 
 export function Login() {
   const { session, profile, ready, requestCode, verifyCode, signInWith, signOut } = useAuth()
@@ -104,6 +111,7 @@ export function Login() {
               støy. Overskriften finnes for skjermlesere og søk. */}
           <h1 className="visually-hidden">Logg inn</h1>
 
+          {LOKAL_INNBOKS && <p className="caption">Lokal forhåndsvisning: Google er ikke satt opp. Bruk «Annen e-post» og hent koden i <a href="http://127.0.0.1:55324" target="_blank" rel="noreferrer">testinnboksen</a>.</p>}
           {step === 'email' ? (
             <div className="login-valg">
               <button type="button" className="btn btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
