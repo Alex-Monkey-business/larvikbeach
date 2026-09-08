@@ -2,13 +2,14 @@ import { Link, NavLink } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
 import './Nav.css'
 
-// Innlogget på mobil: lenkene flytter ned i en fanelinje, pillen beholder
-// bare navn og «Logg ut». På desktop ligger alt i pillen.
+// Innlogget på mobil er fanelinja hele navigasjonen, så toppen tas bort.
+// «Logg ut» bor på Meg: ingen skal logge ut ved et uhell. På desktop er
+// pillen fortsatt navigasjonen.
 export function Nav() {
-  const { session, isAdmin, signOut } = useAuth()
+  const { session, isAdmin } = useAuth()
   return (
     <>
-      <header className="nav-wrap">
+      <header className={`nav-wrap ${session ? 'nav-app' : ''}`}>
         <nav className="nav" aria-label="Hovedmeny">
           <Link to="/" className="nav-brand" aria-label="Larvik Beach Volley – forsiden">
             <img src="/brand/lbv-wordmark.svg" alt="Larvik Beach Volley" width="79" height="22" />
@@ -30,7 +31,6 @@ export function Nav() {
               </>
             )}
           </div>
-          {session && <button type="button" className="nav-link-btn" onClick={() => void signOut()}>Logg ut</button>}
         </nav>
       </header>
       {session && (

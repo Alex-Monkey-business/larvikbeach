@@ -21,6 +21,8 @@ interface Props {
 export function SessionCard({ session, goingCount, withSpot = [], waitlist = [], mine, busy, signupWindowDays, winners = [], subtitle, onToggle }: Props) {
   const full = session.capacity != null && goingCount >= session.capacity
   const played = isPast(session.starts_at) && session.status !== 'cancelled'
+  // «Dagens» holder bare det første døgnet; etter det er det forrige økt.
+  const ferskt = Date.now() - new Date(session.starts_at).getTime() < 24 * 3600_000
   const hasSpot = mine.going === true && !mine.waitlisted
   return (
     <article className={`session-card card ${hasSpot ? 'is-going' : ''}`}>
@@ -44,7 +46,7 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
         {played && winners.length > 0 && winners.length <= 2 && (
           <p className="row" style={{ gap: 8 }}>
             <AvatarStack people={winners} size={28} />
-            <span>{winners.length === 1 ? 'Dagens vinner' : 'Dagens vinnere'}: {names(winners)}</span>
+            <span>{ferskt ? (winners.length === 1 ? 'Dagens vinner' : 'Dagens vinnere') : (winners.length === 1 ? 'Vinner' : 'Vinnere')}: {names(winners)}</span>
           </p>
         )}
       </div>

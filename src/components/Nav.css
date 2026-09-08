@@ -48,6 +48,8 @@
 .tabbar a.active { background: var(--color-lavender); }
 
 @media (max-width: 719px) {
+  /* Innlogget: fanelinja nederst er navigasjonen, toppen har ingen jobb. */
+  .nav-app { display: none; }
   .nav-links-app { display: none; }
   .tabbar { display: flex; }
   .nav-brand { font-size: var(--text-caption); }

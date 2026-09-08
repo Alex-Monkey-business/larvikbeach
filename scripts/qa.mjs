@@ -48,6 +48,14 @@ async function login(page, email) {
   await page.waitForURL(/\/spill/)
 }
 
+// «Logg ut» bor på Meg nå, ikke i toppen.
+async function loggUt(page) {
+  await page.goto(`${APP}/spill/meg`)
+  await page.locator('main button:has-text("Logg ut")').click()
+  await page.waitForURL(/logg-inn|^http[^/]*\/\/[^/]*\/$/, { timeout: 5000 }).catch(() => {})
+  await page.waitForTimeout(300)
+}
+
 async function shot(page, name) {
   await page.waitForTimeout(300)
   await page.screenshot({ path: `qa/${name}.png`, fullPage: true })
@@ -79,6 +87,8 @@ try {
   await login(p, ADMIN); ok(true, 'admin: innlogget med kode fra e-post')
   await p.goto(APP); await p.waitForURL(/\/spill$/); ok(true, 'innlogget: forsiden sender rett til øktene')
   await p.waitForTimeout(300)
+  ok(await p.locator('.nav-wrap').isVisible().catch(() => false) === false, 'spill: toppmenyen er borte i appen på mobil')
+  ok(await p.locator('.tabbar').isVisible(), 'spill: fanelinja er navigasjonen')
   await shot(p, 'm-spill')
   // Første kort er kveldens spilte økt: den blir stående til midt på dagen etter.
   const spilt = p.locator('article.session-card').first()
@@ -203,6 +213,7 @@ try {
   await p.locator('main >> text=nr.').first().waitFor({ timeout: 5000 }).catch(() => {})
   ok(await p.locator('input').count() === 0, 'meg: leser først, ingen skjemafelt før man velger å endre')
   ok(await p.locator('.me-numbers .num').count() === 3, 'meg: tre tall, økter, seire og poeng')
+  ok(await p.locator('main button:has-text("Logg ut")').count() === 1, 'meg: «Logg ut» bor her')
   await p.locator('button:has-text("Endre navn og telefon")').click()
   await p.locator('input[type=tel]').waitFor({ timeout: 5000 })
   ok(true, 'meg: «Endre» åpner skjemaet')
@@ -229,7 +240,7 @@ try {
   await p.locator('span.badge:text-is("Sendt")').first().waitFor({ timeout: 5000 })
   ok(true, 'påminnelse: regningene merkes som varslet etter deling')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
-  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(500)
+  await loggUt(p)
 
   // Spiller: melder betalt
   await login(p, PLAYER)
@@ -248,12 +259,12 @@ try {
   ok(await p.locator('text=Meldt betalt').count() >= 1, 'spiller: regning markert som meldt betalt')
   await shot(p, 'm-spiller-betaling-etter')
   await p.goto(`${APP}/admin`); await p.waitForURL(/\/spill$/); ok(true, 'spiller: admin-rute avvises')
-  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
+  await loggUt(p)
 
   // Den inviterte logger inn første gang med kode: bruker opprettes, invitasjonen aktiverer profilen
   await login(p, INVITEE)
   ok(p.url().includes('/spill'), 'invitert: første innlogging gir aktiv profil og /spill')
-  await p.click('button:has-text("Logg ut")'); await p.waitForTimeout(300)
+  await loggUt(p)
 
   // Uinvitert logger inn med kode: bruker opprettes, men ingen tilgang
   await p.goto(`${APP}/logg-inn`)

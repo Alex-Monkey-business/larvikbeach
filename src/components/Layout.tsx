@@ -1,15 +1,17 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { Nav } from './Nav'
+import { useAuth } from '../auth/AuthProvider'
 
 export function Layout() {
   const { pathname } = useLocation()
+  const { session } = useAuth()
   // Appen har fanelinje nederst og skal være støyfri. Bunnteksten hører til
   // de åpne sidene, der personvernlenka også må være for Google.
   const showFooter = !pathname.startsWith('/spill') && !pathname.startsWith('/admin')
   return (
     <>
       <Nav />
-      <main className="page" style={{ paddingBottom: 'calc(var(--space-12) + env(safe-area-inset-bottom))' }}>
+      <main className={`page ${session ? 'page-app' : ''}`} style={{ paddingBottom: 'calc(var(--space-12) + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
       {showFooter && (

@@ -12,7 +12,7 @@ function signed(n: number): string {
 
 // Leseflate. Redigering er et valg man tar, ikke tilstanden man lander i.
 export function Me() {
-  const { profile } = useAuth()
+  const { profile, signOut } = useAuth()
   const [editing, setEditing] = useState(false)
 
   const q = useQuery(async () => {
@@ -65,6 +65,8 @@ export function Me() {
             <p className="caption">E-posten er innloggingen din og endres av admin.</p>
           </section>
         )}
+
+      <button type="button" className="btn" style={{ justifySelf: 'start' }} onClick={() => void signOut()}>Logg ut</button>
 
       <p className="caption">
         <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">Laget av alexmonkeybusiness.com</a>
