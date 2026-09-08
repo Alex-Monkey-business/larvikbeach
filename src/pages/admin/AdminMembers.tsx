@@ -67,17 +67,21 @@ export function AdminMembers() {
         <h2 className="h3">Alle <span className="muted">{people.data?.length ?? ''}</span></h2>
         <ul className="list">
           {(people.data ?? []).map(p => (
-            <li key={p.id} className="row between">
-              <div>
+            <li key={p.id} className="medlem-rad">
+              <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 500, opacity: p.active ? 1 : 0.5 }}>{p.name}{p.role === 'admin' && <span className="badge badge-forest" style={{ marginLeft: 8 }}>Admin</span>}{!p.active && <span className="badge badge-stone" style={{ marginLeft: 8 }}>Inaktiv</span>}</p>
                 <p className="caption">{p.email}{p.phone ? ` · ${p.phone}` : ''}</p>
               </div>
               {p.id !== me?.id && (
-                <div className="row">
-                  <button type="button" className="btn btn-sm" disabled={busy === p.id} onClick={() => void run(p.id, () => api.updateProfile(p.id, { role: p.role === 'admin' ? 'player' : 'admin' }))}>
+                <div className="row" style={{ flexWrap: 'nowrap' }}>
+                  {/* Rolle byttes sjelden og hører ikke i samme vekt som resten.
+                      Begge spør: ett feiltrykk låser noen ut av appen. */}
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={busy === p.id}
+                    onClick={() => { if (confirm(p.role === 'admin' ? `Fjerne admin fra ${p.name}?` : `Gjøre ${p.name} til admin? Da kan hen endre økter, oppmøte og regninger.`)) void run(p.id, () => api.updateProfile(p.id, { role: p.role === 'admin' ? 'player' : 'admin' })) }}>
                     {p.role === 'admin' ? 'Fjern admin' : 'Gjør til admin'}
                   </button>
-                  <button type="button" className="btn btn-sm" disabled={busy === p.id} onClick={() => void run(p.id, () => api.updateProfile(p.id, { active: !p.active }))}>
+                  <button type="button" className="btn btn-sm" disabled={busy === p.id}
+                    onClick={() => { if (!p.active || confirm(`Sette ${p.name} inaktiv? Hen mister tilgangen til appen og forsvinner fra øktene.`)) void run(p.id, () => api.updateProfile(p.id, { active: !p.active })) }}>
                     {p.active ? 'Sett inaktiv' : 'Aktiver'}
                   </button>
                 </div>

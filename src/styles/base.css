@@ -139,3 +139,32 @@ a.card { display: block; text-decoration: none; }
 .site-footer a:hover { text-decoration: underline; }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Adminrad: teksten krymper, handlingene står i ro til høyre. Uten
+   minmax(0, …) nekter datokolonna å gi seg og skyver knappene ut. */
+.admin-session-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
+
+/* Sletting hører ikke i samme rad som tilstandsbyttene: en tynn strek og
+   ember-kant sier at dette er den ene som ikke går an å angre. */
+.farlig { border-top: 1px solid var(--color-stone); padding-top: var(--space-3); }
+.btn-danger { border-color: var(--color-ember); background: transparent; }
+.btn-danger:hover:not(:disabled) { background: var(--color-ember); }
+
+/* Et sperret felt må se sperret ut: uten dette skriver man inn en ny hallpris
+   på en låst økt og lurer på hvorfor ingenting skjer. */
+.input:disabled, .select:disabled, .textarea:disabled {
+  background: var(--color-stone); color: var(--color-fog); cursor: default;
+}
+
+/* Ikonknapp: pennen på Meg. Kvadratisk, ingen tekstbredde å ta hensyn til. */
+.btn-icon { min-height: 40px; width: 40px; padding: 0; border-radius: var(--radius-input); }
+
+/* Medlemsrad: navnet får hele bredden, handlingene står under. Presset i to
+   kolonner brøt hvert fornavn i to linjer. Fra 560 px er det plass til side
+   om side. */
+.medlem-rad { display: grid; gap: var(--space-1); }
+.medlem-rad > :last-child { justify-self: start; }
+@media (min-width: 560px) {
+  .medlem-rad { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
+  .medlem-rad > :last-child { justify-self: end; }
+}

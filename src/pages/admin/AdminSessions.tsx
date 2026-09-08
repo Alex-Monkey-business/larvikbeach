@@ -2,10 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
-import { longDate, time, fromLocalInput, toLocalInput } from '../../lib/format'
+import { compactDate, time, fromLocalInput, toLocalInput } from '../../lib/format'
 import { kr } from '../../lib/money'
 import { Notice } from '../../components/Notice'
-import type { Season } from '../../lib/types'
+import type { Season, Session } from '../../lib/types'
 import { goingCount, useSessions } from '../play/useSessions'
 
 export function AdminSessions() {
@@ -24,7 +24,7 @@ export function AdminSessions() {
 
   return (
     <div className="stack-lg">
-      <div className="row between">
+      <header className="stack">
         <h1 className="h2">Økter</h1>
         <div className="row">
           {seasons.data && seasons.data.length > 1 && (
@@ -32,9 +32,9 @@ export function AdminSessions() {
               {seasons.data.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
             </select>
           )}
-          <button type="button" className="btn btn-sm" onClick={() => setShowSeason(v => !v)}>{active ? 'Sesong' : 'Ny sesong'}</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowSeason(v => !v)}>{active ? 'Rediger sesong' : 'Ny sesong'}</button>
         </div>
-      </div>
+      </header>
 
       {(showSeason || (seasons.data && seasons.data.length === 0)) && (
         <SeasonForm season={showSeason ? active : undefined} onSaved={async () => { setShowSeason(false); await seasons.reload() }} />
@@ -45,19 +45,19 @@ export function AdminSessions() {
 
       <ul className="stack">
         {(s.data?.sessions ?? []).slice().reverse().map(x => (
-          <li key={x.id} className="card row between">
-            <Link to={`/admin/okter/${x.id}`} className="stack" style={{ textDecoration: 'none', gap: 4 }}>
-              <span style={{ fontWeight: 500 }}>{longDate(x.starts_at)} {time(x.starts_at)}</span>
-              <span className="muted">{goingCount(s.data!.attendance, x.id)} {x.status === 'held' ? 'var med' : 'påmeldt'}{x.cost > 0 ? ` · ${kr(x.cost)}` : ''}{x.location ? ` · ${x.location}` : ''}</span>
+          <li key={x.id} className="card admin-session-row">
+            {/* `stack` er marginer på barn, og de biter ikke på et inline
+                element: lenka må være grid selv, ellers klistrer datoen og
+                undertittelen seg sammen på samme linje. */}
+            <Link to={`/admin/okter/${x.id}`} style={{ textDecoration: 'none', display: 'grid', gap: 4, minWidth: 0 }}>
+              <span style={{ fontWeight: 500 }}>{compactDate(x.starts_at)} {time(x.starts_at)}</span>
+              <span className="muted">{status(x)} · {goingCount(s.data!.attendance, x.id)} {x.status === 'held' ? 'var med' : 'påmeldt'}{avvik(x, active)}</span>
             </Link>
-            <div className="row">
-              {x.status === 'planned' && <span className="badge badge-stone">Planlagt</span>}
-              {x.status === 'held' && <span className="badge badge-forest">Gjennomført</span>}
-              {x.status === 'cancelled' && <span className="badge badge-ember">Avlyst</span>}
-              {x.status === 'planned' && <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'held')}>Gjennomført</button>}
-              {x.status === 'planned' && <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'cancelled')}>Avlys</button>}
-              {x.status !== 'planned' && <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'planned')}>Angre</button>}
-            </div>
+            {/* Én handling per rad. «Avlys» er sjelden og bor på øktsiden: to
+                knapper her brøt datoen i tre linjer på 390 px. */}
+            {x.status === 'planned'
+              ? <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'held')}>Gjennomført</button>
+              : <button type="button" className="btn btn-ghost btn-sm" onClick={() => void setStatus(x.id, 'planned')}>Angre</button>}
           </li>
         ))}
       </ul>
@@ -66,6 +66,17 @@ export function AdminSessions() {
 }
 
 function today() { return new Date().toISOString().slice(0, 10) }
+
+const status = (x: Session) => x.status === 'held' ? 'Gjennomført' : x.status === 'cancelled' ? 'Avlyst' : 'Planlagt'
+
+/** Pris og sted står bare når økta avviker fra sesongen. Ellers er det samme
+ *  setningen 34 ganger nedover. */
+function avvik(x: Session, season: Season | undefined): string {
+  const deler: string[] = []
+  if (season && x.cost !== season.default_cost) deler.push(kr(x.cost))
+  if (x.location && x.location !== season?.default_location) deler.push(x.location)
+  return deler.length ? ` · ${deler.join(' · ')}` : ''
+}
 
 function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promise<void> }) {
   const [f, setF] = useState({

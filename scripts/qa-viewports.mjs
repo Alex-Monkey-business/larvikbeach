@@ -52,7 +52,8 @@ try {
   await bp.goto(`${APP}/logg-inn`)
   await bp.fill('input[type=email]', ADMIN); await bp.click('button:has-text("Send kode")')
   await bp.waitForSelector('input[autocomplete=one-time-code]')
-  await bp.fill('input[autocomplete=one-time-code]', await latestCode(ADMIN)); await bp.click('button:has-text("Logg inn")')
+  // Seks siffer sender seg selv; det er ingen knapp å trykke etterpå.
+  await bp.fill('input[autocomplete=one-time-code]', await latestCode(ADMIN))
   await bp.waitForURL(/\/spill/)
   await bp.waitForSelector('article.session-card')
   const state = await boot.storageState()
@@ -72,7 +73,7 @@ try {
       const knapp = pg.locator('button:has-text("Sett opp lag"), button:has-text("Endre lag")').first()
       if (await knapp.count()) { await knapp.click(); await pg.locator('.pick, .pick-pool').first().waitFor({ timeout: 3000 }).catch(() => {}) }
     }],
-    ['kalender', '/spill/kalender', true], ['statistikk', '/spill/statistikk', true], ['betaling', '/spill/betaling', true], ['meg', '/spill/meg', true, async pg => { await pg.click('button:has-text("Endre navn og telefon")') }],
+    ['kalender', '/spill/kalender', true], ['statistikk', '/spill/statistikk', true], ['betaling', '/spill/betaling', true], ['meg', '/spill/meg', true, async pg => { await pg.click('button[aria-label="Endre navn og telefon"]') }],
     ['admin', '/admin', true, async pg => { await pg.click('button:has-text("Ny økt")'); await pg.click('button:has-text("Sesong")') }],
     ['admin-okt', `/admin/okter/${heldId}`, true],
     ['admin-medlemmer', '/admin/medlemmer', true, async pg => { await pg.click('button:has-text("Inviter en spiller")') }],

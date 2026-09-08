@@ -57,16 +57,24 @@ export function Me() {
         ? <EditForm onDone={() => setEditing(false)} />
         : (
           <section className="card stack">
+            <div className="row between">
+              <h2 className="h3">Kontakt</h2>
+              {/* Pennen, ikke en knapp på full bredde: å endre navn skjer én
+                  gang, og handlingen skal ikke veie mer enn innholdet. */}
+              <button type="button" className="btn btn-icon" onClick={() => setEditing(true)} aria-label="Endre navn og telefon" title="Endre navn og telefon">
+                <Penn />
+              </button>
+            </div>
             <ul className="list">
+              <li className="row between"><span className="caption">Navn</span><span>{profile?.name}</span></li>
               <li className="row between"><span className="caption">E-post</span><span>{profile?.email}</span></li>
               <li className="row between"><span className="caption">Telefon</span><span>{profile?.phone || <span className="muted">Ikke lagt inn</span>}</span></li>
             </ul>
-            <button type="button" className="btn" onClick={() => setEditing(true)}>Endre navn og telefon</button>
             <p className="caption">E-posten er innloggingen din og endres av admin.</p>
           </section>
         )}
 
-      <button type="button" className="btn" style={{ justifySelf: 'start' }} onClick={() => void signOut()}>Logg ut</button>
+      <button type="button" className="btn btn-ghost btn-sm" style={{ justifySelf: 'start', paddingLeft: 0 }} onClick={() => void signOut()}>Logg ut</button>
 
       <p className="caption">
         <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">Laget av alexmonkeybusiness.com</a>
@@ -104,5 +112,14 @@ function EditForm({ onDone }: { onDone: () => void }) {
         <button type="button" className="btn btn-ghost" onClick={onDone}>Avbryt</button>
       </div>
     </form>
+  )
+}
+
+function Penn() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   )
 }

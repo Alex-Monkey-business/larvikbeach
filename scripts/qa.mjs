@@ -245,16 +245,43 @@ try {
   ok(await p.locator('input').count() === 0, 'meg: leser først, ingen skjemafelt før man velger å endre')
   ok(await p.locator('.me-numbers .num').count() === 3, 'meg: tre tall, økter, seire og poeng')
   ok(await p.locator('main button:has-text("Logg ut")').count() === 1, 'meg: «Logg ut» bor her')
-  await p.locator('button:has-text("Endre navn og telefon")').click()
+  await p.locator('button[aria-label="Endre navn og telefon"]').click()
   await p.locator('input[type=tel]').waitFor({ timeout: 5000 })
-  ok(true, 'meg: «Endre» åpner skjemaet')
+  ok(true, 'meg: pennen åpner skjemaet')
   await p.fill('input[type=tel]', '90000001')
   await p.click('button:has-text("Lagre")')
   await p.locator('text=90000001').waitFor({ timeout: 5000 })
   ok(await p.locator('input').count() === 0, 'meg: lagring lukker skjemaet og viser verdien')
   await shot(p, 'm-meg')
   await p.goto(`${APP}/admin`); await shot(p, 'm-admin-okter')
+  // Én handling per rad: to knapper brøt datoen i tre linjer på 390 px.
+  const adminRad = p.locator('li.admin-session-row').first()
+  ok(await adminRad.locator('button').count() === 1, `admin: én handling per øktrad (${await adminRad.locator('button').count()})`)
+  ok(await p.locator('li.admin-session-row span.badge').count() === 0, 'admin: tilstanden står i teksten, ikke som en pille ved knappene')
+  const radHøyde = (await adminRad.boundingBox()).height
+  ok(radHøyde < 110, `admin: øktrada er to linjer, ikke fire (${Math.round(radHøyde)} px)`)
+
+  // Låst økt: lista skal leses. Knapper med opacity 0.5 gjorde skoggrønn til
+  // salvie og blekk til grumsebrunt, og fjorten av dem så ut som en feil.
+  const holdt = await p.locator('li.admin-session-row a').filter({ hasText: 'Gjennomført' }).first().getAttribute('href')
+  await p.goto(`${APP}${holdt}`); await p.waitForSelector('h2:has-text("Oppmøte")')
+  const låst = await p.locator('text=Oppmøtet er låst').count() === 1
+  if (låst) {
+    ok(await p.locator('section:has(h2:has-text("Oppmøte")) button').count() === 0, 'admin: låst økt viser oppmøtet som merkelapper, ikke sperrede knapper')
+    const bg = await p.locator('input:disabled').first().evaluate(el => getComputedStyle(el).backgroundColor)
+    ok(bg !== 'rgb(255, 255, 255)', `admin: sperret felt ser sperret ut (${bg})`)
+  }
+  ok(await p.locator('.farlig button:has-text("Slett økta")').count() === 1, 'admin: sletting står for seg selv under en strek')
+  await shot(p, 'm-admin-okt')
+
   await p.goto(`${APP}/admin/medlemmer`); await shot(p, 'm-admin-medlemmer')
+  // Begge rollehandlingene spør: ett feiltrykk låser noen ut av appen.
+  const før = dialoger.length
+  await p.locator('li.medlem-rad button:has-text("Sett inaktiv")').first().click()
+  await p.waitForTimeout(800)
+  ok(dialoger.length > før && /inaktiv/i.test(dialoger.at(-1)), `medlemmer: «Sett inaktiv» spør først (${dialoger.at(-1) ?? 'ingen dialog'})`)
+  await p.locator('li.medlem-rad button:has-text("Aktiver")').first().click()
+  await p.waitForTimeout(800)
   ok(await p.locator('text=Test Testesen').count() >= 1, 'admin: søknaden ligger i lista')
   await p.locator('button:has-text("Godkjenn og inviter")').first().click()
   await p.waitForTimeout(3000)
