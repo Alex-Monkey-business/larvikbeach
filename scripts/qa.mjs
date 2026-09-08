@@ -254,6 +254,16 @@ try {
   ok(await p.locator('input').count() === 0, 'meg: lagring lukker skjemaet og viser verdien')
   await shot(p, 'm-meg')
   await p.goto(`${APP}/admin`); await shot(p, 'm-admin-okter')
+  // Lista deles i to, og rekkefølgen inni betyr noe: den nærmeste økta er den
+  // du gjør noe med, og den ferskeste spilte er den du eventuelt må rette.
+  const bolker = await p.locator('main section h2').allInnerTexts()
+  ok(/^Kommende/.test(bolker[0] ?? '') && /^Spilte/.test(bolker[1] ?? ''), `admin: Kommende over Spilte (${bolker.join(', ')})`)
+  const dato = t => { const [, d, m] = t.match(/(\d+)\.\s*(\w+)/); return `${'jan feb mar apr mai jun jul aug sep okt nov des'.split(' ').findIndex(x => m.startsWith(x))}-${d.padStart(2, '0')}` }
+  const komm = (await p.locator('main section').nth(0).locator('a span').filter({ hasText: /\d{2}:\d{2}/ }).allInnerTexts()).map(dato)
+  const spilteRader = (await p.locator('main section').nth(1).locator('a span').filter({ hasText: /\d{2}:\d{2}/ }).allInnerTexts()).map(dato)
+  ok(komm.length > 1 && komm.join() === [...komm].sort().join(), `admin: kommende stiger, nærmeste først (${komm.join(', ')})`)
+  ok(spilteRader.length > 1 && spilteRader.join() === [...spilteRader].sort().reverse().join(), `admin: spilte synker, ferskeste først (${spilteRader.join(', ')})`)
+
   // Én handling per rad: to knapper brøt datoen i tre linjer på 390 px.
   const adminRad = p.locator('li.admin-session-row').first()
   ok(await adminRad.locator('button').count() === 1, `admin: én handling per øktrad (${await adminRad.locator('button').count()})`)
@@ -263,7 +273,7 @@ try {
 
   // Låst økt: lista skal leses. Knapper med opacity 0.5 gjorde skoggrønn til
   // salvie og blekk til grumsebrunt, og fjorten av dem så ut som en feil.
-  const holdt = await p.locator('li.admin-session-row a').filter({ hasText: 'Gjennomført' }).first().getAttribute('href')
+  const holdt = await p.locator('li.admin-session-row a').filter({ hasText: 'var med' }).first().getAttribute('href')
   await p.goto(`${APP}${holdt}`); await p.waitForSelector('h2:has-text("Oppmøte")')
   const låst = await p.locator('text=Oppmøtet er låst').count() === 1
   if (låst) {

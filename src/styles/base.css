@@ -168,3 +168,16 @@ a.card { display: block; text-decoration: none; }
   .medlem-rad { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
   .medlem-rad > :last-child { justify-self: end; }
 }
+
+/* Tekstlenke som er en knapp: brukes der handlingen hører i en setning, ikke
+   i en knapperad. */
+.lenke { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+
+/* Tittel som nedtrekksliste: selectet dekker overskriften usynlig, så man
+   trykker på sesongnavnet for å bytte. Chevronen viser at det går an. */
+.sesongvelger { position: relative; display: inline-block; }
+.sesongvelger select { position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.sesongvelger.kan-byttes h1::after {
+  content: ''; display: inline-block; margin-left: 12px; vertical-align: 0.18em;
+  border: 6px solid transparent; border-top-color: currentColor; border-bottom: 0;
+}

@@ -22,18 +22,36 @@ export function AdminSessions() {
     catch (e) { setError(e instanceof Error ? e.message : 'Noe gikk galt') }
   }
 
+  // Kommende stiger: den nærmeste økta er den du gjør noe med. Spilte synker:
+  // den ferskeste er den du eventuelt må rette. Motsatt av begge var feil.
+  const flere = (seasons.data?.length ?? 0) > 1
+  const alle = s.data?.sessions ?? []
+  const na = Date.now()
+  const kommende = alle.filter(x => x.status !== 'held' && new Date(x.starts_at).getTime() >= na)
+  const spilte = alle.filter(x => !kommende.includes(x)).slice().reverse()
+  const bolker: [string, typeof alle][] = [['Kommende', kommende], ['Spilte', spilte]]
+
   return (
     <div className="stack-lg">
+      {/* Sesongen ER siden: fanelinja over sier alt «Økter», så en h1 med samme
+          ord til svarte ikke på hva man ser på. Én lilla knapp, én stille
+          lenke, og en setning som sier hva lista er til. */}
       <header className="stack">
-        <h1 className="h2">Økter</h1>
-        <div className="row">
-          {seasons.data && seasons.data.length > 1 && (
-            <select className="select" style={{ width: 'auto' }} value={active?.id ?? ''} onChange={e => setSeasonId(e.target.value)}>
-              {seasons.data.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+        {/* Tittelen ER velgeren: en nedtrekksliste ved siden av som gjentar
+            samme sesongnavn er bare det samme ordet to ganger. Med flere
+            sesonger ligger et gjennomsiktig select over tittelen. */}
+        <div className={`sesongvelger ${flere ? 'kan-byttes' : ''}`}>
+          <h1 className="h2">{active?.name ?? 'Økter'}</h1>
+          {flere && (
+            <select aria-label="Velg sesong" value={active?.id ?? ''} onChange={e => setSeasonId(e.target.value)}>
+              {seasons.data!.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
             </select>
           )}
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowSeason(v => !v)}>{active ? 'Rediger sesong' : 'Ny sesong'}</button>
         </div>
+        <p className="caption">
+          Trykk en økt for å rette oppmøte, tid eller pris.{' '}
+          <button type="button" className="lenke" onClick={() => setShowSeason(v => !v)}>{active ? 'Rediger sesongen' : 'Ny sesong'}</button>
+        </p>
       </header>
 
       {(showSeason || (seasons.data && seasons.data.length === 0)) && (
@@ -43,31 +61,34 @@ export function AdminSessions() {
       {active && <NewSessionForm season={active} onSaved={s.reload} />}
       {error && <Notice>{error}</Notice>}
 
-      <ul className="stack">
-        {(s.data?.sessions ?? []).slice().reverse().map(x => (
-          <li key={x.id} className="card admin-session-row">
-            {/* `stack` er marginer på barn, og de biter ikke på et inline
-                element: lenka må være grid selv, ellers klistrer datoen og
-                undertittelen seg sammen på samme linje. */}
-            <Link to={`/admin/okter/${x.id}`} style={{ textDecoration: 'none', display: 'grid', gap: 4, minWidth: 0 }}>
-              <span style={{ fontWeight: 500 }}>{compactDate(x.starts_at)} {time(x.starts_at)}</span>
-              <span className="muted">{status(x)} · {goingCount(s.data!.attendance, x.id)} {x.status === 'held' ? 'var med' : 'påmeldt'}{avvik(x, active)}</span>
-            </Link>
-            {/* Én handling per rad. «Avlys» er sjelden og bor på øktsiden: to
-                knapper her brøt datoen i tre linjer på 390 px. */}
-            {x.status === 'planned'
-              ? <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'held')}>Gjennomført</button>
-              : <button type="button" className="btn btn-ghost btn-sm" onClick={() => void setStatus(x.id, 'planned')}>Angre</button>}
-          </li>
-        ))}
-      </ul>
+      {bolker.map(([tittel, rader]) => rader.length > 0 && (
+        <section key={tittel} className="stack">
+          <h2 className="h3">{tittel} <span className="muted">{rader.length}</span></h2>
+          <ul className="stack">
+            {rader.map(x => (
+              <li key={x.id} className="card admin-session-row">
+                {/* `stack` er marginer på barn, og de biter ikke på et inline
+                    element: lenka må være grid selv, ellers klistrer datoen og
+                    undertittelen seg sammen på samme linje. */}
+                <Link to={`/admin/okter/${x.id}`} style={{ textDecoration: 'none', display: 'grid', gap: 4, minWidth: 0 }}>
+                  <span style={{ fontWeight: 500 }}>{compactDate(x.starts_at)} {time(x.starts_at)}</span>
+                  <span className="muted">{x.status === 'cancelled' ? 'Avlyst · ' : ''}{goingCount(s.data!.attendance, x.id)} {x.status === 'held' ? 'var med' : 'påmeldt'}{avvik(x, active)}</span>
+                </Link>
+                {/* Én handling per rad. «Avlys» er sjelden og bor på øktsiden:
+                    to knapper her brøt datoen i tre linjer på 390 px. */}
+                {x.status === 'planned'
+                  ? <button type="button" className="btn btn-sm" onClick={() => void setStatus(x.id, 'held')}>Gjennomført</button>
+                  : <button type="button" className="btn btn-ghost btn-sm" onClick={() => void setStatus(x.id, 'planned')}>Angre</button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   )
 }
 
 function today() { return new Date().toISOString().slice(0, 10) }
-
-const status = (x: Session) => x.status === 'held' ? 'Gjennomført' : x.status === 'cancelled' ? 'Avlyst' : 'Planlagt'
 
 /** Pris og sted står bare når økta avviker fra sesongen. Ellers er det samme
  *  setningen 34 ganger nedover. */
