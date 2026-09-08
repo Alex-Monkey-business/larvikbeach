@@ -1,0 +1,9 @@
+.logo-volley { position: relative; display: block; width: 100%; aspect-ratio: 2.25; padding: 0; border: 0; border-radius: 16px; background: transparent; cursor: pointer; color: var(--color-forest); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.logo-volley-mark { position: absolute; width: 94%; height: auto; left: 3%; bottom: 0; user-select: none; transform-origin: 75% 100%; }
+.logo-volley-ball { position: absolute; width: 13%; left: 75%; bottom: 55%; display: block; transform-origin: center; }
+.logo-volley-ball svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 0 rgb(3 79 70 / .07)); }
+
+.logo-volley-tip { position: absolute; right: 23%; bottom: calc(84.25% + 12px); color: var(--color-fog); font: 12px var(--font-sans); white-space: nowrap; pointer-events: none; animation: volley-tip-arrive 350ms ease-out both; }
+.logo-volley-tip svg { position: absolute; left: calc(100% + 6px); top: 4px; }
+@keyframes volley-tip-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .logo-volley-tip { animation: none; } }

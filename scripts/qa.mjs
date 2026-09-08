@@ -98,7 +98,15 @@ try {
   ok(await p.locator('h1').textContent().then(t => t.includes('Larvik Beach Volley')), 'hjem: tittel')
   const forsideLenker = await p.locator('main a').evaluateAll(a => a.map(x => x.getAttribute('href')))
   ok(forsideLenker.join() === '/bli-med,/logg-inn,/personvern', `hjem: bare Bli med, Logg inn og Personvern (${forsideLenker.join(', ')})`)
-  ok(await p.locator('main .beach-serve-scene').count() === 1, 'hjem: banen står under knappene')
+  ok(await p.locator('main .logo-volley').count() === 1, 'hjem: ballen ligger i navnetrekket')
+  await p.waitForTimeout(2000)
+  ok(await p.locator('.logo-volley-tip').count() === 1, 'hjem: hintet kommer etter et par sekunder')
+  // Pynten skal ikke stå foran hovedhandlingen i tabrekkefølgen.
+  await p.goto(`${APP}/logg-inn`)
+  const tab = []
+  for (let i = 0; i < 6; i++) { await p.keyboard.press('Tab'); tab.push(await p.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent?.trim() ?? '')) }
+  const google = tab.findIndex(t => t.includes('Google'))
+  ok(google >= 0 && !tab.slice(0, google).some(t => t.includes('volleyball')), `logg-inn: ballen står ikke foran Google i tabrekkefølgen (${tab.join(' → ')})`)
   await p.goto(`${APP}/om-oss`); await shot(p, 'm-om-oss')
   await p.goto(`${APP}/bli-med`)
   await p.fill('input[autocomplete=name]', 'Test Testesen')
@@ -147,6 +155,12 @@ try {
   ok(kort === 2, `spill: forrige og neste økt, ikke flere (${kort} kort, ventet 2)`)
   const merkelapper = await p.locator('section .caption').allInnerTexts()
   ok(merkelapper[0] === 'Forrige økt' && merkelapper[1] === 'Neste økt', `spill: forrige økt står øverst det første døgnet (${merkelapper.slice(0,2).join(', ')})`)
+  // Oppmøtemeldinga gjelder neste økt og må stå på det kortet, ikke på toppen
+  // av sida der forrige økt ligger det første døgnet.
+  const seksjoner = await p.locator('main section.stack').all()
+  const iForrige = await seksjoner[0].locator('text=Kiwi').count()
+  const iNeste = await seksjoner[1].locator('text=Kiwi').count()
+  ok(iForrige === 0 && iNeste === 1, `spill: oppmøtemeldinga står på neste økt, ikke på forrige (forrige ${iForrige}, neste ${iNeste})`)
   ok(await p.locator('main >> text=Du skylder').count() === 0, 'spill: ingen betalingsinfo på hjem')
   await p.locator('a:has-text("Hele terminlisten")').click(); await p.waitForURL(/kalender/)
   // Vent på kalenderens egen tekst: h1 finnes også på forrige side.

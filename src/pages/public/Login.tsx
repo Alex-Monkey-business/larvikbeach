@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { Notice } from '../../components/Notice'
-import { BeachServe } from '../../components/BeachServe'
+import { LogoVolley } from '../../components/LogoVolley'
 import './Login.css'
 
 // Microsoft krever en Entra-leier (Azure-konto) for appregistreringen. Parkert
@@ -96,7 +96,7 @@ export function Login() {
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 480 }}>
       <div className="login-heading">
         <h1 className="h1">Logg inn</h1>
-        <div className="login-art"><BeachServe /></div>
+        <div className="login-art"><LogoVolley /></div>
       </div>
       {step === 'email' && <p className="lede">Bruk kontoen du har. Ingen passord å huske.</p>}
 

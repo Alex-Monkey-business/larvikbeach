@@ -33,7 +33,9 @@ export function Play() {
   const vist = (ferskt ? [forrige, neste] : [neste, forrige]).filter(Boolean) as Session[]
 
   const matches = useQuery(() => api.matchesFor(forrige ? [forrige.id] : []), [forrige?.id])
-  const notice = seasons.data?.find(se => se.id === (neste ?? forrige)?.season_id)?.notice
+  // Meldinga handler om å komme seg TIL neste økt. Sto den på toppen av sida,
+  // leste den som en beskjed om forrige økt det første døgnet.
+  const notice = neste ? seasons.data?.find(se => se.id === neste.season_id)?.notice : null
   const vinnere = forrige ? topWinners(matches.data ?? [], forrige.id, byId) : []
   const feir = profile && forrige && vinnere.some(w => w.id === profile.id) ? forrige.id : null
 
@@ -42,7 +44,6 @@ export function Play() {
       {feir && <Konfetti nokkel={`lbv-vinner-${feir}`} />}
       <h1 className="h1">Hei, {profile?.name.split(' ')[0] || 'du'}.</h1>
 
-      {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
       {s.loading && !s.data && <PageState title="Øktene dine" loading />}
       {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
       {s.data && vist.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
@@ -51,6 +52,7 @@ export function Play() {
         {vist.map(x => (
           <section key={x.id} className="stack">
             <p className="caption">{x.id === forrige?.id ? 'Forrige økt' : 'Neste økt'}</p>
+            {notice && x.id === neste?.id && <p className="muted" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
             <SessionCard session={x}
               goingCount={goingCount(s.data!.attendance, x.id)}
               {...splitQueue(s.data!.attendance, x, byId)}
