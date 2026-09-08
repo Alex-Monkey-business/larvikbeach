@@ -80,7 +80,10 @@ export function AttendButton({ session, goingCount, mine, busy, onToggle, block 
   const cls = hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'
   function click() {
     if (mine.going !== true) return onToggle(true)
-    if (hasSpot && goingCount > (session.capacity ?? Infinity) && !confirm('Melde deg av? Den første på ventelista får plassen din.')) return
+    // Knappen viser tilstanden, så trykket avmelder. Det er den store grønne
+    // knappen på kortet: den skal ikke kunne treffes ved uhell.
+    const kø = hasSpot && goingCount > (session.capacity ?? Infinity)
+    if (!confirm(kø ? 'Melde deg av? Den første på ventelista får plassen din.' : 'Melde deg av økta?')) return
     onToggle(false)
   }
   return (

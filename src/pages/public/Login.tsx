@@ -17,6 +17,7 @@ export function Login() {
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [step, setStep] = useState<'email' | 'code'>('email')
+  const [sent, setSent] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const codeRef = useRef<HTMLInputElement>(null)
@@ -42,17 +43,36 @@ export function Login() {
   async function sendCode(e: FormEvent) {
     e.preventDefault()
     setError(null); setBusy('code')
-    try { await requestCode(email.trim().toLowerCase()); setStep('code') }
+    try { await requestCode(email.trim().toLowerCase()); setSent(Date.now()); setStep('code') }
     catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
     finally { setBusy(null) }
   }
 
-  async function verify(e: FormEvent) {
-    e.preventDefault()
+  // Koden sendes med som argument: setCode har ikke slått gjennom ennå når
+  // siste siffer utløser innsendingen, og `code` er da fortsatt det forrige.
+  async function verify(e?: FormEvent, kode = code) {
+    e?.preventDefault()
+    if (busy) return
     setError(null); setBusy('verify')
-    try { await verifyCode(email.trim().toLowerCase(), code.replace(/\s/g, '')) }
+    try { await verifyCode(email.trim().toLowerCase(), kode.replace(/\s/g, '')) }
     catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
     finally { setBusy(null) }
+  }
+
+  // Seks siffer inne = ferdig utfylt. Da er «Logg inn»-trykket bare et
+  // ekstra hinder; koden sendes selv, og feltet aksepterer ikke mer.
+  function onCode(value: string) {
+    const bare = value.replace(/\D/g, '').slice(0, 6)
+    setCode(bare)
+    if (bare.length === 6) void verify(undefined, bare)
+  }
+
+  // «Be om en ny» må være en knapp, ikke en oppfordring uten sted å trykke.
+  async function resend() {
+    setError(null); setCode(''); setBusy('code')
+    try { await requestCode(email.trim().toLowerCase()); setSent(Date.now()) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
+    finally { setBusy(null); codeRef.current?.focus() }
   }
 
   // Innlogget, men ikke invitert eller satt inaktiv.
@@ -74,12 +94,12 @@ export function Login() {
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 480 }}>
       <h1 className="h1">Logg inn</h1>
-      <p className="lede">Bruk kontoen du har. Ingen passord å huske.</p>
+      {step === 'email' && <p className="lede">Bruk kontoen du har. Ingen passord å huske.</p>}
 
       {step === 'email' && (
         <div className="stack">
           <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
-            <GoogleMark /> Fortsett med Google
+            <GoogleMark /> {busy === 'google' ? 'Åpner Google…' : 'Fortsett med Google'}
           </button>
           {MICROSOFT_ENABLED && (
             <>
@@ -101,21 +121,24 @@ export function Login() {
               value={email} onChange={e => setEmail(e.target.value)} />
           </label>
           {error && <Notice>{error}</Notice>}
-          <button className="btn btn-primary" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
+          <button className="btn" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
           <p className="caption">Ikke med ennå? <Link to="/bli-med">Bli med</Link></p>
         </form>
       ) : (
         <form className="card stack" onSubmit={verify}>
-          <p>Koden er sendt til <strong>{email}</strong>. Den varer i 10 minutter.</p>
+          <p key={sent}>Koden er sendt til <strong>{email}</strong>. Den varer i 10 minutter.</p>
           <label className="field">
-            <span className="label">Kode</span>
-            <input ref={codeRef} className="input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]*" required
-              style={{ fontSize: 28, letterSpacing: 8, textAlign: 'center' }}
-              value={code} onChange={e => setCode(e.target.value)} />
+            <span className="label">Sekssifret kode</span>
+            <input ref={codeRef} className="input code-input" inputMode="numeric" autoComplete="one-time-code"
+              pattern="[0-9]*" required placeholder="000000"
+              value={code} onChange={e => onCode(e.target.value)} />
           </label>
           {error && <Notice>{error}</Notice>}
-          <button className="btn btn-primary" disabled={busy !== null}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
-          <button type="button" className="btn btn-ghost" onClick={() => { setStep('email'); setCode(''); setError(null) }}>Tilbake</button>
+          <button className="btn btn-primary" disabled={busy !== null || code.length < 6}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
+          <div className="row">
+            <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => void resend()}>{busy === 'code' ? 'Sender…' : 'Send ny kode'}</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setStep('email'); setCode(''); setError(null) }}>Annen e-post</button>
+          </div>
         </form>
       )}
     </div>

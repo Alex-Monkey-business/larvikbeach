@@ -9,22 +9,27 @@ delete from public.invites where email like 'test%@example.com';
 delete from auth.users where email like 'test%@example.com' or email = 'sniker@example.com';
 -- Øktene ankres til nå. Ellers råtner testen i det klokka passerer 19:00 på
 -- den datoen seed-fila tilfeldigvis valgte.
+-- `at time zone` begge veier: uten den siste blir 19 timer tolket som UTC, og
+-- økta havner 21:00 norsk tid. Mandag, som i virkeligheten.
 with p as (
   select id, row_number() over (order by starts_at) as rn
     from public.sessions
    where status = 'planned' and starts_at < now() + interval '30 days'
 )
 update public.sessions s
-   set starts_at = date_trunc('day', now() at time zone 'Europe/Oslo')
-                 + (case p.rn when 1 then interval '2 days' else interval '9 days' end)
-                 + interval '19 hours'
+   set starts_at = (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval '7 days')
+                 + (case p.rn when 1 then interval '0 days' else interval '7 days' end)
+                 + interval '19 hours') at time zone 'Europe/Oslo'
   from p where s.id = p.id;
 
 -- Siste spilte økt flyttes til i dag, så resultatvisningen på forsiden prøves.
-with h as (select s.id from public.sessions s where s.status = 'held' order by s.starts_at desc limit 1)
+-- Kveldens økt, alltid 19:00 og alltid under et døgn gammel: i dag hvis 19:00
+-- har passert, ellers i går. Da prøves «Dagens vinner» og konfettien.
+with h as (select s.id from public.sessions s where s.status = 'held' order by s.starts_at desc limit 1),
+     k as (select (date_trunc('day', now() at time zone 'Europe/Oslo') + interval '19 hours') at time zone 'Europe/Oslo' as i_dag)
 update public.sessions s
-   set starts_at = greatest(date_trunc('day', now()), now() - interval '2 hours')
-  from h where s.id = h.id;
+   set starts_at = case when now() >= k.i_dag then k.i_dag else k.i_dag - interval '1 day' end
+  from h, k where s.id = h.id;
 
 -- Alex får plass på den spilte økta, ellers kan han aldri vinne noe å feire.
 with h as (select s.id from public.sessions s where s.status = 'held' order by s.starts_at desc limit 1),
@@ -47,7 +52,11 @@ on conflict (session_id, profile_id) do update set going = true, updated_at = no
 
 -- En økt godt utenfor påmeldingsvinduet, så kalenderen og sperren kan testes.
 insert into public.sessions (season_id, starts_at, duration_min, location, cost, capacity, min_players, note)
-select se.id, date_trunc('hour', now()) + interval '35 days', 120, se.default_location, se.default_cost, se.default_capacity, se.default_min_players, 'Nøkkelboks: hent nøkkelen i boksen.'
+select se.id, (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval '35 days') + interval '19 hours') at time zone 'Europe/Oslo', 120, se.default_location, se.default_cost, se.default_capacity, se.default_min_players, 'Nøkkelboks: hent nøkkelen i boksen.'
   from public.seasons se
  where se.name = 'Vinter 2026/27'
    and not exists (select 1 from public.sessions x where x.season_id = se.id and x.starts_at > now() + interval '30 days');
+
+-- Prod deler påminnelsen i Messenger og sender ingen regnings-e-post. Testen
+-- skal kjøre på den oppsettet som faktisk er i bruk.
+update public.settings set email_invoices = false;

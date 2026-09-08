@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
 import './Nav.css'
 
@@ -7,6 +7,9 @@ import './Nav.css'
 // pillen fortsatt navigasjonen.
 export function Nav() {
   const { session, isAdmin } = useAuth()
+  // «Logg inn» er en oppfordring, ikke et menypunkt. Står du der alt, er en
+  // lilla knapp til samme side bare støy ved siden av de ekte knappene.
+  const påLoggInn = useLocation().pathname === '/logg-inn'
   return (
     <>
       <header className={`nav-wrap ${session ? 'nav-app' : ''}`}>
@@ -18,7 +21,7 @@ export function Nav() {
             {session ? (
               <>
                 <NavLink to="/spill" end>Hjem</NavLink>
-                <NavLink to="/spill/statistikk">Statistikk</NavLink>
+                <NavLink to="/spill/statistikk">Stats</NavLink>
                 <NavLink to="/spill/betaling">Betaling</NavLink>
                 <NavLink to="/spill/meg">Meg</NavLink>
                 {isAdmin && <NavLink to="/admin">Admin</NavLink>}
@@ -27,7 +30,7 @@ export function Nav() {
               <>
                 <NavLink to="/om-oss">Om oss</NavLink>
                 <NavLink to="/bli-med">Bli med</NavLink>
-                <Link to="/logg-inn" className="btn btn-primary btn-sm">Logg inn</Link>
+                {!påLoggInn && <Link to="/logg-inn" className="btn btn-primary btn-sm">Logg inn</Link>}
               </>
             )}
           </div>

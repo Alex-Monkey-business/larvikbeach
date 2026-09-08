@@ -3,8 +3,13 @@ import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { compactDate, time, shortDate, signupOpen, signupOpensAt } from '../../lib/format'
 import { Notice } from '../../components/Notice'
-import { goingCount, statusLine } from './useSessions'
+import { goingCount, payerCount } from './useSessions'
 import type { Session } from '../../lib/types'
+
+// Terminlista er en liste, ikke kort: statusen må være kort nok til å stå på
+// samme linje som datoen på 320 px. «4 påmeldt · 2 plasser igjen» hoppet ned
+// på egen linje og gjorde radene ujevne. Detaljene står på øktsiden.
+const full = (s: Session, going: number) => s.capacity != null && going >= s.capacity
 
 // Hele sesongen, til å planlegge etter. Ingen påmelding her: den hører til de
 // to øktene på forsiden, slik at ingen tar plasser i mars i september.
@@ -49,8 +54,8 @@ export function Calendar() {
                       {s.note && <span className="caption">{s.note.split(':')[0]}</span>}
                     </span>
                     {s.status === 'cancelled' ? <span className="badge badge-ember">Avlyst</span>
-                      : s.status === 'held' ? <span className="muted" style={{ whiteSpace: 'nowrap' }}>{going} spilte</span>
-                      : open ? <span className="badge badge-stone">{statusLine(s, going)}</span>
+                      : s.status === 'held' ? <span className="muted" style={{ whiteSpace: 'nowrap' }}>{payerCount(s, going)} spilte</span>
+                      : open ? <span className={`badge ${full(s, going) ? 'badge-ember' : 'badge-stone'}`} style={{ whiteSpace: 'nowrap' }}>{full(s, going) ? 'Fullt' : `${going} av ${s.capacity ?? '–'}`}</span>
                       : <span className="caption" style={{ whiteSpace: 'nowrap' }}>Åpner {shortDate(signupOpensAt(s.starts_at, windowDays).toISOString())}</span>}
                   </Link>
                 </li>

@@ -39,12 +39,12 @@ export function Me() {
         <section className="card stack">
           <div className="row between">
             <h2 className="h3">{q.data.season.name}</h2>
-            {rank && <span className="caption">nr. {rank} på oppmøte</span>}
+            {rank && <span className="caption">nr. {rank} av {rows.length} på oppmøte</span>}
           </div>
           <div className="me-numbers">
             <div><p className="num">{mine?.sessions ?? 0}</p><p className="caption">økter</p></div>
             <div><p className="num">{mine?.wins ?? 0}</p><p className="caption">seire</p></div>
-            <div><p className="num">{signed(mine?.points_diff ?? 0)}</p><p className="caption">poeng</p></div>
+            <div><p className="num">{signed(mine?.points_diff ?? 0)}</p><p className="caption">poengdiff</p></div>
           </div>
           {(mine?.games ?? 0) > 0 && (
             <p className="caption">{mine!.games} {mine!.games === 1 ? 'kamp' : 'kamper'} · {mine!.points_for} scoret · {mine!.points_against} sluppet inn</p>

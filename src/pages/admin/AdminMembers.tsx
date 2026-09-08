@@ -51,7 +51,10 @@ export function AdminMembers() {
                   <p className="caption">{i.email} · invitert {new Date(i.created_at).toLocaleDateString('nb-NO')}</p>
                 </div>
                 <div className="row">
-                  <button type="button" className="btn btn-sm" disabled={busy === i.email} onClick={() => void run(i.email, () => api.inviteMember({ name: i.name, email: i.email, phone: i.phone ?? undefined, role: i.role }))}>Send igjen</button>
+                  <button type="button" className="btn btn-sm" disabled={busy === i.email} onClick={() => void run(i.email, async () => {
+                    const r = await api.inviteMember({ name: i.name, email: i.email, phone: i.phone ?? undefined, role: i.role })
+                    if (!r.mail.sent) throw new Error(`E-posten til ${i.email} ble ikke sendt: ${r.mail.error ?? 'ukjent feil'}`)
+                  })}>Send igjen</button>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={busy === i.email} onClick={() => void run(i.email, () => api.deleteInvite(i.email))}>Trekk tilbake</button>
                 </div>
               </li>
@@ -110,7 +113,13 @@ function InviteForm({ onDone }: { onDone: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null); setBusy(true)
-    try { await api.inviteMember({ ...f, phone: f.phone || undefined }); setF({ name: '', email: '', phone: '', role: 'player' }); setOpen(false); await onDone() }
+    try {
+      const r = await api.inviteMember({ ...f, phone: f.phone || undefined })
+      // Invitasjonen er lagret uansett, men e-posten kan ha feilet. Da må det
+      // stå her: en invitasjon som ikke kom fram, så tidligere helt lik ut.
+      if (!r.mail.sent) { setError(`Invitasjonen er lagret, men e-posten til ${r.email} ble ikke sendt: ${r.mail.error ?? 'ukjent feil'}. Sjekk adressen og prøv «Send igjen».`); await onDone(); return }
+      setF({ name: '', email: '', phone: '', role: 'player' }); setOpen(false); await onDone()
+    }
     catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
     finally { setBusy(false) }
   }

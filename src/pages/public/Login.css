@@ -1,2 +1,15 @@
 .btn-provider { justify-content: flex-start; gap: 14px; padding-left: 20px; background: var(--color-white); font-weight: 500; }
 .btn-provider:hover { background: var(--color-cream); }
+
+/* Google er hovedveien inn: høyere enn resten, og den eneste knappen med
+   full bredde. Hvit flate er Googles eget krav, så vekten må komme fra
+   størrelsen. */
+.btn-provider { min-height: 60px; font-size: var(--text-body); }
+
+/* Sekssifret kode: monospace så sifrene står i faste spor, og plassholderen
+   viser hvor mange de er. */
+.code-input {
+  font-size: 28px; letter-spacing: 10px; text-align: center;
+  font-variant-numeric: tabular-nums; padding-left: 10px;
+}
+.code-input::placeholder { color: var(--color-fog); letter-spacing: 10px; }

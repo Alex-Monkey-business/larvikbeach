@@ -30,6 +30,8 @@ export function AdminBilling() {
   const name = (id: string) => profiles.find(p => p.id === id)?.name ?? '?'
   const uninvoiced = balances.reduce((s, b) => s + b.uninvoiced, 0)
   const lastMonth = prevPeriod()
+  // Bryteren i innstillingene styrer hele språket her: lover vi e-post eller ikke?
+  const sender = settings.email_invoices
 
   const toCollect = invoices.filter(i => i.status === 'open' || i.status === 'notified')
   const claimed = invoices.filter(i => i.status === 'claimed')
@@ -44,16 +46,18 @@ export function AdminBilling() {
 
       <section className="card stack">
         <h2 className="h3">Månedsregning</h2>
-        <p>Ufakturert akkurat nå: <strong>{kr(uninvoiced)}</strong>. Regningene lages og sendes automatisk den {q.data.settings.billing_day}. hver måned. Du kan også gjøre det nå.</p>
+        <p>Ufakturert akkurat nå: <strong>{kr(uninvoiced)}</strong>. Regningene lages automatisk den {q.data.settings.billing_day}. hver måned{sender ? ' og sendes på e-post' : ', og du deler påminnelsen selv'}. Du kan også gjøre det nå.</p>
         <div className="row">
           <button type="button" className="btn btn-primary btn-wrap" disabled={busy !== null}
             onClick={() => void run('send', async () => { const r = await api.sendInvoices({ period: lastMonth }); return `${r.created} regninger laget, ${r.sent} e-poster sendt.` })}>
-            Lag og send regninger for {periodLabel(lastMonth).toLowerCase()}
+            {sender ? 'Lag og send' : 'Lag'} regninger for {periodLabel(lastMonth).toLowerCase()}
           </button>
-          <button type="button" className="btn" disabled={busy !== null}
-            onClick={() => void run('create', async () => { const n = await api.createInvoices(lastMonth); return `${n} regninger laget, ingen sendt.` })}>
-            Bare lag, ikke send
-          </button>
+          {sender && (
+            <button type="button" className="btn" disabled={busy !== null}
+              onClick={() => void run('create', async () => { const n = await api.createInvoices(lastMonth); return `${n} regninger laget, ingen sendt.` })}>
+              Bare lag, ikke send
+            </button>
+          )}
         </div>
       </section>
 
@@ -108,10 +112,12 @@ export function AdminBilling() {
               <h2 className="h3">{periodLabel(p)}</h2>
               <span className="muted">{kr(rows.reduce((s, i) => s + i.amount, 0))} · {rows.filter(i => i.status === 'confirmed').length}/{rows.length} betalt</span>
             </div>
+            {/* Radene er rutenett, ikke flex: ellers hopper knappene ned på egen
+                linje for de radene der merket er langt, og lista blir ujevn. */}
             <ul className="list">
               {rows.sort((a, b) => name(a.profile_id).localeCompare(name(b.profile_id))).map(i => (
-                <li key={i.id} className="row between">
-                  <div className="stack" style={{ gap: 4 }}>
+                <li key={i.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
+                  <div className="stack" style={{ gap: 4, minWidth: 0 }}>
                     <span style={{ fontWeight: 500 }}>{name(i.profile_id)}</span>
                     <span className="row"><span className="muted">{kr(i.amount)}</span><InvoiceBadge status={i.status} /></span>
                   </div>

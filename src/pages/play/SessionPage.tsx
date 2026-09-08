@@ -62,10 +62,10 @@ export function SessionPage() {
 
       <section className="grid-2">
         <div className="card stack">
-          <h2 className="h3">{session.status === 'held' ? 'Var med' : 'Har plass'} <span className="muted">{withSpot.length}{session.capacity ? ` av ${session.capacity}` : ''}</span></h2>
+          <h2 className="h3">{session.status === 'held' ? 'Var med' : 'Påmeldt'} <span className="muted">{withSpot.length}{session.capacity ? ` av ${session.capacity}` : ''}</span></h2>
           <ul className="list">{withSpot.map(p => <li key={p.id} className="row"><Avatar profile={p} />{p.name}</li>)}{withSpot.length === 0 && <li className="muted">Ingen ennå</li>}</ul>
         </div>
-        {waitlist.length > 0 && (
+        {waitlist.length > 0 && session.status === 'planned' && (
           <div className="card stack">
             <h2 className="h3">Venteliste <span className="muted">{waitlist.length}</span></h2>
             <ul className="list">{waitlist.map((p, i) => <li key={p.id} className="row"><Avatar profile={p} dim />{i + 1}. {p.name}</li>)}</ul>

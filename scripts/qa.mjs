@@ -37,15 +37,36 @@ async function latestCode(to) {
   throw new Error(`Ingen kode til ${to}`)
 }
 
-async function login(page, email) {
+async function login(page, email, gransk = false) {
   await page.goto(`${APP}/logg-inn`)
+  if (gransk) {
+    const google = await page.locator('button:has-text("Fortsett med Google")').boundingBox()
+    const kode = await page.locator('button:has-text("Send kode")').boundingBox()
+    ok(google.height > kode.height, `logg-inn: Google-knappen er størst (${Math.round(google.height)} mot ${Math.round(kode.height)} px)`)
+    ok(await page.locator('.nav-wrap .btn-primary').count() === 0, 'logg-inn: ingen lilla «Logg inn» i toppen når du alt står der')
+  }
   await page.fill('input[type=email]', email)
   await page.click('button:has-text("Send kode")')
   await page.waitForSelector('input[autocomplete=one-time-code]')
+  if (gransk) {
+    // Fem siffer, ikke seks: seks ville sendt seg selv midt i granskingen.
+    const felt = page.locator('input[autocomplete=one-time-code]')
+    await felt.fill('1a2b3c4d5')
+    ok(await felt.inputValue() === '12345', `kode: bokstaver og mellomrom siles bort ved liming (${await felt.inputValue()})`)
+    ok(await page.locator('button:has-text("Send ny kode"):not([disabled])').count() === 1, 'kode: «Send ny kode» står klar der feilen ber om den')
+    await felt.fill('')
+  }
   const code = await latestCode(email)
+  // Seks siffer inne sender selv. Knappen er reserven for utfylling som
+  // ikke utløser input-hendelsen.
   await page.fill('input[autocomplete=one-time-code]', code)
-  await page.click('button:has-text("Logg inn")')
-  await page.waitForURL(/\/spill/)
+  let selv = true
+  await page.waitForURL(/\/spill/, { timeout: 8000 }).catch(async () => {
+    selv = false
+    await page.click('button:has-text("Logg inn")')
+    await page.waitForURL(/\/spill/)
+  })
+  if (gransk) ok(selv, 'kode: seks siffer sender seg selv, uten å trykke «Logg inn»')
 }
 
 // «Logg ut» bor på Meg nå, ikke i toppen.
@@ -69,6 +90,10 @@ try {
   const m = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, permissions: ['clipboard-read', 'clipboard-write'] })
   const p = await m.newPage()
   p.on('pageerror', e => fails.push(`pageerror: ${e.message}`))
+  // Avmelding spør først. Playwright avviser dialoger som standard, så uten
+  // dette blir hvert avmeldingstrykk stille annullert.
+  const dialoger = []
+  p.on('dialog', d => { dialoger.push(d.message()); void d.accept() })
   await p.goto(APP); await shot(p, 'm-hjem')
   ok(await p.locator('h1').textContent().then(t => t.includes('Beachvolley')), 'hjem: tittel')
   ok(await p.locator('text=Neste økt').count() > 0, 'hjem: neste økt vises for anonym')
@@ -83,8 +108,9 @@ try {
   await shot(p, 'm-bli-med-takk')
   await p.goto(`${APP}/spill`); await p.waitForURL(/logg-inn/); ok(true, 'spill: uinnlogget sendes til logg-inn')
 
-  // Admin, mobil
-  await login(p, ADMIN); ok(true, 'admin: innlogget med kode fra e-post')
+  // Admin, mobil. Innloggingsskjermen granskes på veien inn, med den samme
+  // koden: GoTrue ratelimiterer, så testen kan ikke sløse med engangskoder.
+  await login(p, ADMIN, true); ok(true, 'admin: innlogget med kode fra e-post')
   await p.goto(APP); await p.waitForURL(/\/spill$/); ok(true, 'innlogget: forsiden sender rett til øktene')
   await p.waitForTimeout(300)
   ok(await p.locator('.nav-wrap').isVisible().catch(() => false) === false, 'spill: toppmenyen er borte i appen på mobil')
@@ -103,6 +129,7 @@ try {
   await first.locator('button:has-text("Venteliste nr. 1")').click()   // samme knapp melder av
   await first.locator('span.badge:text-is("Fullt")').waitFor({ timeout: 5000 })
   ok(true, 'spill: trykk på knappen igjen melder av, fullt uten venteliste')
+  ok(dialoger.some(t => t.includes('Melde deg av')), `avmelding: knappen spør først (${dialoger.join(' | ') || 'ingen dialog'})`)
   await first.locator('button:has-text("Sett meg på venteliste")').click()
   await first.locator('button:has-text("Venteliste nr. 1")').waitFor({ timeout: 5000 })
   ok(true, 'spill: påmelding igjen gir venteliste nr. 1 (bakerst i køen)')
@@ -125,6 +152,10 @@ try {
   ok(rader >= 7, `kalender: hele sesongen listes (${rader} rader)`)
   ok(await p.locator('main >> text=Åpner').count() > 0, 'kalender: økter utenfor vinduet sier når påmeldingen åpner')
   ok(await p.locator('main button').count() === 0, 'kalender: ingen påmeldingsknapper')
+  // Kveldens økt hadde 10 påmeldte og 6 plasser. Terminlista sa «10 spilte»:
+  // ingen rad kan vise mer enn plassene økta hadde.
+  const antall = (await p.locator('main li:has-text("spilte")').allInnerTexts()).map(t => Number(t.match(/(\d+) spilte/)[1]))
+  ok(antall.length > 0 && Math.max(...antall) <= 6, `kalender: teller bare de som fikk plass (${antall.join(', ')} mot 6 plasser)`)
   await shot(p, 'm-kalender')
   // En økt langt fram: ingen knapp, men beskjed om når den åpner
   const langt = await p.locator('li a[href*="/spill/okter/"]').last().getAttribute('href')
@@ -231,6 +262,11 @@ try {
   ok(await p.locator('li:has-text("Test Testesen")').count() >= 1, 'admin: godkjent søker ligger som invitasjon (invite-member)')
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
+  // E-postbryteren er av i prod: da må teksten slutte å love e-post, og
+  // «Bare lag, ikke send» er meningsløs når ingenting sendes.
+  ok(await p.locator('text=du deler påminnelsen selv').count() === 1, 'admin: teksten lover ikke e-post når bryteren er av')
+  ok(await p.locator('button:has-text("Bare lag, ikke send")').count() === 0, 'admin: ingen «ikke send»-knapp når ingenting sendes')
+  ok(await p.locator('button:has-text("Lag og send")').count() === 0, 'admin: knappen sier bare «Lag regninger»')
   // Påminnelsen: teksten skal inneholde navn, beløp, Vipps-nummer og lenke
   await p.locator('button:has-text("Del påminnelse")').click()
   await p.locator('text=Kopiert').waitFor({ timeout: 5000 })
@@ -272,7 +308,6 @@ try {
   await p.click('button:has-text("Send kode")')
   await p.waitForSelector('input[autocomplete=one-time-code]')
   await p.fill('input[autocomplete=one-time-code]', await latestCode('sniker@example.com'))
-  await p.click('button:has-text("Logg inn")')
   await p.waitForSelector('text=Ikke tilgang ennå', { timeout: 10000 })
   ok(true, 'uinvitert: kommer inn, men ser «Ikke tilgang ennå»')
   await p.click('button:has-text("Logg ut")')

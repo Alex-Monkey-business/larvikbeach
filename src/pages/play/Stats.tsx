@@ -46,7 +46,7 @@ export function Stats() {
 
       {rows.length > 0 && (
         <section className="card stack">
-          <div className="row between"><h2 className="h3">Oppmøte</h2>{anyWins && <span className="caption">økter · seire{anyPoints ? ' · poeng' : ''}</span>}</div>
+          <div className="row between"><h2 className="h3">Oppmøte</h2>{anyWins && <span className="caption">økter · seire{anyPoints ? ' · poengdiff' : ''}</span>}</div>
           <ul className="list">
             {rows.map(r => (
               <li key={r.profile_id} className="row between" style={{ fontWeight: r.profile_id === profile?.id ? 600 : 400 }}>

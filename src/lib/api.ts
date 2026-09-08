@@ -113,7 +113,7 @@ export const api = {
   inviteMember: async (body: { name: string; email: string; phone?: string; role?: 'admin' | 'player'; join_request_id?: string }) => {
     const { data, error } = await supabase.functions.invoke('invite-member', { body })
     if (error) throw new Error(await edgeError(error))
-    return data as { email: string; activated: boolean }
+    return data as { email: string; activated: boolean; mail: { sent: boolean; error?: string } }
   },
   sendInvoices: async (body: { period?: string; dry_run?: boolean } = {}) => {
     const { data, error } = await supabase.functions.invoke('send-invoices', { body })

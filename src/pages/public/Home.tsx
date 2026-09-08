@@ -43,7 +43,7 @@ export function Home() {
         <ol className="how-list">
           <li><span className="num">1</span><div><strong>Meld deg på</strong><p className="muted">Hver økt ligger i appen. Trykk «Jeg kommer», så vet alle hvor mange som blir.</p></div></li>
           <li><span className="num">2</span><div><strong>Hallen deles likt</strong><p className="muted">Om vinteren deles hallprisen på de som var med. Sommeren er gratis.</p></div></li>
-          <li><span className="num">3</span><div><strong>Én regning i måneden</strong><p className="muted">Du får summen på e-post og vippser. Ferdig.</p></div></li>
+          <li><span className="num">3</span><div><strong>Én regning i måneden</strong><p className="muted">Du ser summen i appen og vippser. Ferdig.</p></div></li>
         </ol>
       </section>
     </div>
