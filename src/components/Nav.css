@@ -64,3 +64,8 @@
   /* 320 px: «Bli med» står i heroen, pillen beholder bare navn og Logg inn. */
   .nav-links:not(.nav-links-app) a[href="/bli-med"] { display: none; }
 }
+.nav-links a, .tabbar a { transition: background-color 180ms ease; }
+.nav-links a:not(.btn) { min-height: 44px; }
+.tabbar { border-top: 1px solid var(--color-stone); }
+.tabbar a { font-size: 13px; }
+@media (max-width: 359px) { .tabbar a { font-size: 12px; } }

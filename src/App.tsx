@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router'
+import { Link, Route, Routes } from 'react-router'
 import { Layout } from './components/Layout'
 import { RequireAdmin, RequireAuth } from './auth/guards'
 import { Home } from './pages/public/Home'
@@ -48,7 +48,7 @@ export function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<div style={{ paddingTop: 'var(--space-6)' }}><h1 className="h1">Fant ikke siden</h1></div>} />
+        <Route path="*" element={<div style={{ paddingTop: 'var(--space-6)' }}><h1 className="h1">Fant ikke siden</h1><p className="lede">Lenken kan være gammel, eller siden kan ha flyttet.</p><Link to="/" className="btn btn-primary">Til forsiden</Link></div>} />
       </Route>
     </Routes>
   )

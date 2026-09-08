@@ -8,10 +8,10 @@ import { Konfetti } from '../../components/Konfetti'
 import { goingCount, mineFor, splitQueue, useSessions } from './useSessions'
 import type { Match, Profile, Season, Session } from '../../lib/types'
 import { time, endTime } from '../../lib/format'
+import { PageState } from '../../components/PageState'
 
 /**
- * Hjem er to økter: den forrige og den neste. Det første døgnet etter en økt
- * står den øverst, med resultatet. Etter det tar den neste over toppen.
+ * Forrige økt ligger øverst i 24 timer fra start, deretter kommer neste først.
  */
 export function Play() {
   const { profile } = useAuth()
@@ -38,12 +38,12 @@ export function Play() {
   const feir = profile && forrige && vinnere.some(w => w.id === profile.id) ? forrige.id : null
 
   return (
-    <div className="stack-lg" style={{ paddingTop: 'var(--space-6)' }}>
+    <div className="stack-lg play-home" style={{ paddingTop: 'var(--space-6)' }}>
       {feir && <Konfetti nokkel={`lbv-vinner-${feir}`} />}
-      <h1 className="h1">Hei, {profile?.name.split(' ')[0]}.</h1>
+      <h1 className="h1">Hei, {profile?.name.split(' ')[0] || 'du'}.</h1>
 
       {notice && <p className="lede" style={{ fontSize: 'var(--text-body-sm)' }}>{notice}</p>}
-      {s.error && <Notice>{s.error}</Notice>}
+      {s.loading && !s.data && <PageState title="Øktene dine" loading />}
       {(s.error || s.actionError) && <Notice>{s.error ?? s.actionError}</Notice>}
       {s.data && vist.length === 0 && <p className="muted">Ingen økter er lagt inn ennå.</p>}
 

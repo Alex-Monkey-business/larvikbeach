@@ -1,3 +1,4 @@
+import { PageState } from '../../components/PageState'
 import { useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
@@ -29,6 +30,10 @@ export function Billing() {
   const meldt = bal.data?.claimed ?? 0              // meldt betalt, venter på admin
   const owed = faktura + palopt
 
+  if (!bal.data || !inv.data || !settings.data) return <PageState title="Betaling"
+    loading={bal.loading || inv.loading || settings.loading} error={bal.error || inv.error || settings.error}
+    onRetry={() => { void bal.reload(); void inv.reload(); void settings.reload() }} />
+
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
       <h1 className="h1">Betaling</h1>
@@ -58,7 +63,7 @@ export function Billing() {
                 <p style={{ fontWeight: 500 }}>{periodLabel(i.period)}</p>
                 <p className="muted">{kr(i.amount)}</p>
               </div>
-              <button type="button" className="btn btn-primary" disabled={busy === i.id} onClick={() => void claim(i.id)}>Jeg har vippset</button>
+              <button type="button" className="btn btn-primary" disabled={busy === i.id} onClick={() => void claim(i.id)}>{busy === i.id ? 'Lagrer…' : 'Jeg har vippset'}</button>
             </div>
           ))}
         </section>

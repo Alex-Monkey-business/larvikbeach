@@ -132,7 +132,7 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></label>
         <label className="field"><span className="label">Maks antall (tomt = ingen grense)</span><input className="input" type="number" min={1} value={f.capacity} onChange={e => setF({ ...f, capacity: e.target.value })} /></label>
         <label className="field"><span className="label">Minst antall for å spille</span><input className="input" type="number" min={1} value={f.min} onChange={e => setF({ ...f, min: e.target.value })} /></label>
-        <label className="field" style={{ gridColumn: '1 / -1' }}><span className="label">Melding over øktene (én linje)</span><input className="input" value={f.notice} onChange={e => setF({ ...f, notice: e.target.value })} placeholder="Oppmøte Kiwi Farriseidet kl. 18 for felles transport." /></label>
+        <label className="field" style={{ gridColumn: '1 / -1' }}><span className="label">Melding over øktene (én linje)</span><input className="input" value={f.notice} onChange={e => setF({ ...f, notice: e.target.value })} placeholder="Oppmøte 18:15 på Kiwi Farriseidet for felles transport." /></label>
       </div>
       {error && <Notice>{error}</Notice>}
       <button className="btn btn-primary">Lagre sesong</button>

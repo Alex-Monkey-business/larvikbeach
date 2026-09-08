@@ -9,3 +9,10 @@
   .session-card-actions { min-width: 200px; }
 }
 .session-card-people { display: inline-flex; width: fit-content; text-decoration: none; }
+.attendance-control { display: grid; gap: 8px; justify-items: center; }
+.attendance-control > .btn-primary { width: 100%; }
+.attendance-control > .badge { min-height: 36px; }
+.attendance-block { width: 100%; }
+.session-card-title .muted { font-size: var(--text-caption); line-height: 1.5; }
+.session-card-actions .attendance-control:has(> .badge) { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 720px) { .session-card-actions .attendance-control:has(> .badge) { flex-direction: column; } }

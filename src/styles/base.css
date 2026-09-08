@@ -181,3 +181,54 @@ a.card { display: block; text-decoration: none; }
   content: ''; display: inline-block; margin-left: 12px; vertical-align: 0.18em;
   border: 6px solid transparent; border-top-color: currentColor; border-bottom: 0;
 }
+
+/* Quiet interaction polish, shared by the public site and the app. */
+body { line-height: 1.45; }
+.h1, .h2, .h3, .display { text-wrap: balance; }
+.lede { line-height: 1.5; text-wrap: pretty; }
+a, button { -webkit-tap-highlight-color: transparent; }
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--color-forest); outline-offset: 4px;
+}
+.on-dark :focus-visible { outline-color: var(--color-lavender); }
+.btn { transition: background-color 180ms ease, border-color 180ms ease; }
+.btn-sm, .btn-icon { min-height: 44px; }
+.btn-icon { width: 44px; }
+@media (hover: hover) {
+  .btn-primary:not(:disabled):hover { background: color-mix(in oklab, var(--color-lavender) 88%, var(--color-ink)); }
+  .btn:not(.btn-primary, .btn-dark, .btn-forest, .btn-ghost, .btn-danger, .btn-provider):not(:disabled):hover { background: var(--color-stone); }
+}
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible, .btn:focus-visible {
+  outline-color: var(--color-forest);
+}
+.skip-link { position: fixed; top: 8px; left: 16px; transform: translateY(-160%); z-index: 50; padding: 12px 20px; background: var(--color-cream); border: var(--border); border-radius: 12px; }
+.skip-link:focus { transform: translateY(0); }
+.page-state { padding-top: var(--space-6); max-width: 720px; }
+.skeleton { height: 116px; background: var(--color-stone); border-radius: 20px; opacity: .6; }
+.skeleton-short { height: 20px; width: 60%; margin-top: 16px; }
+.play-home { max-width: 840px; }
+.play-home > .stack-lg { animation: content-arrive 600ms 100ms both; }
+@keyframes content-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 479px) {
+  .card { border-radius: 24px; padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+.stats-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.stats-table th, .stats-table td { padding: 14px 4px; text-align: right; border-bottom: 1px solid var(--color-stone); }
+.stats-table th:first-child { width: 55%; text-align: left; padding-left: 0; }
+.stats-table thead th { font-size: 12px; color: var(--color-fog); font-weight: 500; padding-top: 0; }
+.stats-table tbody th { font-weight: 400; }
+.stats-table tbody tr:last-child > * { border-bottom: 0; }
+.stats-table abbr { text-decoration: none; }
+.stats-player { display: flex; align-items: center; gap: 10px; }
+.stats-player > span { min-width: 0; overflow-wrap: anywhere; }
+.stats-me { color: var(--color-forest); }
+.stats-table .stats-me > * { font-weight: 600; }
+.admin-nav { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--color-stone); padding-bottom: 12px; }
+.admin-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-size: 14px; }
+.admin-nav a.active { background: var(--color-stone); font-weight: 600; }
+.admin-nav a:hover { background: var(--color-stone); }
+.me-page { overflow-wrap: anywhere; }
+.me-page .list > li > span { min-width: 0; max-width: 100%; }

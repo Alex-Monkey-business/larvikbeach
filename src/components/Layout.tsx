@@ -7,11 +7,13 @@ export function Layout() {
   const { session } = useAuth()
   // Appen har fanelinje nederst og skal være støyfri. Bunnteksten hører til
   // de åpne sidene, der personvernlenka også må være for Google.
-  const showFooter = !pathname.startsWith('/spill') && !pathname.startsWith('/admin')
+  const landing = pathname === '/' && !session
+  const showFooter = !landing && !pathname.startsWith('/spill') && !pathname.startsWith('/admin')
   return (
     <>
-      <Nav />
-      <main className={`page ${session ? 'page-app' : ''}`} style={{ paddingBottom: 'calc(var(--space-12) + env(safe-area-inset-bottom))' }}>
+      <a className="skip-link" href="#main-content">Hopp til innhold</a>
+      {!landing && <Nav />}
+      <main id="main-content" tabIndex={-1} className={`page ${session ? 'page-app' : ''}`} style={{ paddingBottom: landing ? 0 : 'calc(var(--space-12) + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
       {showFooter && (

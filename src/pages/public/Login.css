@@ -13,3 +13,7 @@
   font-variant-numeric: tabular-nums; padding-left: 10px;
 }
 .code-input::placeholder { color: var(--color-fog); letter-spacing: 10px; }
+
+.login-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.login-heading .h1 { margin: 0; }
+.login-art { width: clamp(104px, 28vw, 140px); flex-shrink: 0; }

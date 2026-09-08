@@ -25,7 +25,7 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
   const ferskt = Date.now() - new Date(session.starts_at).getTime() < 24 * 3600_000
   const hasSpot = mine.going === true && !mine.waitlisted
   return (
-    <article className={`session-card card ${hasSpot ? 'is-going' : ''}`}>
+    <article className={`session-card card ${hasSpot && !played ? 'is-going' : ''}`}>
       <div className="session-card-main">
         <Link to={`/spill/okter/${session.id}`} className="session-card-title">
           <span className="h3">{longDate(session.starts_at)}</span>
@@ -65,10 +65,7 @@ function names(people: Profile[]): string {
   return f.length < 2 ? (f[0] ?? '') : `${f.slice(0, -1).join(', ')} og ${f[f.length - 1]}`
 }
 
-/**
- * Én knapp som viser tilstanden og bytter ved trykk. Har du plass på en full
- * økt, spør den én gang: noen i køen tar plassen din.
- */
+/** Status og handling skilles, slik at avmelding aldri er skjult i en statusknapp. */
 export function AttendButton({ session, goingCount, mine, busy, onToggle, block }: {
   session: Session; goingCount: number; mine: MyState; busy?: boolean; onToggle: (going: boolean) => void; block?: boolean
 }) {
@@ -77,19 +74,20 @@ export function AttendButton({ session, goingCount, mine, busy, onToggle, block 
   const label = hasSpot ? 'Du har plass'
     : mine.going === true ? `Venteliste nr. ${mine.spot - (session.capacity ?? 0)}`
     : full ? 'Sett meg på venteliste' : 'Jeg kommer'
-  const cls = hasSpot ? 'btn-forest' : mine.going === true ? 'btn-dark' : 'btn-primary'
   function click() {
     if (mine.going !== true) return onToggle(true)
-    // Knappen viser tilstanden, så trykket avmelder. Det er den store grønne
-    // knappen på kortet: den skal ikke kunne treffes ved uhell.
+    // Bekreft avmelding, særlig når noen andre overtar plassen.
     const kø = hasSpot && goingCount > (session.capacity ?? Infinity)
     if (!confirm(kø ? 'Melde deg av? Den første på ventelista får plassen din.' : 'Melde deg av økta?')) return
     onToggle(false)
   }
   return (
-    <button type="button" className={`btn ${cls} ${block ? 'btn-block' : ''}`} disabled={busy} onClick={click}
-      aria-pressed={mine.going === true} title={mine.going === true ? 'Trykk for å melde deg av' : undefined}>
-      {label}
-    </button>
+    <div className={`attendance-control ${block ? 'attendance-block' : ''}`}>
+      {mine.going === true && <span role="status" className={`badge ${hasSpot ? 'badge-forest' : 'badge-stone'}`}>{label}</span>}
+      <button type="button" className={`btn ${mine.going === true ? 'btn-ghost btn-sm' : 'btn-primary'} ${block ? 'btn-block' : ''}`}
+        disabled={busy} aria-busy={busy || undefined} onClick={click}>
+        {busy ? 'Lagrer…' : mine.going === true ? 'Meld meg av' : label}
+      </button>
+    </div>
   )
 }

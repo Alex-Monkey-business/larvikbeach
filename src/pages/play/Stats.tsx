@@ -1,3 +1,4 @@
+import { PageState } from '../../components/PageState'
 import { Link } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
@@ -28,7 +29,7 @@ export function Stats() {
     return { season, stats, profiles, held, attendance }
   }, [])
 
-  if (!q.data) return null
+  if (!q.data) return <PageState title="Statistikk" loading={q.loading} error={q.error} empty="Statistikken kommer når den første sesongen er lagt inn." onRetry={() => void q.reload()} />
   const { season, stats, profiles, held, attendance } = q.data
   const byId = new Map<string, Profile>(profiles.map(p => [p.id, p]))
   const rows = stats.map(s => ({ ...s, p: byId.get(s.profile_id) })).filter(r => r.p).sort((a, b) => b.sessions - a.sessions || b.wins - a.wins)
@@ -38,7 +39,8 @@ export function Stats() {
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
       <header>
-        <h1 className="h1">{season.name}</h1>
+        <p className="caption">{season.name}</p>
+        <h1 className="h1">Statistikk</h1>
         <p className="muted">{held.length} {held.length === 1 ? 'økt' : 'økter'} spilt</p>
       </header>
 
@@ -46,19 +48,20 @@ export function Stats() {
 
       {rows.length > 0 && (
         <section className="card stack">
-          <div className="row between"><h2 className="h3">Oppmøte</h2>{anyWins && <span className="caption">økter · seire{anyPoints ? ' · poengdiff' : ''}</span>}</div>
-          <ul className="list">
-            {rows.map(r => (
-              <li key={r.profile_id} className="row between" style={{ fontWeight: r.profile_id === profile?.id ? 600 : 400 }}>
-                <span className="row" style={{ gap: 10, flexWrap: 'nowrap' }}><Avatar profile={r.p!} size={30} />{r.p!.name}</span>
-                <span className="row" style={{ gap: 14, flexWrap: 'nowrap' }}>
-                  <span className="num" style={{ fontSize: 24 }}>{r.sessions}</span>
-                  {anyWins && <span className="num muted" style={{ fontSize: 24, minWidth: 28, textAlign: 'right' }}>{r.wins}</span>}
-                  {anyPoints && <span className="num muted" style={{ fontSize: 24, minWidth: 42, textAlign: 'right' }} title={`${r.points_for} scoret, ${r.points_against} sluppet inn`}>{signed(r.points_diff)}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="h3">Oppmøte</h2>
+          <table className="stats-table">
+            <caption className="visually-hidden">Oppmøte og resultater. Sortert etter flest økter, deretter seire.</caption>
+            <thead><tr><th scope="col">Spiller</th><th scope="col">Økter</th>{anyWins && <th scope="col">Seire</th>}{anyPoints && <th scope="col"><abbr title="Poengforskjell">+/−</abbr></th>}</tr></thead>
+            <tbody>{rows.map(r => (
+              <tr key={r.profile_id} className={r.profile_id === profile?.id ? 'stats-me' : undefined}>
+                <th scope="row"><span className="stats-player"><Avatar profile={r.p!} size={28} /><span>{r.p!.name}{r.profile_id === profile?.id && <span className="visually-hidden"> (deg)</span>}</span></span></th>
+                <td>{r.sessions}</td>
+                {anyWins && <td>{r.wins}</td>}
+                {anyPoints && <td title={`${r.points_for} scoret, ${r.points_against} sluppet inn`}>{signed(r.points_diff)}</td>}
+              </tr>
+            ))}</tbody>
+          </table>
+          {anyPoints && <p className="caption">+/− er poeng scoret minus poeng sluppet inn.</p>}
         </section>
       )}
 

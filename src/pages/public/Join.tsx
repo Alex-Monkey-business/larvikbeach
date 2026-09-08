@@ -51,7 +51,7 @@ export function Join() {
           <textarea className="textarea" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
         </label>
         {error && <Notice>{error}</Notice>}
-        <button className="btn btn-primary" disabled={state === 'sending'}>{state === 'sending' ? 'Sender…' : 'Send'}</button>
+        <button className="btn btn-primary" disabled={state === 'sending'}>{state === 'sending' ? 'Sender…' : 'Send forespørsel'}</button>
       </form>
     </div>
   )

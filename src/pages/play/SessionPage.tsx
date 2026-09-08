@@ -1,3 +1,4 @@
+import { PageState } from '../../components/PageState'
 import { Link, useParams } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
@@ -18,9 +19,9 @@ export function SessionPage() {
   const people = useQuery(() => api.profiles(), [])
 
   const session = s.data?.sessions[0]
-  if (s.error) return <Notice>{s.error}</Notice>
+  if (s.error || people.error) return <PageState title="Økt" error={s.error || people.error} onRetry={() => { void s.reload(); void people.reload() }} />
   if (s.data && !session) return <Notice>Fant ikke økta</Notice>
-  if (!session || !s.data || !people.data) return null
+  if (!session || !s.data || !people.data) return <PageState title="Økt" loading />
 
   const att = s.data.attendance.filter(a => a.session_id === id)
   const byId = new Map<string, Profile>(people.data.map(p => [p.id, p]))

@@ -29,7 +29,7 @@ export function Me() {
   const rank = mine ? rows.findIndex(r => r.profile_id === mine.profile_id) + 1 : null
 
   return (
-    <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 560 }}>
+    <div className="stack-lg me-page" style={{ paddingTop: 'var(--space-6)', maxWidth: 560 }}>
       <header className="row" style={{ gap: 14, flexWrap: 'nowrap' }}>
         {profile && <Avatar profile={profile} size={56} />}
         <h1 className="h1" style={{ minWidth: 0 }}>{profile?.name}</h1>

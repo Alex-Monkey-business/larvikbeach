@@ -1,8 +1,8 @@
+import { PageState } from '../../components/PageState'
 import { Link } from 'react-router'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { compactDate, time, shortDate, signupOpen, signupOpensAt } from '../../lib/format'
-import { Notice } from '../../components/Notice'
 import { goingCount, payerCount } from './useSessions'
 import type { Session } from '../../lib/types'
 
@@ -25,8 +25,7 @@ export function Calendar() {
     return { settings, season, sessions, attendance }
   }, [])
 
-  if (q.error) return <Notice>{q.error}</Notice>
-  if (!q.data) return null
+  if (!q.data) return <PageState title="Terminliste" loading={q.loading} error={q.error} empty="Ingen sesong er lagt inn ennå." onRetry={() => void q.reload()} />
   const { settings, season, sessions, attendance } = q.data
   const windowDays = settings.signup_window_days
   const months = groupByMonth(sessions)
@@ -35,7 +34,8 @@ export function Calendar() {
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
       <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Hjem</Link>
       <header className="stack">
-        <h1 className="h1">{season.name}</h1>
+        <p className="caption">{season.name}</p>
+        <h1 className="h1">Terminliste</h1>
         <p className="muted">{sessions.length} økter. Påmeldingen åpner {windowDays} dager før hver økt.</p>
       </header>
 

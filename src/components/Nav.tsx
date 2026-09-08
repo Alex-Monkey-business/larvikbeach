@@ -9,7 +9,9 @@ export function Nav() {
   const { session, isAdmin } = useAuth()
   // «Logg inn» er en oppfordring, ikke et menypunkt. Står du der alt, er en
   // lilla knapp til samme side bare støy ved siden av de ekte knappene.
-  const påLoggInn = useLocation().pathname === '/logg-inn'
+  const { pathname } = useLocation()
+  const homeActive = pathname.startsWith('/spill/okter/') || pathname === '/spill/kalender'
+  const påLoggInn = pathname === '/logg-inn'
   return (
     <>
       <header className={`nav-wrap ${session ? 'nav-app' : ''}`}>
@@ -20,8 +22,8 @@ export function Nav() {
           <div className={`nav-links ${session ? 'nav-links-app' : ''}`}>
             {session ? (
               <>
-                <NavLink to="/spill" end>Hjem</NavLink>
-                <NavLink to="/spill/statistikk">Stats</NavLink>
+                <NavLink to="/spill" end className={({ isActive }) => isActive || homeActive ? 'active' : undefined}>Hjem</NavLink>
+                <NavLink to="/spill/statistikk">Statistikk</NavLink>
                 <NavLink to="/spill/betaling">Betaling</NavLink>
                 <NavLink to="/spill/meg">Meg</NavLink>
                 {isAdmin && <NavLink to="/admin">Admin</NavLink>}
@@ -38,8 +40,8 @@ export function Nav() {
       </header>
       {session && (
         <nav className="tabbar" aria-label="Sider">
-          <NavLink to="/spill" end>Hjem</NavLink>
-          <NavLink to="/spill/statistikk">Stats</NavLink>
+          <NavLink to="/spill" end className={({ isActive }) => isActive || homeActive ? 'active' : undefined}>Hjem</NavLink>
+          <NavLink to="/spill/statistikk">Statistikk</NavLink>
           <NavLink to="/spill/betaling">Betaling</NavLink>
           <NavLink to="/spill/meg">Meg</NavLink>
           {isAdmin && <NavLink to="/admin">Admin</NavLink>}
