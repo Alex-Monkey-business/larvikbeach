@@ -14,5 +14,11 @@
 }
 .code-input::placeholder { color: var(--color-fog); letter-spacing: 10px; }
 
-.login-copy { width: min(360px, 100%); gap: 20px; }
-.login-annen { justify-self: center; color: var(--color-fog); font-size: var(--text-caption); }
+/* Luft mellom navnetrekket og knappen: heroens gap alene gjorde dem klistret.
+   Knappene hugger innholdet, feltene tar bredden — et felt trenger plass, en
+   knapp trenger ikke. */
+.login-copy { width: min(304px, 100%); gap: 0; margin-top: 28px; }
+.login-valg { width: 100%; display: grid; justify-items: center; gap: 20px; }
+.login-felt { width: 100%; display: grid; justify-items: center; gap: 14px; }
+.login-felt .field { width: 100%; }
+.login-annen { color: var(--color-fog); font-size: var(--text-caption); }

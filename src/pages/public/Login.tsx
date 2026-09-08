@@ -105,23 +105,23 @@ export function Login() {
           <h1 className="visually-hidden">Logg inn</h1>
 
           {step === 'email' ? (
-            <div className="stack">
-              <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
+            <div className="login-valg">
+              <button type="button" className="btn btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
                 <GoogleMark /> {busy === 'google' ? 'Åpner Google…' : 'Fortsett med Google'}
               </button>
               {MICROSOFT_ENABLED && (
-                <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
+                <button type="button" className="btn btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
                   <MicrosoftMark /> Fortsett med Microsoft
                 </button>
               )}
               {kode ? (
-                <form className="stack" onSubmit={sendCode}>
+                <form className="login-felt" onSubmit={sendCode}>
                   <label className="field">
                     <span className="label">E-post</span>
                     <input className="input" type="email" required autoFocus autoComplete="email" inputMode="email"
                       value={email} onChange={e => setEmail(e.target.value)} />
                   </label>
-                  <button className="btn btn-block" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
+                  <button className="btn" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
                 </form>
               ) : (
                 <button type="button" className="lenke login-annen" onClick={() => setKode(true)}>Annen e-post</button>
@@ -129,7 +129,7 @@ export function Login() {
               {error && <Notice>{error}</Notice>}
             </div>
           ) : (
-            <form className="stack" onSubmit={verify}>
+            <form className="login-felt" onSubmit={verify}>
               <p key={sent} className="caption">Kode sendt til <strong>{email}</strong>. Den varer i 10 minutter.</p>
               <label className="field">
                 <span className="visually-hidden">Sekssifret kode</span>
@@ -138,7 +138,7 @@ export function Login() {
                   value={code} onChange={e => onCode(e.target.value)} />
               </label>
               {error && <Notice>{error}</Notice>}
-              <button className="btn btn-primary btn-block" disabled={busy !== null || code.length < 6}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
+              <button className="btn btn-primary" disabled={busy !== null || code.length < 6}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
               <div className="row" style={{ justifyContent: 'center' }}>
                 <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => void resend()}>{busy === 'code' ? 'Sender…' : 'Send ny kode'}</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setStep('email'); setCode(''); setError(null) }}>Annen e-post</button>
