@@ -264,33 +264,48 @@ try {
   await p.locator('th:has-text("Seire")').waitFor({ timeout: 5000 })
   ok(true, 'statistikk: seire-kolonnen kom etter første resultat')
   const kolonner = await p.locator('.stats-table thead th').allInnerTexts()
-  ok(kolonner.join(' · ') === 'Spiller · Økter · Seire · +/−', `statistikk: poengkolonnen kom med poengene (${kolonner.join(' · ')})`)
+  ok(kolonner.join(' · ') === 'Spiller · Kamper · Seire · +/−', `statistikk: kamptabellen har egne kolonner (${kolonner.join(' · ')})`)
 
-  // Ledertavla og søylene. Begge animeres i JS eller mot en egendefinert
-  // CSS-verdi, så det som sjekkes er at de LANDER på riktig sluttilstand —
-  // en opptelling som stopper på 3 av 4, eller en søyle som blir stående på
-  // scaleX(0), ser ut som en designfeil og er en logisk feil.
-  await p.locator('.leder').waitFor({ timeout: 5000 })
-  const forsteRad = p.locator('.stats-table tbody tr').first()
-  const flest = (await forsteRad.locator('td').first().innerText()).trim()
-  await p.waitForTimeout(1500)
-  const tavletall = (await p.locator('.leder .num').innerText()).trim()
-  ok(tavletall === flest, `statistikk: opptellingen lander på lederens økter (${tavletall} mot tabellens ${flest})`)
-  ok((await forsteRad.getAttribute('class') ?? '').includes('stats-leder'), 'statistikk: lederraden er merket i tabellen')
-  const soyle = await forsteRad.locator('.stats-bar').evaluate(el => el.getBoundingClientRect().width)
-  ok(soyle > 8, `statistikk: søyla sveiper inn og blir stående (${Math.round(soyle)} px)`)
-  ok(await p.locator('.leder-ball[aria-hidden="true"][tabindex="-1"]').count() === 1,
+  // Plakaten, løpet og rutenettet. Alt tre animeres, så det som sjekkes er at
+  // de LANDER: en opptelling som stopper på 3 av 4, eller en søyle som blir
+  // stående på 0, ser ut som en designfeil og er en logisk feil.
+  await p.locator('.plakat').waitFor({ timeout: 5000 })
+  const summer = () => p.locator('.lop-tall').evaluateAll(els => els.reduce((n, e) => n + Number(e.textContent), 0))
+  const underveis = await summer()
+  await p.waitForTimeout(2600)
+  const ferdig = await summer()
+  ok(ferdig > underveis, `statistikk: sesongen spilles av, den står ikke ferdig (${underveis} → ${ferdig})`)
+
+  // Fasit for løpet er databasens egen telling. Ruter og søyler skal ende på
+  // samme sum — ellers regner klienten oppmøte etter en annen regel enn
+  // season_stats, og tallene spriker uten at noen ser hvorfor.
+  const ruter = await p.locator('.rute-med').count()
+  ok(ruter === ferdig, `statistikk: rutenettet og løpet ender på samme sum (${ruter} mot ${ferdig})`)
+  const okter = Number((await p.locator('.plakat-fakta .num').innerText()).trim())
+  const topp = Number((await p.locator('.lop tbody tr').first().locator('.lop-tall').innerText()).trim())
+  ok(okter === topp && topp > 0, `statistikk: plakaten viser samme tall som toppen av løpet (${okter} mot ${topp})`)
+  ok((await p.locator('.lop tbody tr').first().getAttribute('class') ?? '').includes('lop-front'),
+    'statistikk: ledelsen lyser på øverste rad når løpet er ferdig')
+  const bredde = await p.locator('.lop tbody tr').first().locator('.lop-fyll')
+    .evaluate(el => el.getBoundingClientRect().width)
+  ok(bredde > 20, `statistikk: søyla blir stående, ikke på null (${Math.round(bredde)} px)`)
+  // Breddene ligger på <col> fordi en position:absolute <caption> slår ut
+  // px-bredder på cellene i en fixed-layout tabell — da ble alle fire
+  // kolonnene like brede og søyla halvparten så lang som den skulle.
+  const kol = await p.locator('.lop tbody tr').first().evaluate(tr =>
+    [...tr.children].map(e => Math.round(e.getBoundingClientRect().width)))
+  ok(kol[2] > kol[1] * 1.5, `statistikk: søylekolonna er den brede (${kol.join(' / ')})`)
+  ok(await p.locator('.plakat-ball[aria-hidden="true"][tabindex="-1"]').count() === 1,
     'statistikk: ballen er dekor, ikke et stopp på tabturen')
-  ok(await p.locator('.leder .badge').count() === 1, 'statistikk: seiersledelsen står som merkelapp på tavla')
-  await shot(p, 'm-statistikk-tavle')
+  ok(await p.locator('.plakat .display, .plakat .h2').count() > 0, 'statistikk: lederens navn er det største på plakaten')
+  await shot(p, 'm-statistikk-plakat')
+
+  await p.locator('button:has-text("Spill av sesongen")').click()
+  ok(await summer() < ferdig, 'statistikk: «Spill av sesongen» starter løpet på nytt')
 
   await p.emulateMedia({ reducedMotion: 'reduce' })
-  await p.reload(); await p.locator('.leder .num').waitFor({ timeout: 5000 })
-  ok((await p.locator('.leder .num').innerText()).trim() === flest,
-    'statistikk: redusert bevegelse viser tallet med en gang')
-  const roligSoyle = await p.locator('.stats-table tbody tr').first().locator('.stats-bar')
-    .evaluate(el => el.getBoundingClientRect().width)
-  ok(roligSoyle > 8, `statistikk: søyla står uten animasjon også (${Math.round(roligSoyle)} px)`)
+  await p.reload(); await p.locator('.lop-tall').first().waitFor({ timeout: 5000 })
+  ok(await summer() === ferdig, 'statistikk: redusert bevegelse hopper rett til sluttilstanden')
   await p.emulateMedia({ reducedMotion: 'no-preference' })
   await p.goto(`${APP}/spill/meg`)
   await p.locator('.me-numbers').waitFor({ timeout: 5000 })
