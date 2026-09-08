@@ -43,7 +43,7 @@ function Spotlight({ leaders, metric, score, gap }: { leaders: Entry[]; metric: 
   )
 }
 
-export function Leaderboard({ rows, me, total }: { rows: Entry[]; me?: string; total: number }) {
+export function Leaderboard({ rows, me }: { rows: Entry[]; me?: string }) {
   const [metric, setMetric] = useState<Metric>(rows.some(r => r.games > 0) ? 'wins' : 'sessions')
   const [replay, setReplay] = useState(0)
   const list = useRef<HTMLOListElement>(null)
@@ -99,22 +99,28 @@ export function Leaderboard({ rows, me, total }: { rows: Entry[]; me?: string; t
             </>
           : <span>Ingen {metric === 'wins' ? 'seire' : 'oppmøter'} er registrert på deg.</span>}
       </p>}
-      <div className="leader-list-heading"><span>Plassering</span><span className={`leader-numbers ${metric === 'wins' ? 'with-diff' : ''}`}><span>{metric === 'wins' ? 'Seire' : 'Økter'}</span>{metric === 'wins' && <abbr title="Poengdifferanse: poeng scoret minus poeng sluppet inn">+/−</abbr>}</span></div>
+      {metric === 'wins' && <div className="leader-list-heading">
+        <span className="leader-numbers with-diff">
+          <span>Seire</span>
+          <abbr title="Poengdifferanse: poeng scoret minus poeng sluppet inn">+/−</abbr>
+        </span>
+      </div>}
       <ol ref={list} className="leader-list" aria-label={metric === 'wins' ? 'Rangering etter seire' : 'Rangering etter oppmøte'}>
         {ranked.map((r, index) => <li key={r.profile_id} data-player={r.profile_id} className={`leader-row ${r.rank <= 3 && r[metric] > 0 ? `leader-rank-${r.rank}` : ''} ${r.profile_id === me ? 'leader-is-me' : ''}`}>
           <div className="leader-row-content" key={`${metric}-${replay}`} style={{ '--row': Math.min(index, 12) } as CSSProperties}>
             <span className="leader-rank"><span aria-hidden="true">{String(r.rank).padStart(2, '0')}</span><span className="visually-hidden">{r.rank}. plass</span></span>
             <Avatar profile={r.p} size={40} />
-            <div className="leader-player"><p>{r.p.name}{r.profile_id === me && <span className="leader-you">du</span>}</p><span>{metric === 'wins' ? `${r.games} ${r.games === 1 ? 'kamp' : 'kamper'} spilt` : `${total} ${total === 1 ? 'økt' : 'økter'} i sesongen`}</span></div>
+            <div className="leader-player">
+              <p>{r.p.name}{r.profile_id === me && <span className="leader-you">du</span>}</p>
+              {metric === 'wins' && <span>{r.games} {r.games === 1 ? 'kamp' : 'kamper'} spilt</span>}
+            </div>
             <span className={`leader-numbers ${metric === 'wins' ? 'with-diff' : ''}`}>
               <strong className="leader-score">{r[metric]}</strong>
               {metric === 'wins' && <span className={`leader-diff ${r.points_diff > 0 ? 'is-positive' : ''}`} title={`Poengdifferanse: ${r.points_for} scoret, ${r.points_against} sluppet inn`}>{r.points_diff > 0 ? `+${r.points_diff}` : r.points_diff < 0 ? `−${Math.abs(r.points_diff)}` : '0'}</span>}
             </span>
-            <span className="leader-meter" aria-hidden="true"><span style={{ transform: `scaleX(${score ? r[metric] / score : 0})` }} /></span>
           </div>
         </li>)}
       </ol>
-      <p className="leader-footnote">Like tall gir delt plassering.{metric === 'wins' && ' +/− viser poeng scoret minus poeng sluppet inn.'}</p>
     </section>
   )
 }

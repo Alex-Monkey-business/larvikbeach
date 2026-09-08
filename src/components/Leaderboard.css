@@ -16,20 +16,29 @@
 .leader-crown svg { display: block; width: 100%; }
 .leader-winners { display: grid; gap: 22px; margin-block: 18px 22px; }
 .leader-winner { display: flex; align-items: center; gap: 20px; min-width: 0; }
-.leader-portrait { position: relative; flex-shrink: 0; padding: 5px; }
-.leader-portrait::before { content: ''; position: absolute; inset: 0; border: 1px solid var(--color-ember); border-radius: 50%; animation: leader-orbit 1300ms var(--leader-ease) both; }
-.leader-portrait .avatar { box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-cream) 20%, transparent); }
+/* ÉN ring. Før lå ember-ringen 5 px utenfor en blek kremhårstrek som hugget
+   avataren, og to konsentriske ringer så ut som en bom, ikke som en glorie.
+   Ringen ligger nå på kanten og kommer utenfra og inn. */
+.leader-portrait { position: relative; flex-shrink: 0; }
+.leader-portrait::before {
+  content: ''; position: absolute; inset: -1px; z-index: 1;
+  border: 2px solid var(--color-ember); border-radius: 50%;
+  animation: leader-orbit 1300ms var(--leader-ease) both;
+}
+/* Skogsgrønt fyll på skogsgrønn flate er ikke en avatar, det er et hull.
+   Lavendel og stein beholder identiteten sin; bare kollisjonen byttes ut. */
+.leader-portrait .avatar.tone-forest { background: var(--color-cream); color: var(--color-forest); }
 .leader-name { font: 400 clamp(30px, 5vw, 48px)/1.02 var(--font-serif); letter-spacing: -.025em; overflow-wrap: anywhere; text-wrap: balance; animation: leader-name-in 850ms 120ms var(--leader-ease) both; }
 .leader-spotlight-bottom { border-top: 1px solid color-mix(in srgb, var(--color-cream) 20%, transparent); padding-top: 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .leader-total { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .leader-total strong { font: 500 64px/.9 var(--font-sans); letter-spacing: -.07em; font-variant-numeric: tabular-nums; }
 .leader-total > span { font-size: 14px; color: var(--color-stone); }
 .leader-gap { max-width: 15ch; font-size: 13px; text-align: right; color: var(--color-stone); }
-.leader-personal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 16px 0; font-size: 13px; color: var(--color-forest); }
+.leader-personal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 22px 2px 0; font-size: 13px; color: var(--color-forest); }
 .leader-personal strong { font-weight: 600; }
 .leader-personal > span { color: var(--color-fog); }
-.leader-list-heading { display: flex; justify-content: space-between; padding: 20px 16px 10px; color: var(--color-fog); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-.leader-list { position: relative; list-style: none; padding: 0; margin: 0; }
+.leader-list-heading { display: flex; justify-content: flex-end; padding: 28px 16px 10px; color: var(--color-fog); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.leader-list { position: relative; list-style: none; padding: 0; margin: 18px 0 0; }
 .leader-row { position: relative; border-bottom: 1px solid var(--color-stone); }
 .leader-row-content { position: relative; display: grid; grid-template-columns: 28px 40px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 18px 16px 20px; animation: leader-row-in 650ms var(--leader-ease) both; animation-delay: calc(100ms + var(--row) * 55ms); }
 .leader-is-me { background: color-mix(in srgb, var(--color-forest) 3.5%, transparent); border-radius: 12px; }
@@ -42,17 +51,12 @@
 .leader-you { display: inline-block; font: 400 10px var(--font-sans); vertical-align: middle; padding: 2px 5px; margin-left: 6px; border-radius: 4px; background: var(--color-stone); }
 .leader-score { font: 500 28px/1 var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
 .leader-rank-1 .leader-score { color: var(--color-forest); }
-.leader-meter { position: absolute; left: 98px; right: 16px; bottom: 0; height: 2px; transform-origin: left; animation: leader-meter-in 1000ms 200ms var(--leader-ease) both; }
-.leader-meter > span { display: block; height: 100%; background: var(--color-forest); opacity: .22; transform-origin: left; transition: transform 700ms var(--leader-ease); }
-.leader-rank-1 .leader-meter > span { background: var(--color-ember); opacity: 1; }
-.leader-footnote { padding: 14px 16px 0; font-size: 12px; color: var(--color-fog); }
 .leader-empty { background: var(--color-stone); padding: 32px; border-radius: 24px; }
 .leader-empty p { font: 32px var(--font-serif); margin-bottom: 8px; }
 .leader-empty > span { font-size: 14px; color: var(--color-fog); }
 @keyframes leader-reveal { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes leader-name-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes leader-row-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
-@keyframes leader-meter-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes leader-crown { from { opacity: 0; transform: translateY(-16px) rotate(-20deg) scale(.6); } 65% { opacity: 1; transform: translateY(2px) rotate(5deg) scale(1.12); } to { opacity: 1; transform: none; } }
 @keyframes leader-orbit { from { opacity: 0; transform: scale(1.45) rotate(-120deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 @keyframes leader-sheen { from { transform: translateX(-90%); } to { transform: translateX(90%); } }
@@ -71,7 +75,6 @@
   .leader-numbers.with-diff { grid-template-columns: 34px 44px; gap: 8px; }
   .leader-diff { font-size: 15px; }
   .leader-score { font-size: 25px; }
-  .leader-meter { left: 84px; right: 8px; }
 }
 
 /* Bare det som 479-blokka over ikke allerede setter. Sto dette først, ble

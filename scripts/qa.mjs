@@ -290,11 +290,12 @@ try {
   ok(tavle === (await toppScore()).trim() && Number(tavle) > 0,
     `statistikk: opptellingen lander på lederens tall (${tavle} mot ${await toppScore()})`)
 
-  // Måleren bak raden animeres mot en inline scaleX. Blir den stående på 0,
-  // er søyla borte uten at noe feiler.
-  const maler = await p.locator('.leader-list .leader-row').first().locator('.leader-meter > span')
-    .evaluate(el => el.getBoundingClientRect().width)
-  ok(maler > 20, `statistikk: lederens måler blir stående, ikke på null (${Math.round(maler)} px)`)
+  // Radene animeres inn forskjøvet. Blir de stående på opacity 0, er lista
+  // borte uten at noe feiler.
+  const synlige = await p.locator('.leader-list .leader-row-content')
+    .evaluateAll(els => els.filter(e => Number(getComputedStyle(e).opacity) > .9).length)
+  ok(synlige === await p.locator('.leader-list .leader-row').count(),
+    `statistikk: alle radene blir stående synlige (${synlige})`)
 
   // Kategoribytte: rangeringen skal regnes om, ikke bare merkes om.
   const seireSum = () => p.locator('.leader-list .leader-score').evaluateAll(els => els.map(e => e.textContent).join(','))
@@ -302,7 +303,9 @@ try {
   await p.locator('.leader-switch button:has-text("Oppmøte")').click()
   await p.waitForTimeout(900)
   ok(await seireSum() !== forSeire, 'statistikk: bytte til oppmøte regner om rangeringen')
-  ok(await p.locator('.leader-list .leader-diff').count() === 0, 'statistikk: +/− hører bare til seire')
+  ok(await p.locator('.leader-list .leader-diff').count() === 0
+    && await p.locator('.leader-list-heading').count() === 0,
+    'statistikk: +/− og kolonnetittelen hører bare til seire')
 
   // Fasit for oppmøtet er databasens egen telling. Rutene og leaderboardet må
   // ende på samme sum, ellers regner klienten oppmøte etter en annen regel
@@ -326,9 +329,10 @@ try {
   await p.reload(); await p.locator('.leader-total strong').waitFor({ timeout: 5000 })
   ok((await p.locator('.leader-total strong').innerText()).trim() === tavle,
     'statistikk: redusert bevegelse viser tallet med en gang')
-  const roligMaler = await p.locator('.leader-list .leader-row').first().locator('.leader-meter > span')
-    .evaluate(el => el.getBoundingClientRect().width)
-  ok(roligMaler > 20, `statistikk: måleren står uten animasjon også (${Math.round(roligMaler)} px)`)
+  const roligSynlige = await p.locator('.leader-list .leader-row-content')
+    .evaluateAll(els => els.filter(e => Number(getComputedStyle(e).opacity) > .9).length)
+  ok(roligSynlige === await p.locator('.leader-list .leader-row').count(),
+    `statistikk: radene står uten animasjon også (${roligSynlige})`)
   await p.emulateMedia({ reducedMotion: 'no-preference' })
   await p.goto(`${APP}/spill/meg`)
   await p.locator('.me-numbers').waitFor({ timeout: 5000 })

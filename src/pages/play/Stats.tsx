@@ -104,7 +104,7 @@ export function Stats() {
 
       {rows.length === 0 && <p className="muted">Ingen økter er gjennomført ennå.</p>}
 
-      {rows.length > 0 && <Leaderboard rows={rows} me={profile?.id} total={held.length} />}
+      {rows.length > 0 && <Leaderboard rows={rows} me={profile?.id} />}
 
       {(held.length > 0 || kamper.length > 0) && <details className="stats-details">
         <summary><span>Mer fra sesongen<small>Kamper, oppmøte og historikk</small></span><span className="stats-details-plus" aria-hidden="true">+</span></summary>
