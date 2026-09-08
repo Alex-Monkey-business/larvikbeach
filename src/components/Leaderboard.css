@@ -16,15 +16,10 @@
 .leader-crown svg { display: block; width: 100%; }
 .leader-winners { display: grid; gap: 22px; margin-block: 18px 22px; }
 .leader-winner { display: flex; align-items: center; gap: 20px; min-width: 0; }
-/* ÉN ring. Før lå ember-ringen 5 px utenfor en blek kremhårstrek som hugget
-   avataren, og to konsentriske ringer så ut som en bom, ikke som en glorie.
-   Ringen ligger nå på kanten og kommer utenfra og inn. */
-.leader-portrait { position: relative; flex-shrink: 0; }
-.leader-portrait::before {
-  content: ''; position: absolute; inset: -1px; z-index: 1;
-  border: 2px solid var(--color-ember); border-radius: 50%;
-  animation: leader-orbit 1300ms var(--leader-ease) both;
-}
+/* Ingen ring. Den ble prøvd i to varianter — 5 px utenfor og på kanten — og
+   begge leste som en bom. Fyllet skiller alt avataren fra flata, og kronen
+   sier «leder». */
+.leader-portrait { flex-shrink: 0; }
 /* Skogsgrønt fyll på skogsgrønn flate er ikke en avatar, det er et hull.
    Lavendel og stein beholder identiteten sin; bare kollisjonen byttes ut. */
 .leader-portrait .avatar.tone-forest { background: var(--color-cream); color: var(--color-forest); }
@@ -43,8 +38,7 @@
 .leader-row-content { position: relative; display: grid; grid-template-columns: 28px 40px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 18px 16px 20px; animation: leader-row-in 650ms var(--leader-ease) both; animation-delay: calc(100ms + var(--row) * 55ms); }
 .leader-is-me { background: color-mix(in srgb, var(--color-forest) 3.5%, transparent); border-radius: 12px; }
 .leader-rank { font: 500 16px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--color-fog); }
-.leader-rank-1 .leader-rank { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-ember); color: var(--color-ink); font-size: 13px; }
-.leader-rank-2 .leader-rank, .leader-rank-3 .leader-rank { color: var(--color-forest); font-weight: 600; }
+.leader-rank-1 .leader-rank { color: var(--color-ember); font-weight: 600; }
 .leader-player { min-width: 0; }
 .leader-player p { font-size: 16px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
 .leader-player > span { display: block; margin-top: 4px; font-size: 12px; color: var(--color-fog); }
@@ -58,7 +52,6 @@
 @keyframes leader-name-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes leader-row-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
 @keyframes leader-crown { from { opacity: 0; transform: translateY(-16px) rotate(-20deg) scale(.6); } 65% { opacity: 1; transform: translateY(2px) rotate(5deg) scale(1.12); } to { opacity: 1; transform: none; } }
-@keyframes leader-orbit { from { opacity: 0; transform: scale(1.45) rotate(-120deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 @keyframes leader-sheen { from { transform: translateX(-90%); } to { transform: translateX(90%); } }
 @media (prefers-reduced-motion: reduce) { .leaderboard *, .leaderboard *::before, .leaderboard *::after { animation: none !important; transition: none !important; } }
 
