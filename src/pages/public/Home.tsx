@@ -21,6 +21,7 @@ export function Home() {
         </div>
       </div>
       <Link to="/personvern" className="hero-fin">Personvern</Link>
+      <p className="hero-made">Made by <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">alexmonkeyBusiness</a></p>
     </section>
   )
 }

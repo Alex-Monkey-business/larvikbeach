@@ -157,6 +157,7 @@ export function Login() {
       </div>
       {/* Ikke en blindvei: den som trykket feil finner veien videre. */}
       <p className="hero-fin"><Link to="/bli-med">Bli med</Link> · <Link to="/personvern">Personvern</Link></p>
+      <p className="hero-made">Made by <a href="https://alexmonkeybusiness.com" target="_blank" rel="noreferrer">alexmonkeyBusiness</a></p>
     </section>
   )
 }

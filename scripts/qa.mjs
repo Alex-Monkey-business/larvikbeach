@@ -49,6 +49,12 @@ async function login(page, email, gransk = false) {
     ok(valg.join(' | ') === 'Fortsett med Google | Annen e-post', `logg-inn: to valg, Google og koden bak en lenke (${valg.join(' | ')})`)
     const fin = await page.locator('.hero-fin a').allInnerTexts()
     ok(fin.join(', ') === 'Bli med, Personvern', `logg-inn: bunnlinja er to stille lenker (${fin.join(', ')})`)
+    // Kreditten står på begge landingsskjermene og peker ut av appen.
+    const kreditt = page.locator('.hero-made a')
+    ok(await kreditt.getAttribute('href') === 'https://alexmonkeybusiness.com'
+      && await kreditt.getAttribute('target') === '_blank'
+      && (await kreditt.innerText()).trim() === 'alexmonkeyBusiness',
+      `logg-inn: kreditten peker på alexmonkeybusiness.com i ny fane (${await kreditt.getAttribute('href')})`)
   }
   // Koden er reserven: feltet må hentes fram.
   await page.locator('button:has-text("Annen e-post")').click()
@@ -110,7 +116,8 @@ try {
   await p.goto(APP); await shot(p, 'm-hjem')
   ok(await p.locator('h1').textContent().then(t => t.includes('Larvik Beach Volley')), 'hjem: tittel')
   const forsideLenker = await p.locator('main a').evaluateAll(a => a.map(x => x.getAttribute('href')))
-  ok(forsideLenker.join() === '/bli-med,/logg-inn,/personvern', `hjem: bare Bli med, Logg inn og Personvern (${forsideLenker.join(', ')})`)
+  ok(forsideLenker.join() === '/bli-med,/logg-inn,/personvern,https://alexmonkeybusiness.com',
+    `hjem: bare Bli med, Logg inn, Personvern og kreditten (${forsideLenker.join(', ')})`)
   ok(await p.locator('main .logo-volley').count() === 1, 'hjem: ballen ligger i navnetrekket')
   await p.waitForTimeout(2000)
   ok(await p.locator('.logo-volley-tip').count() === 1, 'hjem: hintet kommer etter et par sekunder')
