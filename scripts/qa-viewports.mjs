@@ -50,6 +50,8 @@ try {
   const boot = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const bp = await boot.newPage()
   await bp.goto(`${APP}/logg-inn`)
+  await bp.locator('button:has-text("Annen e-post")').click()
+  await bp.waitForSelector('input[type=email]')
   await bp.fill('input[type=email]', ADMIN); await bp.click('button:has-text("Send kode")')
   await bp.waitForSelector('input[autocomplete=one-time-code]')
   // Seks siffer sender seg selv; det er ingen knapp å trykke etterpå.

@@ -40,10 +40,23 @@ async function latestCode(to) {
 async function login(page, email, gransk = false) {
   await page.goto(`${APP}/logg-inn`)
   if (gransk) {
+    // Skjermen har én handling. Alt annet — meny, bunntekst, ingress — er borte,
+    // og koden ligger bak en lenke til noen ber om den.
+    ok(await page.locator('.nav-wrap').count() === 0, 'logg-inn: ingen meny')
+    ok(await page.locator('footer').count() === 0, 'logg-inn: ingen bunntekst')
+    ok(await page.locator('input[type=email]').count() === 0, 'logg-inn: e-postfeltet ligger bak «Annen e-post»')
+    const valg = (await page.locator('.login-copy button:visible').allInnerTexts()).map(t => t.trim())
+    ok(valg.join(' | ') === 'Fortsett med Google | Annen e-post', `logg-inn: to valg, Google og koden bak en lenke (${valg.join(' | ')})`)
+    const fin = await page.locator('.hero-fin a').allInnerTexts()
+    ok(fin.join(', ') === 'Bli med, Personvern', `logg-inn: bunnlinja er to stille lenker (${fin.join(', ')})`)
+  }
+  // Koden er reserven: feltet må hentes fram.
+  await page.locator('button:has-text("Annen e-post")').click()
+  await page.waitForSelector('input[type=email]')
+  if (gransk) {
     const google = await page.locator('button:has-text("Fortsett med Google")').boundingBox()
     const kode = await page.locator('button:has-text("Send kode")').boundingBox()
     ok(google.height > kode.height, `logg-inn: Google-knappen er størst (${Math.round(google.height)} mot ${Math.round(kode.height)} px)`)
-    ok(await page.locator('.nav-wrap .btn-primary').count() === 0, 'logg-inn: ingen lilla «Logg inn» i toppen når du alt står der')
   }
   await page.fill('input[type=email]', email)
   await page.click('button:has-text("Send kode")')
@@ -103,10 +116,11 @@ try {
   ok(await p.locator('.logo-volley-tip').count() === 1, 'hjem: hintet kommer etter et par sekunder')
   // Pynten skal ikke stå foran hovedhandlingen i tabrekkefølgen.
   await p.goto(`${APP}/logg-inn`)
+  // Ballen er pynt her og skal ikke ligge i tastaturveien til Google.
   const tab = []
-  for (let i = 0; i < 6; i++) { await p.keyboard.press('Tab'); tab.push(await p.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent?.trim() ?? '')) }
-  const google = tab.findIndex(t => t.includes('Google'))
-  ok(google >= 0 && !tab.slice(0, google).some(t => t.includes('volleyball')), `logg-inn: ballen står ikke foran Google i tabrekkefølgen (${tab.join(' → ')})`)
+  for (let i = 0; i < 5; i++) { await p.keyboard.press('Tab'); tab.push(await p.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? '')) }
+  ok(!tab.some(t => t.includes('volleyball')), `logg-inn: ballen ligger ikke i tabrekkefølgen (${tab.filter(Boolean).join(' → ') || 'ingen aria-label truffet'})`)
+  ok(await p.locator('.logo-volley[aria-hidden="true"][tabindex="-1"]').count() === 1, 'logg-inn: ballen er pynt, ikke en kontroll')
   await p.goto(`${APP}/om-oss`); await shot(p, 'm-om-oss')
   await p.goto(`${APP}/bli-med`)
   await p.fill('input[autocomplete=name]', 'Test Testesen')
@@ -360,6 +374,8 @@ try {
 
   // Uinvitert logger inn med kode: bruker opprettes, men ingen tilgang
   await p.goto(`${APP}/logg-inn`)
+  await p.locator('button:has-text("Annen e-post")').click()
+  await p.waitForSelector('input[type=email]')
   await p.fill('input[type=email]', 'sniker@example.com')
   await p.click('button:has-text("Send kode")')
   await p.waitForSelector('input[autocomplete=one-time-code]')

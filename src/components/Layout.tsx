@@ -7,7 +7,10 @@ export function Layout() {
   const { session } = useAuth()
   // Appen har fanelinje nederst og skal være støyfri. Bunnteksten hører til
   // de åpne sidene, der personvernlenka også må være for Google.
-  const landing = pathname === '/' && !session
+  // Forsiden og innloggingen er hele skjermer: ingen meny, ingen bunntekst.
+  // «Ikke tilgang ennå» rendres av samme rute med session satt, og der SKAL
+  // menyen stå — ellers er man låst inne.
+  const landing = (pathname === '/' || pathname === '/logg-inn') && !session
   const showFooter = !landing && !pathname.startsWith('/spill') && !pathname.startsWith('/admin')
   return (
     <>

@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { Notice } from '../../components/Notice'
 import { LogoVolley } from '../../components/LogoVolley'
 import './Login.css'
+import './Home.css'
 
 // Microsoft krever en Entra-leier (Azure-konto) for appregistreringen. Parkert
 // 7. sep 2026; Outlook/Hotmail-folk bruker koden. Slå på når leverandøren er
@@ -19,6 +20,8 @@ export function Login() {
   const [code, setCode] = useState('')
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [sent, setSent] = useState(0)
+  // Koden er reserven: feltet ligger bak en lenke til noen ber om det.
+  const [kode, setKode] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const codeRef = useRef<HTMLInputElement>(null)
@@ -93,59 +96,60 @@ export function Login() {
   }
 
   return (
-    <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 480 }}>
-      <div className="login-heading">
-        <h1 className="h1">Logg inn</h1>
-        <div className="login-art"><LogoVolley /></div>
-      </div>
-      {step === 'email' && <p className="lede">Bruk kontoen du har. Ingen passord å huske.</p>}
+    <section className="home hero">
+      <div className="hero-content">
+        <div className="hero-art"><LogoVolley /></div>
+        <div className="hero-copy login-copy">
+          {/* Skjermen har én handling, så en stor «Logg inn»-tittel er bare
+              støy. Overskriften finnes for skjermlesere og søk. */}
+          <h1 className="visually-hidden">Logg inn</h1>
 
-      {step === 'email' && (
-        <div className="stack">
-          <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
-            <GoogleMark /> {busy === 'google' ? 'Åpner Google…' : 'Fortsett med Google'}
-          </button>
-          {MICROSOFT_ENABLED && (
-            <>
-              <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
-                <MicrosoftMark /> Fortsett med Microsoft
+          {step === 'email' ? (
+            <div className="stack">
+              <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('google')}>
+                <GoogleMark /> {busy === 'google' ? 'Åpner Google…' : 'Fortsett med Google'}
               </button>
-              <p className="caption" style={{ textAlign: 'center' }}>Microsoft dekker Outlook, Hotmail og jobbkontoer.</p>
-            </>
+              {MICROSOFT_ENABLED && (
+                <button type="button" className="btn btn-block btn-provider" disabled={busy !== null} onClick={() => void oauth('azure')}>
+                  <MicrosoftMark /> Fortsett med Microsoft
+                </button>
+              )}
+              {kode ? (
+                <form className="stack" onSubmit={sendCode}>
+                  <label className="field">
+                    <span className="label">E-post</span>
+                    <input className="input" type="email" required autoFocus autoComplete="email" inputMode="email"
+                      value={email} onChange={e => setEmail(e.target.value)} />
+                  </label>
+                  <button className="btn btn-block" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
+                </form>
+              ) : (
+                <button type="button" className="lenke login-annen" onClick={() => setKode(true)}>Annen e-post</button>
+              )}
+              {error && <Notice>{error}</Notice>}
+            </div>
+          ) : (
+            <form className="stack" onSubmit={verify}>
+              <p key={sent} className="caption">Kode sendt til <strong>{email}</strong>. Den varer i 10 minutter.</p>
+              <label className="field">
+                <span className="visually-hidden">Sekssifret kode</span>
+                <input ref={codeRef} className="input code-input" inputMode="numeric" autoComplete="one-time-code"
+                  pattern="[0-9]*" required placeholder="000000" aria-label="Sekssifret kode"
+                  value={code} onChange={e => onCode(e.target.value)} />
+              </label>
+              {error && <Notice>{error}</Notice>}
+              <button className="btn btn-primary btn-block" disabled={busy !== null || code.length < 6}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
+              <div className="row" style={{ justifyContent: 'center' }}>
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => void resend()}>{busy === 'code' ? 'Sender…' : 'Send ny kode'}</button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setStep('email'); setCode(''); setError(null) }}>Annen e-post</button>
+              </div>
+            </form>
           )}
         </div>
-      )}
-
-      {step === 'email' ? (
-        <form className="card stack" onSubmit={sendCode}>
-          <p><strong>Annen e-post?</strong> Få en sekssifret kode.</p>
-          <label className="field">
-            <span className="label">E-post</span>
-            <input className="input" type="email" required autoComplete="email" inputMode="email"
-              value={email} onChange={e => setEmail(e.target.value)} />
-          </label>
-          {error && <Notice>{error}</Notice>}
-          <button className="btn" disabled={busy !== null}>{busy === 'code' ? 'Sender…' : 'Send kode'}</button>
-          <p className="caption">Ikke med ennå? <Link to="/bli-med">Bli med</Link></p>
-        </form>
-      ) : (
-        <form className="card stack" onSubmit={verify}>
-          <p key={sent}>Koden er sendt til <strong>{email}</strong>. Den varer i 10 minutter.</p>
-          <label className="field">
-            <span className="label">Sekssifret kode</span>
-            <input ref={codeRef} className="input code-input" inputMode="numeric" autoComplete="one-time-code"
-              pattern="[0-9]*" required placeholder="000000"
-              value={code} onChange={e => onCode(e.target.value)} />
-          </label>
-          {error && <Notice>{error}</Notice>}
-          <button className="btn btn-primary" disabled={busy !== null || code.length < 6}>{busy === 'verify' ? 'Sjekker…' : 'Logg inn'}</button>
-          <div className="row">
-            <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => void resend()}>{busy === 'code' ? 'Sender…' : 'Send ny kode'}</button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setStep('email'); setCode(''); setError(null) }}>Annen e-post</button>
-          </div>
-        </form>
-      )}
-    </div>
+      </div>
+      {/* Ikke en blindvei: den som trykket feil finner veien videre. */}
+      <p className="hero-fin"><Link to="/bli-med">Bli med</Link> · <Link to="/personvern">Personvern</Link></p>
+    </section>
   )
 }
 
