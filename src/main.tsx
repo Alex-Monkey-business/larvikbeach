@@ -5,6 +5,11 @@ import './styles/tokens.css'
 import './styles/base.css'
 import { AuthProvider } from './auth/AuthProvider'
 import { App } from './App'
+import { startSporing } from './lib/sporing'
+
+// Sidevisninger og klientfeil til den felles telemetri-tabellen. Larvik Beach
+// har ingen egen client_errors, så feilene går dit også.
+startSporing({ prosjekt: 'larvikbeach', feil: true })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
