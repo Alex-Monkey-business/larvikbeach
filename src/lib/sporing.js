@@ -38,6 +38,33 @@ function erLokalt() {
   }
 }
 
+// Egne besøk skal ikke telles. Beaconen har ingen varig identifikator og kan
+// derfor ikke gjenkjenne noen — men den kan huske en BESKJED om å la være.
+// Nøkkelen lagrer «ikke tell meg», ikke hvem du er, og det er hele forskjellen:
+// den kan ikke brukes til å knytte to besøk sammen.
+//
+// Slås av med ?sporing=av på nettstedet, på igjen med ?sporing=på. Per
+// nettleser og per nettsted, siden localStorage er bundet til opphavet — så
+// det må gjøres én gang på hver enhet du bruker.
+const AVMELDING = 'sporing-av'
+
+function lesAvmelding() {
+  try {
+    const valg = new URLSearchParams(location.search).get('sporing')
+    if (valg === 'av') {
+      localStorage.setItem(AVMELDING, '1')
+      console.info('Sporing av for denne nettleseren.')
+    } else if (valg === 'på' || valg === 'pa') {
+      localStorage.removeItem(AVMELDING)
+      console.info('Sporing på igjen for denne nettleseren.')
+    }
+    return localStorage.getItem(AVMELDING) === '1'
+  } catch {
+    // Privat modus eller blokkert lagring: da teller vi, som før.
+    return false
+  }
+}
+
 const MAKS_FEIL_PER_ØKT = 20
 const sette = new Set()
 let prosjekt = null
@@ -213,6 +240,7 @@ export function startSporing(valg = {}) {
   try {
     if (prosjekt) return // dobbel montering skal ikke gi doble rader
     if (erLokalt() && !window.__sporingLokalt) return
+    if (lesAvmelding()) return
     prosjekt = valg.prosjekt
     sporFeil = valg.feil === true
     if (!prosjekt) return
