@@ -63,6 +63,23 @@ function grovtØktpreg() {
   }
 }
 
+// Kjører siden som installert app eller i nettleser? Android og desktop
+// svarer på display-mode; iOS Safari gjør ikke det, og bruker sin egen
+// navigator.standalone. Begge må sjekkes, ellers ser iOS-brukere ut som
+// nettleserbrukere.
+function visningsmodus() {
+  try {
+    const somApp =
+      window.navigator.standalone === true ||
+      ['standalone', 'fullscreen', 'minimal-ui'].some(
+        (m) => window.matchMedia(`(display-mode: ${m})`).matches
+      )
+    return somApp ? 'app' : 'nettleser'
+  } catch {
+    return null
+  }
+}
+
 function enhet() {
   try {
     const b = window.innerWidth
@@ -124,6 +141,7 @@ function visning() {
       referrer_host: henviser(),
       session_hash: øktHash,
       device: enhet(),
+      visning: visningsmodus(),
     })
   } catch {}
 }

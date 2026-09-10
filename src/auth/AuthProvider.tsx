@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Provider, Session } from '@supabase/auth-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
+import { meldPwa } from '../lib/pwa'
 
 interface AuthState {
   session: Session | null
@@ -41,6 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // og tolker det som inaktiv i det korte mellomrommet.
     setReady(false)
     await loadProfile(uid ?? undefined)
+    // Ikke await: telemetri skal aldri forsinke at flaten blir klar.
+    if (uid) void meldPwa()
     setReady(true)
   }, [loadProfile])
 

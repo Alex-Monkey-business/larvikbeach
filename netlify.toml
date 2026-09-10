@@ -18,6 +18,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Netlify gjetter application/octet-stream på .webmanifest. Installasjon
+# virker i dag likevel, men typen er feil og noen nettlesere er strengere.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json; charset=utf-8"
+
 [[headers]]
   for = "/fonts/*"
   [headers.values]
