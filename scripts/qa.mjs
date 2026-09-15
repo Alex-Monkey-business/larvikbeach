@@ -509,6 +509,11 @@ try {
   ok(await gjester.locator('li:has-text("Gjest Gjestesen")').count() === 0, 'betaling: betalt gjest er ute av krevelista')
   ok(!(await p.locator('section.card-dark').innerText()).includes('Simen'), 'betaling: «Be om penger» er medlemmenes runde, uten gjester')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
+  const olaKrav = p.locator('section.card-dark li:has-text("Ola Nordmann")')
+  ok(await olaKrav.count() === 1 && (await olaKrav.innerText()).includes('480 00 001'), 'betaling: medlemmet står med eget krav og nummer')
+  await olaKrav.locator('button:has-text("Vipps")').click()
+  await olaKrav.locator('span.badge:text-is("Sendt")').waitFor({ timeout: 5000 })
+  ok(await p.evaluate(() => navigator.clipboard.readText()) === '48000001', 'betaling: Vipps-knappen for medlem kopierer nummeret')
   // E-postbryteren er av i prod: da må teksten slutte å love e-post, og
   // «Bare lag, ikke send» er meningsløs når ingenting sendes.
   ok(await p.locator('text=du deler påminnelsen selv').count() === 1, 'admin: teksten lover ikke e-post når bryteren er av')

@@ -45,7 +45,6 @@ export function AdminBilling() {
 
   const toCollect = memberInvoices.filter(i => i.status === 'open' || i.status === 'notified')
   const claimed = memberInvoices.filter(i => i.status === 'claimed')
-  const byAmount = groupByAmount(toCollect, profiles)
   const periods = [...new Set(listed.map(i => i.period))].sort().reverse()
 
   return (
@@ -70,16 +69,12 @@ export function AdminBilling() {
                     {p?.phone && <span className="caption">{prettyPhone(p.phone)}</span>}
                   </div>
                   <div className="row" style={{ flexWrap: 'nowrap' }}>
-                    {p?.phone && (
-                      <button type="button" className="btn btn-primary btn-sm vipps-btn" disabled={busy === i.id}
-                        onClick={() => void run(i.id, async () => {
-                          const copied = await openVipps(p.phone!)
-                          if (i.status === 'open') await api.setInvoiceStatus(i.id, 'notified')
-                          return copied ? `${prettyPhone(p.phone)} er kopiert. Lim inn i Vipps og be om ${kr(i.amount)}.` : `Be om ${kr(i.amount)} fra ${prettyPhone(p.phone)} i Vipps.`
-                        })}>
-                        Vipps
-                      </button>
-                    )}
+                    {p?.phone && <VippsButton phone={p.phone} amount={i.amount} busy={busy === i.id}
+                      onClick={() => void run(i.id, async () => {
+                        const copied = await openVipps(p.phone!)
+                        if (i.status === 'open') await api.setInvoiceStatus(i.id, 'notified')
+                        return copied ? `${prettyPhone(p.phone)} er kopiert. Lim inn i Vipps og be om ${kr(i.amount)}.` : `Be om ${kr(i.amount)} fra ${prettyPhone(p.phone)} i Vipps.`
+                      })} />}
                     <button type="button" className="btn btn-sm" disabled={busy === i.id} onClick={() => void run(i.id, () => api.setInvoiceStatus(i.id, 'confirmed'))}>Betalt</button>
                   </div>
                 </li>
@@ -119,17 +114,29 @@ export function AdminBilling() {
         </section>
       )}
 
-      {byAmount.length > 0 && (
+      {toCollect.length > 0 && (
         <section className="card card-dark on-dark stack">
-          <h2 className="h3">Be om penger i Vipps</h2>
-          <p className="muted">Vipps tar samme beløp til flere på én gang. Én runde per beløp:</p>
+          <h2 className="h3">Be om penger i Vipps <span className="muted">{toCollect.length}</span></h2>
+          <p className="muted">«Vipps» kopierer nummeret og åpner appen: lim inn, skriv beløpet, be om penger.</p>
           <ul className="list">
-            {byAmount.map(g => (
-              <li key={g.amount} className="stack" style={{ gap: 4 }}>
-                <p className="h3">{kr(g.amount)}</p>
-                <p>{g.names.join(', ')}</p>
-              </li>
-            ))}
+            {[...toCollect].sort((a, b) => b.amount - a.amount || name(a.profile_id).localeCompare(name(b.profile_id), 'nb')).map(i => {
+              const p = profiles.find(x => x.id === i.profile_id)
+              return (
+                <li key={i.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
+                  <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+                    <span style={{ fontWeight: 500 }}>{p?.name ?? '?'}</span>
+                    <span className="row"><span className="muted">{kr(i.amount)}</span><InvoiceBadge status={i.status} /></span>
+                    <span className="caption">{p?.phone ? prettyPhone(p.phone) : 'Mangler telefonnummer'}</span>
+                  </div>
+                  {p?.phone && <VippsButton phone={p.phone} amount={i.amount} busy={busy === i.id}
+                    onClick={() => void run(i.id, async () => {
+                      const copied = await openVipps(p.phone!)
+                      if (i.status === 'open') await api.setInvoiceStatus(i.id, 'notified')
+                      return copied ? `${prettyPhone(p.phone)} er kopiert. Lim inn i Vipps og be om ${kr(i.amount)}.` : `Be om ${kr(i.amount)} fra ${prettyPhone(p.phone)} i Vipps.`
+                    })} />}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -211,11 +218,7 @@ function prevPeriod(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function groupByAmount(invoices: Invoice[], profiles: Profile[]) {
-  const m = new Map<number, string[]>()
-  for (const i of invoices) {
-    const n = profiles.find(p => p.id === i.profile_id)?.name ?? '?'
-    m.set(i.amount, [...(m.get(i.amount) ?? []), n])
-  }
-  return [...m.entries()].map(([amount, names]) => ({ amount, names: names.sort() })).sort((a, b) => b.amount - a.amount)
+/** Én knapp for alle krav: nummeret på utklippstavla, Vipps åpnes, regningen merkes som sendt. */
+function VippsButton({ busy, onClick }: { phone: string; amount: number; busy: boolean; onClick: () => void }) {
+  return <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={onClick}>Vipps</button>
 }
