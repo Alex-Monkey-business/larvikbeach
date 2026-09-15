@@ -76,7 +76,7 @@ export function AdminSession() {
         </ul>
         {/* Gjesten som var med men ikke ble registrert. På en spilt økt får
             hen plass, og andelene regnes om. */}
-        {!invoiced && session.status !== 'cancelled' && <GuestForm sessionId={id} people={alle} onDone={q.reload} />}
+        {!invoiced && session.status !== 'cancelled' && <GuestForm sessionId={id} people={alle} present={going} onDone={q.reload} />}
       </section>
 
       {session.status === 'planned' && (

@@ -9,7 +9,7 @@ import { Notice } from './Notice'
  * alt og gjesten legges til med ett trykk. Er nummeret et medlems, sier
  * skjemaet det i stedet for å lage en dobbeltperson.
  */
-export function GuestForm({ sessionId, people, onDone }: { sessionId: string; people: Profile[]; onDone: () => Promise<unknown> }) {
+export function GuestForm({ sessionId, people, present, onDone }: { sessionId: string; people: Profile[]; present: Set<string>; onDone: () => Promise<unknown> }) {
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
@@ -21,8 +21,18 @@ export function GuestForm({ sessionId, people, onDone }: { sessionId: string; pe
   const member = known && known.role !== 'guest' ? known : undefined
   const guest = known && known.role === 'guest' ? known : undefined
   const complete = !!key && key.length >= 8 && !member && (!!guest || name.trim().length >= 2)
+  // Gjester som har vært med før og ikke alt står på økta: ett trykk.
+  const previous = people.filter(p => p.role === 'guest' && p.phone && !present.has(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
 
   function close() { setOpen(false); setPhone(''); setName(''); setError(null) }
+
+  async function pick(g: Profile) {
+    setBusy(true); setError(null)
+    try { await api.addGuest(sessionId, g.phone!); await onDone(); close() }
+    catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt') }
+    finally { setBusy(false) }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -37,9 +47,17 @@ export function GuestForm({ sessionId, people, onDone }: { sessionId: string; pe
   return (
     <form className="card stack guest-form" onSubmit={submit}>
       <h2 className="h3">Gjest</h2>
+      {previous.length > 0 && (
+        <div className="row guest-previous">
+          {previous.map(g => (
+            <button key={g.id} type="button" className="btn btn-sm" disabled={busy} onClick={() => void pick(g)}>{g.name}</button>
+          ))}
+        </div>
+      )}
       <label className="field">
-        <span className="label">Telefon</span>
-        <input className="input" type="tel" autoComplete="off" inputMode="tel" autoFocus required
+        <span className="label">{previous.length > 0 ? 'Eller en ny: telefon' : 'Telefon'}</span>
+        {/* Tastaturet skal ikke sprette opp over knappene når valget står der. */}
+        <input className="input" type="tel" autoComplete="off" inputMode="tel" autoFocus={previous.length === 0} required
           value={phone} onChange={e => setPhone(e.target.value)} />
       </label>
       {member && <p className="muted">{member.name.split(' ')[0]} er medlem og melder seg på selv.</p>}

@@ -76,7 +76,7 @@ export function SessionPage() {
               <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
             </div>
           )}
-          <GuestForm sessionId={id} people={people.data} onDone={() => Promise.all([s.reload(), people.reload()])} />
+          <GuestForm sessionId={id} people={people.data} present={new Set(queue.map(p => p.id))} onDone={() => Promise.all([s.reload(), people.reload()])} />
         </div>
       )}
       {notYet && <p className="muted">Påmeldingen åpner {shortDate(signupOpensAt(session.starts_at, windowDays).toISOString())}, {windowDays} dager før økta.</p>}
