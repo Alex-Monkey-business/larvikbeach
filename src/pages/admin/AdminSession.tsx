@@ -16,7 +16,9 @@ export function AdminSession() {
   const q = useQuery(async () => {
     const session = await api.session(id)
     const [attendance, profiles, charges] = await Promise.all([api.attendance([id]), api.profiles(), api.charges({ sessionId: id })])
-    return { session, attendance, profiles: profiles.filter(p => p.active), charges }
+    // Medlemmene alltid; gjester bare når de er med på akkurat denne økta.
+    const med = new Set(attendance.filter(a => a.going).map(a => a.profile_id))
+    return { session, attendance, profiles: profiles.filter(p => p.role === 'guest' ? med.has(p.id) : p.active), charges }
   }, [id])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -60,7 +62,7 @@ export function AdminSession() {
             }
             return (
               <li key={p.id} className="row between">
-                <span>{p.name}{!answered.has(p.id) && <span className="caption"> · ikke svart</span>}{isGoing && cap && spotOf(p.id) > cap && <span className="caption"> · venteliste {spotOf(p.id) - cap}</span>}</span>
+                <span>{p.name}{p.role === 'guest' && <span className="caption"> · gjest</span>}{!answered.has(p.id) && <span className="caption"> · ikke svart</span>}{isGoing && cap && spotOf(p.id) > cap && <span className="caption"> · venteliste {spotOf(p.id) - cap}</span>}</span>
                 {invoiced
                   ? <span className={`badge ${svar.plass ? 'badge-forest' : svar.kø ? 'badge-stone' : 'badge-outline muted'}`}>{svar.tekst}</span>
                   : <button type="button" className={`btn btn-sm ${svar.plass ? 'btn-forest' : svar.kø ? 'btn-dark' : ''}`} disabled={busy === p.id}

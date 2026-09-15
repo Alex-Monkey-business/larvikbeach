@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { kr } from '../../lib/money'
-import { periodLabel } from '../../lib/format'
+import { periodLabel, shortDate } from '../../lib/format'
+import { openVipps, prettyPhone } from '../../lib/phone'
 import { Notice } from '../../components/Notice'
 import { InvoiceBadge } from '../../components/InvoiceBadge'
 import { ShareButton } from '../../components/Share'
@@ -11,7 +12,9 @@ import type { Invoice, Profile, Settings } from '../../lib/types'
 export function AdminBilling() {
   const q = useQuery(async () => {
     const [invoices, profiles, balances, settings] = await Promise.all([api.invoices(), api.profiles(), api.balances(), api.settings()])
-    return { invoices, profiles, balances, settings }
+    // Gjesteregningene gjelder én økt hver; datoen er det gjesten kjenner dem på.
+    const sessions = await api.sessionsById([...new Set(invoices.map(i => i.session_id).filter(Boolean) as string[])])
+    return { invoices, profiles, balances, settings, sessions }
   }, [])
   const [error, setError] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -26,23 +29,65 @@ export function AdminBilling() {
 
   if (q.error) return <Notice>{q.error}</Notice>
   if (!q.data) return null
-  const { invoices, profiles, balances, settings } = q.data
+  const { invoices, profiles, balances, settings, sessions } = q.data
   const name = (id: string) => profiles.find(p => p.id === id)?.name ?? '?'
+  const isGuest = (i: Invoice) => i.session_id != null
+  // Gjestene kreves inn én og én, med SMS, og hører ikke i medlemslistene.
+  const guestOpen = invoices.filter(i => isGuest(i) && (i.status === 'open' || i.status === 'notified'))
+  const memberInvoices = invoices.filter(i => !isGuest(i))
+  // Månedslistene: medlemmene, pluss gjesteregninger som er gjort opp. En
+  // ubetalt gjesteregning står bare i «Gjester», ikke to steder.
+  const listed = invoices.filter(i => !guestOpen.includes(i))
   const uninvoiced = balances.reduce((s, b) => s + b.uninvoiced, 0)
   const lastMonth = prevPeriod()
   // Bryteren i innstillingene styrer hele språket her: lover vi e-post eller ikke?
   const sender = settings.email_invoices
 
-  const toCollect = invoices.filter(i => i.status === 'open' || i.status === 'notified')
-  const claimed = invoices.filter(i => i.status === 'claimed')
+  const toCollect = memberInvoices.filter(i => i.status === 'open' || i.status === 'notified')
+  const claimed = memberInvoices.filter(i => i.status === 'claimed')
   const byAmount = groupByAmount(toCollect, profiles)
-  const periods = [...new Set(invoices.map(i => i.period))].sort().reverse()
+  const periods = [...new Set(listed.map(i => i.period))].sort().reverse()
 
   return (
     <div className="stack-lg" style={{ maxWidth: 800 }}>
       <h1 className="h2">Betaling</h1>
       {error && <Notice>{error}</Notice>}
       {msg && <Notice kind="ok">{msg}</Notice>}
+
+      {guestOpen.length > 0 && (
+        <section className="card stack">
+          <h2 className="h3">Gjester <span className="muted">{guestOpen.length}</span></h2>
+          <p className="muted">Én økt, én regning. «Vipps» kopierer nummeret og åpner appen: lim inn, skriv beløpet, be om penger.</p>
+          <ul className="list">
+            {guestOpen.map(i => {
+              const p = profiles.find(x => x.id === i.profile_id)
+              const s = sessions.find(x => x.id === i.session_id)
+              return (
+                <li key={i.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
+                  <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+                    <span style={{ fontWeight: 500 }}>{p?.name ?? '?'}</span>
+                    <span className="row"><span className="muted">{kr(i.amount)}{s ? ` · ${shortDate(s.starts_at)}` : ''}</span><InvoiceBadge status={i.status} /></span>
+                    {p?.phone && <span className="caption">{prettyPhone(p.phone)}</span>}
+                  </div>
+                  <div className="row" style={{ flexWrap: 'nowrap' }}>
+                    {p?.phone && (
+                      <button type="button" className="btn btn-primary btn-sm vipps-btn" disabled={busy === i.id}
+                        onClick={() => void run(i.id, async () => {
+                          const copied = await openVipps(p.phone!)
+                          if (i.status === 'open') await api.setInvoiceStatus(i.id, 'notified')
+                          return copied ? `${prettyPhone(p.phone)} er kopiert. Lim inn i Vipps og be om ${kr(i.amount)}.` : `Be om ${kr(i.amount)} fra ${prettyPhone(p.phone)} i Vipps.`
+                        })}>
+                        Vipps
+                      </button>
+                    )}
+                    <button type="button" className="btn btn-sm" disabled={busy === i.id} onClick={() => void run(i.id, () => api.setInvoiceStatus(i.id, 'confirmed'))}>Betalt</button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="card stack">
         <h2 className="h3">Månedsregning</h2>
@@ -105,7 +150,7 @@ export function AdminBilling() {
       )}
 
       {periods.map(p => {
-        const rows = invoices.filter(i => i.period === p)
+        const rows = listed.filter(i => i.period === p)
         return (
           <section key={p} className="card stack">
             <div className="row between">
@@ -118,7 +163,7 @@ export function AdminBilling() {
               {rows.sort((a, b) => name(a.profile_id).localeCompare(name(b.profile_id))).map(i => (
                 <li key={i.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
                   <div className="stack" style={{ gap: 4, minWidth: 0 }}>
-                    <span style={{ fontWeight: 500 }}>{name(i.profile_id)}</span>
+                    <span style={{ fontWeight: 500 }}>{name(i.profile_id)}{isGuest(i) && <span className="caption"> · gjest</span>}</span>
                     <span className="row"><span className="muted">{kr(i.amount)}</span><InvoiceBadge status={i.status} /></span>
                   </div>
                   <div className="row" style={{ flexWrap: 'nowrap' }}>

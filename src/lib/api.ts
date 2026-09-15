@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrap } from './useQuery'
-import type { Attendance, Balance, Charge, Invite, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, SessionTeam, Settings } from './types'
+import type { Attendance, Balance, Charge, Invite, InviteRole, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, SessionTeam, Settings } from './types'
 
 // Alle skriv som kan filtreres bort av RLS har .select(): en update som
 // treffer null rader gir ellers «ok» uten feil.
@@ -32,6 +32,8 @@ export const api = {
     return unwrap<Session[]>(await q)
   },
   session: async (id: string) => unwrap<Session>(await supabase.from('sessions').select('*').eq('id', id).single()),
+  sessionsById: async (ids: string[]) =>
+    ids.length ? unwrap<Session[]>(await supabase.from('sessions').select('*').in('id', ids)) : [],
   saveSession: async (s: Partial<Session> & { id?: string }) => {
     const { id, ...rest } = s
     if (id) return unwrap<Session>(await supabase.from('sessions').update(rest).eq('id', id).select().single())
@@ -50,6 +52,10 @@ export const api = {
     unwrap<Attendance>(await supabase.rpc('set_attendance', {
       p_session: sessionId, p_going: going, ...(profileId ? { p_profile: profileId } : {}),
     })),
+
+  // Et medlem tar med en gjest. Nummeret er nøkkelen; navnet trengs bare første gang.
+  addGuest: async (sessionId: string, phone: string, name?: string) =>
+    unwrap<Profile>(await supabase.rpc('add_guest', { p_session: sessionId, p_phone: phone, ...(name ? { p_name: name } : {}) })),
 
   charges: async (filter: { sessionId?: string; profileId?: string } = {}) => {
     let q = supabase.from('charges').select('*')
@@ -110,7 +116,7 @@ export const api = {
   deleteInvite: async (email: string) => unwrap<Invite[]>(await supabase.from('invites').delete().eq('email', email).select()),
 
   // Edge Functions. service_role bor der, aldri i klienten.
-  inviteMember: async (body: { name: string; email: string; phone?: string; role?: 'admin' | 'player'; join_request_id?: string }) => {
+  inviteMember: async (body: { name: string; email: string; phone?: string; role?: InviteRole; join_request_id?: string }) => {
     const { data, error } = await supabase.functions.invoke('invite-member', { body })
     if (error) throw new Error(await edgeError(error))
     return data as { email: string; activated: boolean; mail: { sent: boolean; error?: string } }

@@ -1,10 +1,13 @@
 -- Lokal testdata. Kjøres av `supabase db reset`. ALDRI mot prod.
 -- Alex er admin, 12 spillere, vintersesong, seks økter med ulikt oppmøte.
 
-create or replace function pg_temp.mk_user(p_email text, p_name text, p_role text default 'player')
+create or replace function pg_temp.mk_user(p_email text, p_name text, p_role text default 'player', p_phone text default null)
 returns uuid language plpgsql as $$
 declare uid uuid := gen_random_uuid();
 begin
+  -- Samme vei som i virkeligheten: invitasjonen først, så aktiverer triggeren.
+  -- (app_metadata.invited leses ikke lenger, siden 7. sep.)
+  insert into public.invites (email, name, role, phone) values (p_email, p_name, p_role, p_phone);
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token,
     email_change_token_new, email_change)
@@ -25,14 +28,14 @@ declare
 begin
   alex := pg_temp.mk_user('alexander.samnoy@gmail.com', 'Alex Samnøy', 'admin');
   for i in 1..array_length(names, 1) loop
-    ids := ids || pg_temp.mk_user(lower(replace(split_part(names[i], ' ', 1), 'ø', 'o')) || i || '@example.com', names[i]);
+    ids := ids || pg_temp.mk_user(lower(replace(split_part(names[i], ' ', 1), 'ø', 'o')) || i || '@example.com', names[i], 'player', '48 00 00 ' || lpad(i::text, 2, '0'));
   end loop;
 
   update public.settings set vipps_number = '900 00 000', vipps_display_name = 'Alex Samnøy',
     admin_email = 'alexander.samnoy@gmail.com';
 
-  insert into public.seasons (name, kind, starts_on, ends_on, default_cost, default_location, default_capacity, default_min_players)
-  values ('Vinter 2026/27', 'indoor', '2026-09-01', '2027-04-30', 62000, 'Grenland Folkehøgskole', 6, 4)
+  insert into public.seasons (name, kind, starts_on, ends_on, default_cost, default_location, default_capacity, default_min_players, notice)
+  values ('Vinter 2026/27', 'indoor', '2026-09-01', '2027-04-30', 62000, 'Grenland Folkehøgskole', 6, 4, 'Oppmøte Kiwi Farriseidet kl. 18 for felles transport.')
   returning id into s_winter;
   insert into public.seasons (name, kind, starts_on, ends_on, default_cost, default_location)
   values ('Sommer 2026', 'outdoor', '2026-05-01', '2026-08-31', 0, 'Batteristranda')
@@ -56,3 +59,17 @@ end $$;
 
 -- Forrige måneds regninger, så betalingsflyten har noe å vise.
 select public.create_invoices(to_char((now() at time zone 'Europe/Oslo') - interval '1 month', 'YYYY-MM'));
+
+-- En gjest: Ola tok med Simen på den ferskeste spilte økta. Han fikk plass
+-- (køplass før de andre), så han har en andel og en gjesteregning.
+do $$
+declare
+  ola uuid; simen uuid; sid uuid;
+begin
+  select id into ola from public.profiles where email = 'ola1@example.com';
+  select id into sid from public.sessions where status = 'held' order by starts_at desc limit 1;
+  insert into public.profiles (name, phone, role) values ('Simen Gjest', '911 11 111', 'guest') returning id into simen;
+  insert into public.attendance (session_id, profile_id, going, source, added_by, updated_at)
+  values (sid, simen, true, 'host', ola, now() - interval '2 days');
+  perform public.settle_session(sid);
+end $$;

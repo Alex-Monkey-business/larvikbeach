@@ -1,10 +1,13 @@
-export type Role = 'admin' | 'player'
+export type Role = 'admin' | 'player' | 'guest'
+/** Roller noen kan inviteres inn med. Gjester lages fra en økt, ikke via invitasjon. */
+export type InviteRole = 'admin' | 'player'
 
 export interface Profile {
   id: string
   name: string
-  email: string
+  email: string | null           // gjester har ingen
   phone: string | null
+  phone_key: string | null       // normalisert nummer, satt av basen
   role: Role
   active: boolean
   avatar_url: string | null
@@ -68,7 +71,8 @@ export interface Attendance {
   session_id: string
   profile_id: string
   going: boolean
-  source: 'self' | 'admin'
+  source: 'self' | 'admin' | 'host'   // host = et medlem tok med en gjest
+  added_by: string | null
   updated_at: string
 }
 
@@ -92,6 +96,7 @@ export interface Invoice {
   claimed_at: string | null
   confirmed_at: string | null
   external_ref: string | null
+  session_id: string | null      // satt = gjesteregning for én økt
   created_at: string
 }
 
@@ -106,7 +111,7 @@ export interface Invite {
   email: string
   name: string
   phone: string | null
-  role: Role
+  role: InviteRole
   invited_by: string | null
   created_at: string
   accepted_at: string | null

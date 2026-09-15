@@ -3,7 +3,8 @@ import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { Notice } from '../../components/Notice'
-import type { Invite, JoinRequest, Profile } from '../../lib/types'
+import type { Invite, InviteRole, JoinRequest } from '../../lib/types'
+import { prettyPhone } from '../../lib/phone'
 
 export function AdminMembers() {
   const { profile: me } = useAuth()
@@ -21,6 +22,8 @@ export function AdminMembers() {
   }
 
   const pending = (reqs.data ?? []).filter(r => r.status === 'pending')
+  const members = (people.data ?? []).filter(p => p.role !== 'guest')
+  const guests = (people.data ?? []).filter(p => p.role === 'guest')
 
   return (
     <div className="stack-lg" style={{ maxWidth: 800 }}>
@@ -64,9 +67,9 @@ export function AdminMembers() {
       )}
 
       <section className="card stack">
-        <h2 className="h3">Alle <span className="muted">{people.data?.length ?? ''}</span></h2>
+        <h2 className="h3">Alle <span className="muted">{people.data ? members.length : ''}</span></h2>
         <ul className="list">
-          {(people.data ?? []).map(p => (
+          {members.map(p => (
             <li key={p.id} className="medlem-rad">
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 500, opacity: p.active ? 1 : 0.5 }}>{p.name}{p.role === 'admin' && <span className="badge badge-forest" style={{ marginLeft: 8 }}>Admin</span>}{!p.active && <span className="badge badge-stone" style={{ marginLeft: 8 }}>Inaktiv</span>}</p>
@@ -90,6 +93,21 @@ export function AdminMembers() {
           ))}
         </ul>
       </section>
+
+      {guests.length > 0 && (
+        <section className="card stack">
+          <h2 className="h3">Gjester <span className="muted">{guests.length}</span></h2>
+          <p className="muted">Tatt med av et medlem, uten egen innlogging. Inviterer du en gjest med samme nummer, følger historikken med.</p>
+          <ul className="list">
+            {guests.map(p => (
+              <li key={p.id}>
+                <p style={{ fontWeight: 500 }}>{p.name}</p>
+                <p className="caption">{prettyPhone(p.phone)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
@@ -112,7 +130,7 @@ function RequestCard({ r, busy, onApprove, onReject }: { r: JoinRequest; busy: b
 
 function InviteForm({ onDone }: { onDone: () => Promise<void> }) {
   const [open, setOpen] = useState(false)
-  const [f, setF] = useState({ name: '', email: '', phone: '', role: 'player' as Profile['role'] })
+  const [f, setF] = useState({ name: '', email: '', phone: '', role: 'player' as InviteRole })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function submit(e: FormEvent) {
@@ -137,7 +155,7 @@ function InviteForm({ onDone }: { onDone: () => Promise<void> }) {
         <label className="field"><span className="label">E-post</span><input className="input" type="email" required value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>
         <label className="field"><span className="label">Telefon</span><input className="input" type="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} /></label>
         <label className="field"><span className="label">Rolle</span>
-          <select className="select" value={f.role} onChange={e => setF({ ...f, role: e.target.value as Profile['role'] })}><option value="player">Spiller</option><option value="admin">Admin</option></select></label>
+          <select className="select" value={f.role} onChange={e => setF({ ...f, role: e.target.value as InviteRole })}><option value="player">Spiller</option><option value="admin">Admin</option></select></label>
       </div>
       {error && <Notice>{error}</Notice>}
       <div className="row"><button className="btn btn-primary" disabled={busy}>{busy ? 'Sender…' : 'Send invitasjon'}</button><button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>Avbryt</button></div>

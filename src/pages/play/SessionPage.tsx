@@ -10,6 +10,7 @@ import { useSessions, goingQueue, mineFor, statusLine } from './useSessions'
 import type { Profile } from '../../lib/types'
 import { Avatar } from '../../components/Avatar'
 import { Matches } from '../../components/Matches'
+import { GuestForm, GuestTag } from '../../components/Guest'
 
 export function SessionPage() {
   const { id = '' } = useParams()
@@ -35,6 +36,18 @@ export function SessionPage() {
   const windowDays = settings.data?.signup_window_days ?? 14
   const open = session.status === 'planned' && signupOpen(session.starts_at, windowDays)
   const notYet = session.status === 'planned' && !isPast(session.starts_at) && !open
+  const attOf = new Map(att.map(a => [a.profile_id, a]))
+  // Gjesten kan fjernes av den som tok hen med, og av admin.
+  const canRemove = (p: Profile) => open && p.role === 'guest' && (isAdmin || attOf.get(p.id)?.added_by === profile?.id)
+  const person = (p: Profile, i?: number) => (
+    <li key={p.id} className="row between" style={{ flexWrap: 'nowrap' }}>
+      <span className="row" style={{ minWidth: 0, flexWrap: 'nowrap' }}>
+        <Avatar profile={p} dim={i != null} />
+        <span style={{ minWidth: 0 }}>{i != null ? `${i + 1}. ` : ''}{p.name}{p.role === 'guest' && <GuestTag att={attOf.get(p.id)} byId={byId} />}</span>
+      </span>
+      {canRemove(p) && <button type="button" className="btn btn-ghost btn-sm" disabled={s.busyId === id} onClick={() => void s.toggle(id, false, p.id)}>Fjern</button>}
+    </li>
+  )
 
   return (
     <div className="stack-lg" style={{ paddingTop: 'var(--space-6)', maxWidth: 720 }}>
@@ -54,8 +67,11 @@ export function SessionPage() {
 
 
       {open && (
-        <div className="row">
-          <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
+        <div className="stack">
+          <div className="row">
+            <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
+          </div>
+          <GuestForm sessionId={id} people={people.data} onDone={() => Promise.all([s.reload(), people.reload()])} />
         </div>
       )}
       {notYet && <p className="muted">Påmeldingen åpner {shortDate(signupOpensAt(session.starts_at, windowDays).toISOString())}, {windowDays} dager før økta.</p>}
@@ -64,12 +80,12 @@ export function SessionPage() {
       <section className="grid-2">
         <div className="card stack">
           <h2 className="h3">{session.status === 'held' ? 'Var med' : 'Påmeldt'} <span className="muted">{withSpot.length}{session.capacity ? ` av ${session.capacity}` : ''}</span></h2>
-          <ul className="list">{withSpot.map(p => <li key={p.id} className="row"><Avatar profile={p} />{p.name}</li>)}{withSpot.length === 0 && <li className="muted">Ingen ennå</li>}</ul>
+          <ul className="list">{withSpot.map(p => person(p))}{withSpot.length === 0 && <li className="muted">Ingen ennå</li>}</ul>
         </div>
         {waitlist.length > 0 && session.status === 'planned' && (
           <div className="card stack">
             <h2 className="h3">Venteliste <span className="muted">{waitlist.length}</span></h2>
-            <ul className="list">{waitlist.map((p, i) => <li key={p.id} className="row"><Avatar profile={p} dim />{i + 1}. {p.name}</li>)}</ul>
+            <ul className="list">{waitlist.map((p, i) => person(p, i))}</ul>
           </div>
         )}
 

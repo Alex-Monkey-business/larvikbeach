@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     return json({ period, created, sent: 0, skipped_email: true })
   }
 
-  const { data: open } = await admin.from('invoices').select('*').eq('status', 'open').gt('amount', 0)
+  // Gjesteregninger (session_id satt) kreves inn med SMS fra appen, ikke her.
+  const { data: open } = await admin.from('invoices').select('*').eq('status', 'open').gt('amount', 0).is('session_id', null)
   const { data: profiles } = await admin.from('profiles').select('id, name, email, role, active')
   const byId = new Map<string, Profile>((profiles ?? []).map((p: Profile) => [p.id, p]))
   const vipps = settings.vipps_number ? `${settings.vipps_number}${settings.vipps_display_name ? ` (${settings.vipps_display_name})` : ''}` : null
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
   }
 
   // Samle-oversikt til admin: alt som er utestående, gruppert per beløp.
-  const { data: outstanding } = await admin.from('invoices').select('*').in('status', ['open', 'notified'])
+  const { data: outstanding } = await admin.from('invoices').select('*').in('status', ['open', 'notified']).is('session_id', null)
   const groups = new Map<number, string[]>()
   for (const inv of (outstanding ?? []) as Invoice[]) {
     const n = byId.get(inv.profile_id)?.name ?? '?'

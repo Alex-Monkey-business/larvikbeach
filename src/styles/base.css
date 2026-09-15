@@ -232,3 +232,6 @@ a, button { -webkit-tap-highlight-color: transparent; }
 .admin-nav a:hover { background: var(--color-stone); }
 .me-page { overflow-wrap: anywhere; }
 .me-page .list > li > span { min-width: 0; max-width: 100%; }
+
+/* Gjesteskjemaet på økta: et kort som tar bredden, under påmeldingsknappen. */
+.guest-form { width: 100%; max-width: 420px; }

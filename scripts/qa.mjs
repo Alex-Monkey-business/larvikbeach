@@ -19,6 +19,7 @@ if (!process.env.QA_NO_RESET) {
 }
 
 const sql = (text) => execSync('docker exec -i supabase_db_larvikbeach psql -U postgres -v ON_ERROR_STOP=1 -q', { input: text })
+const sqlValue = (text) => execSync('docker exec -i supabase_db_larvikbeach psql -U postgres -v ON_ERROR_STOP=1 -At', { input: text }).toString().trim()
 
 const fails = []
 const ok = (cond, msg) => { if (!cond) fails.push(msg); console.log(`${cond ? 'ok  ' : 'FEIL'} ${msg}`) }
@@ -132,6 +133,7 @@ try {
   await p.goto(`${APP}/bli-med`)
   await p.fill('input[autocomplete=name]', 'Test Testesen')
   await p.fill('input[type=email]', INVITEE)
+  await p.fill('input[type=tel]', '99999999')   // gjestens nummer: første innlogging skal arve gjesten
   await p.fill('textarea', 'Har spilt litt')
   await p.click('button:has-text("Send")')
   await p.waitForSelector('text=Takk.')
@@ -170,6 +172,33 @@ try {
   await first.locator('a.session-card-title').click(); await p.waitForURL(/okter\//); await shot(p, 'm-okt')
   ok(await p.locator('text=Pris per person').count() === 0, 'økt: prisen står ikke på økta, bare under Betaling')
   ok(await p.locator('h2:has-text("Venteliste")').count() === 1, 'økt: ventelista vises når det er fullt (7 påmeldt, 6 plasser)')
+
+  // Gjest: nummeret er nøkkelen. Første gang trengs navn, andre gang står det der.
+  await p.locator('button:has-text("Ta med en gjest")').click()
+  await p.fill('.guest-form input[type=tel]', '999 99 999')
+  ok(await p.locator('.guest-form input:not([type=tel])').count() === 1, 'gjest: ukjent nummer ber om navn')
+  await p.fill('.guest-form input:not([type=tel])', 'Gjest Gjestesen')
+  await p.locator('.guest-form button:has-text("Legg til")').click()
+  const gjesteRad = p.locator('li:has-text("Gjest Gjestesen")')
+  await gjesteRad.waitFor({ timeout: 5000 })
+  ok((await gjesteRad.innerText()).includes('gjest, med Alex'), `gjest: står som «gjest, med Alex» (${(await gjesteRad.innerText()).replace(/\s+/g, ' ')})`)
+  ok(await p.locator('.card:has(h2:has-text("Venteliste")) li:has-text("Gjest Gjestesen")').count() === 1, 'gjest: stiller seg bakerst i køen som alle andre')
+  await gjesteRad.locator('button:has-text("Fjern")').click()
+  await p.waitForFunction(() => !document.body.innerText.includes('Gjest Gjestesen'), null, { timeout: 5000 })
+  ok(true, 'gjest: den som tok gjesten med kan fjerne hen')
+  await p.locator('button:has-text("Ta med en gjest")').click()
+  await p.fill('.guest-form input[type=tel]', '+47 99999999')
+  await p.locator('.guest-form >> text=Har vært med før').waitFor({ timeout: 5000 })
+  ok(await p.locator('.guest-form input:not([type=tel])').count() === 0, 'gjest: kjent nummer trenger ikke navn')
+  await p.locator('.guest-form button:has-text("Legg til")').click()
+  await gjesteRad.waitFor({ timeout: 5000 })
+  ok(sqlValue("select count(*) from public.profiles where phone_key = '+4799999999'") === '1', 'gjest: samme nummer to ganger gir én profil')
+  await p.locator('button:has-text("Ta med en gjest")').click()
+  await p.fill('.guest-form input[type=tel]', '48 00 00 02')
+  await p.locator('.guest-form >> text=er medlem og melder seg på selv').waitFor({ timeout: 5000 })
+  ok(await p.locator('.guest-form button:has-text("Legg til")').isDisabled(), 'gjest: et medlems nummer lager ingen gjest')
+  await p.locator('.guest-form button:has-text("Avbryt")').click()
+  await shot(p, 'm-okt-gjest')
   // Kamper på en gjennomført økt med 6 spillere (admin kan trekke)
   // Påmeldingsvinduet: forsiden viser bare øktene som er åpne, resten i kalenderen
   await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
@@ -311,6 +340,7 @@ try {
   await p.locator('.leader-switch button:has-text("Oppmøte")').click()
   await p.waitForTimeout(900)
   ok(await seireSum() !== forSeire, 'statistikk: bytte til oppmøte regner om rangeringen')
+  ok(await p.locator('.leader-list .leader-row:has-text("Simen")').count() === 1, 'statistikk: gjesten teller i oppmøtet som alle andre')
   ok(await p.locator('.leader-list .leader-diff').count() === 0
     && await p.locator('.leader-list-heading').count() === 0,
     'statistikk: +/− og kolonnetittelen hører bare til seire')
@@ -435,7 +465,30 @@ try {
   await p.waitForTimeout(3000)
   await p.locator('text=Invitert, ikke logget inn ennå').waitFor({ timeout: 5000 }).catch(() => {})
   ok(await p.locator('li:has-text("Test Testesen")').count() >= 1, 'admin: godkjent søker ligger som invitasjon (invite-member)')
+  // Gjesten var med på kveldens økt og fikk plass: da skylder hen en andel,
+  // og regningen er klar samme kveld, ikke ved månedsskiftet.
+  sql(`with h as (select id from public.sessions where status = 'held' order by starts_at desc limit 1),
+            g as (select id from public.profiles where phone_key = '+4799999999'),
+            f as (select min(a.updated_at) as t from public.attendance a, h where a.session_id = h.id)
+       insert into public.attendance (session_id, profile_id, going, source, updated_at)
+       select h.id, g.id, true, 'host', f.t - interval '1 minute' from h, g, f
+       on conflict (session_id, profile_id) do update set going = true, updated_at = excluded.updated_at;
+       select public.settle_session((select id from public.sessions where status = 'held' order by starts_at desc limit 1));`)
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
+  const gjester = p.locator('section:has(> h2:has-text("Gjester"))')
+  ok(await gjester.count() === 1, 'betaling: gjestene har egen seksjon')
+  ok(await gjester.locator('li').count() === 2, `betaling: én gjesteregning per økt (${await gjester.locator('li').count()}, ventet 2)`)
+  const krav = gjester.locator('li:has-text("Gjest Gjestesen")')
+  ok((await krav.innerText()).includes('999 99 999'), 'betaling: nummeret står på rada')
+  await krav.locator('button:has-text("Vipps")').click()
+  await krav.locator('span.badge:text-is("Sendt")').waitFor({ timeout: 5000 })
+  const klipp = await p.evaluate(() => navigator.clipboard.readText())
+  ok(klipp === '99999999', `betaling: Vipps-knappen kopierer nummeret slik Vipps søker (${klipp})`)
+  await krav.locator('button:has-text("Betalt")').click()
+  await p.waitForFunction(() => !document.querySelector('section:has(> h2) li')?.innerText.includes('Gjest Gjestesen') || true, null, { timeout: 5000 })
+  await p.waitForTimeout(600)
+  ok(await gjester.locator('li:has-text("Gjest Gjestesen")').count() === 0, 'betaling: betalt gjest er ute av krevelista')
+  ok(!(await p.locator('section.card-dark').innerText()).includes('Simen'), 'betaling: «Be om penger» er medlemmenes runde, uten gjester')
   ok(await p.locator('text=Be om penger i Vipps').count() === 1, 'admin: «be om penger»-lista vises')
   // E-postbryteren er av i prod: da må teksten slutte å love e-post, og
   // «Bare lag, ikke send» er meningsløs når ingenting sendes.
@@ -448,6 +501,7 @@ try {
   const delt = await p.evaluate(() => navigator.clipboard.readText())
   ok(/kr/.test(delt) && delt.includes('/spill/betaling'), 'påminnelse: beløp og lenke er med')
   ok(delt.includes('900 00 000') || /\d{6,}/.test(delt), 'påminnelse: Vipps-nummeret er med')
+  ok(!delt.includes('Simen') && !delt.includes('Gjestesen'), 'påminnelse: gjestene står ikke i Messenger-lista')
   await p.locator('span.badge:text-is("Sendt")').first().waitFor({ timeout: 5000 })
   ok(true, 'påminnelse: regningene merkes som varslet etter deling')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
@@ -469,12 +523,31 @@ try {
   await claimBtn.click(); await p.waitForTimeout(800)
   ok(await p.locator('text=Meldt betalt').count() >= 1, 'spiller: regning markert som meldt betalt')
   await shot(p, 'm-spiller-betaling-etter')
+  // Ola tar med en gjest på neste økt. Kortet for neste økt er det andre det første døgnet.
+  await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
+  await p.locator('article.session-card').nth(1).locator('a.session-card-title').click(); await p.waitForURL(/okter\//)
+  await p.locator('button:has-text("Ta med en gjest")').click()
+  await p.fill('.guest-form input[type=tel]', '98888888')
+  await p.fill('.guest-form input:not([type=tel])', 'Olas Kompis')
+  await p.locator('.guest-form button:has-text("Legg til")').click()
+  const kompis = p.locator('li:has-text("Olas Kompis")')
+  await kompis.waitFor({ timeout: 5000 })
+  ok((await kompis.innerText()).includes('med Ola'), 'spiller: gjesten står med Ola som vert')
+  ok(await kompis.locator('button:has-text("Fjern")').count() === 1, 'spiller: verten kan fjerne sin egen gjest')
+  const andreGjest = p.locator('li:has-text("Gjest Gjestesen")')
+  ok(await andreGjest.locator('button').count() === 0, 'spiller: kan ikke fjerne gjester andre tok med')
+  await kompis.locator('button:has-text("Fjern")').click()
+  await p.waitForFunction(() => !document.body.innerText.includes('Olas Kompis'), null, { timeout: 5000 })
   await p.goto(`${APP}/admin`); await p.waitForURL(/\/spill$/); ok(true, 'spiller: admin-rute avvises')
   await loggUt(p)
 
   // Den inviterte logger inn første gang med kode: bruker opprettes, invitasjonen aktiverer profilen
   await login(p, INVITEE)
   ok(p.url().includes('/spill'), 'invitert: første innlogging gir aktiv profil og /spill')
+  // Søknaden hadde gjestens nummer: den nye brukeren ER gjesten, med historikken.
+  ok(sqlValue("select role || '/' || active || '/' || (select count(*) from public.attendance a where a.profile_id = p.id) from public.profiles p where phone_key = '+4799999999'") === 'player/true/2',
+    `invitert: gjesten er slått sammen med den nye brukeren og påmeldingene fulgte med (${sqlValue("select role || '/' || active || '/' || (select count(*) from public.attendance a where a.profile_id = p.id) from public.profiles p where phone_key = '+4799999999'")})`)
+  ok(sqlValue("select count(*) from public.profiles where role = 'guest' and phone_key = '+4799999999'") === '0', 'invitert: gjesteprofilen er borte')
   await loggUt(p)
 
   // Uinvitert logger inn med kode: bruker opprettes, men ingen tilgang
