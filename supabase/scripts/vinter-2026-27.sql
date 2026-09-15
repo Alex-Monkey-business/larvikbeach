@@ -1,4 +1,4 @@
--- Vinter 2026/27 i Grenland Folkehøgskole. Mandager 19–21, 620 kr, maks 6, minst 4.
+-- Vinter 2026/27 i Grenland Folkehøgskole. Mandager 19–21, 680 kr, maks 6, minst 4.
 -- Kilde: skolens utleierute 2026-27. Alle uker fra 37 (2026) til 17 (2027),
 -- også feriene (gjengen spiller da). Uke 18 er stengt for utleie.
 -- Kjøres én gang: `npx supabase db query --linked -f supabase/scripts/vinter-2026-27.sql`.
@@ -13,11 +13,11 @@ begin
   end if;
 
   insert into public.seasons (name, kind, starts_on, ends_on, default_cost, default_location, default_capacity, default_min_players)
-  values ('Vinter 2026/27', 'indoor', '2026-09-07', '2027-05-02', 62000, 'Grenland Folkehøgskole, sandvolleyhallen', 6, 4)
+  values ('Vinter 2026/27', 'indoor', '2026-09-07', '2027-05-02', 68000, 'Grenland Folkehøgskole, sandvolleyhallen', 6, 4)
   returning id into sid;
 
   insert into public.sessions (season_id, starts_at, duration_min, location, cost, capacity, min_players, note)
-  select sid, t::timestamptz, 120, 'Grenland Folkehøgskole, sandvolleyhallen', 62000, 6, 4, n
+  select sid, t::timestamptz, 120, 'Grenland Folkehøgskole, sandvolleyhallen', 68000, 6, 4, n
     from (values
     ('2026-09-07 19:00 Europe/Oslo', null),
     ('2026-09-14 19:00 Europe/Oslo', 'Nøkkelboks: ingen ansatte på skolen, hent nøkkelen i boksen.'),
