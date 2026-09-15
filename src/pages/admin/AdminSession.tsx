@@ -9,6 +9,7 @@ import { ShareButton } from '../../components/Share'
 import { statusLine } from '../play/useSessions'
 import { endTime } from '../../lib/format'
 import type { Session } from '../../lib/types'
+import { GuestForm } from '../../components/Guest'
 
 export function AdminSession() {
   const { id = '' } = useParams()
@@ -18,7 +19,7 @@ export function AdminSession() {
     const [attendance, profiles, charges] = await Promise.all([api.attendance([id]), api.profiles(), api.charges({ sessionId: id })])
     // Medlemmene alltid; gjester bare når de er med på akkurat denne økta.
     const med = new Set(attendance.filter(a => a.going).map(a => a.profile_id))
-    return { session, attendance, profiles: profiles.filter(p => p.role === 'guest' ? med.has(p.id) : p.active), charges }
+    return { session, attendance, alle: profiles, profiles: profiles.filter(p => p.role === 'guest' ? med.has(p.id) : p.active), charges }
   }, [id])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -32,7 +33,7 @@ export function AdminSession() {
 
   if (q.error) return <Notice>{q.error}</Notice>
   if (!q.data) return null
-  const { session, attendance, profiles, charges } = q.data
+  const { session, attendance, alle, profiles, charges } = q.data
   const queue = attendance.filter(a => a.going).sort((a, b) => a.updated_at.localeCompare(b.updated_at)).map(a => a.profile_id)
   const going = new Set(queue)
   const spotOf = (id: string) => queue.indexOf(id) + 1
@@ -73,6 +74,9 @@ export function AdminSession() {
             )
           })}
         </ul>
+        {/* Gjesten som var med men ikke ble registrert. På en spilt økt får
+            hen plass, og andelene regnes om. */}
+        {!invoiced && session.status !== 'cancelled' && <GuestForm sessionId={id} people={alle} onDone={q.reload} />}
       </section>
 
       {session.status === 'planned' && (

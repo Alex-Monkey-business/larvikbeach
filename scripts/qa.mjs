@@ -468,6 +468,7 @@ try {
     ok(bg !== 'rgb(255, 255, 255)', `admin: sperret felt ser sperret ut (${bg})`)
   }
   ok(await p.locator('.farlig button:has-text("Slett økta")').count() === 1, 'admin: sletting står for seg selv under en strek')
+  ok(låst || await p.locator('section:has(h2:has-text("Oppmøte")) button:has-text("Ta med en gjest")').count() === 1, 'admin: gjesten kan legges til i oppmøtekortet på en spilt økt')
   await shot(p, 'm-admin-okt')
 
   await p.goto(`${APP}/admin/medlemmer`); await shot(p, 'm-admin-medlemmer')

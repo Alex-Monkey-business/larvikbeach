@@ -1,10 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { Nav } from './Nav'
 import { useAuth } from '../auth/AuthProvider'
+import { useFreshApp } from '../lib/useFreshApp'
 
 export function Layout() {
   const { pathname } = useLocation()
   const { session } = useAuth()
+  useFreshApp()
   // Appen har fanelinje nederst og skal være støyfri. Bunnteksten hører til
   // de åpne sidene, der personvernlenka også må være for Google.
   // Forsiden og innloggingen er hele skjermer: ingen meny, ingen bunntekst.
