@@ -9,7 +9,7 @@ delete from public.invites where email like 'test%@example.com';
 delete from auth.users where email like 'test%@example.com' or email = 'sniker@example.com';
 -- Gjestene testen lager. Slettes brukeren over, tar triggeren profilen; ble
 -- gjesten aldri slått sammen, ligger den igjen her.
-delete from public.profiles where role = 'guest' and phone_key in ('+4799999999', '+4798888888');
+delete from public.profiles where role = 'guest' and phone_key in ('+4799999999', '+4798888888', '+4797777777');
 -- Gjesteregningene i seed tilbake til start.
 update public.invoices set status = 'open', notified_at = null, confirmed_at = null where session_id is not null;
 -- Øktene ankres til nå. Ellers råtner testen i det klokka passerer 19:00 på

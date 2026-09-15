@@ -231,6 +231,24 @@ try {
   await p.locator('main >> text=Påmeldingen åpner').first().waitFor({ timeout: 5000 })
   ok(await p.locator('text=Påmeldingen åpner').count() >= 1, 'økt langt fram: sier når påmeldingen åpner')
   ok(await p.locator('button:has-text("Jeg kommer")').count() === 0, 'økt langt fram: ingen påmeldingsknapp')
+  // Spilt økt: admin kan legge til gjesten som var med men ikke ble registrert.
+  // Andelen regnes om, og gjesten får regning med én gang.
+  await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
+  await p.locator('article.session-card').first().locator('a.session-card-title').click(); await p.waitForURL(/okter\//)
+  await p.locator('h2:has-text("Var med")').waitFor({ timeout: 5000 })
+  ok(await p.locator('button:has-text("Ta med en gjest")').count() === 1, 'spilt økt: admin kan legge til en gjest etterpå')
+  await p.locator('button:has-text("Ta med en gjest")').click()
+  await p.fill('.guest-form input[type=tel]', '97777777')
+  await p.fill('.guest-form input:not([type=tel])', 'Etterpå Gjest')
+  await p.locator('.guest-form button:has-text("Legg til")').click()
+  await p.locator('li:has-text("Etterpå Gjest")').waitFor({ timeout: 5000 })
+  ok(sqlValue("select count(*) from public.invoices i join public.profiles p on p.id = i.profile_id where p.phone_key = '+4797777777' and i.session_id is not null") === '1'
+    || sqlValue("select count(*) from public.attendance a join public.profiles p on p.id = a.profile_id where p.phone_key = '+4797777777'") === '1',
+    'spilt økt: gjesten er registrert (regning hvis hen fikk plass)')
+  await p.locator('li:has-text("Etterpå Gjest") button:has-text("Fjern")').click()
+  await p.waitForFunction(() => !document.body.innerText.includes('Etterpå Gjest'), null, { timeout: 5000 })
+  ok(sqlValue("select count(*) from public.charges c join public.profiles p on p.id = c.profile_id where p.phone_key = '+4797777777'") === '0', 'spilt økt: fjernet gjest skylder ingenting')
+  sql("delete from public.profiles where phone_key = '+4797777777'")
   await p.goto(`${APP}/spill/statistikk`); await shot(p, 'm-statistikk')
   ok(await p.locator('.leader-list .leader-row').count() > 0, 'statistikk: leaderboardet vises')
   // Kamper, rutenett og historikk ligger bak «Mer fra sesongen» nå.

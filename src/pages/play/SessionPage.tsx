@@ -37,8 +37,11 @@ export function SessionPage() {
   const open = session.status === 'planned' && signupOpen(session.starts_at, windowDays)
   const notYet = session.status === 'planned' && !isPast(session.starts_at) && !open
   const attOf = new Map(att.map(a => [a.profile_id, a]))
+  // Gjester: alle mens påmeldingen er åpen. Admin også etterpå, for den som
+  // var med i går men ikke ble registrert; oppgjøret regnes om.
+  const guestsOpen = open || (isAdmin && session.status === 'held')
   // Gjesten kan fjernes av den som tok hen med, og av admin.
-  const canRemove = (p: Profile) => open && p.role === 'guest' && (isAdmin || attOf.get(p.id)?.added_by === profile?.id)
+  const canRemove = (p: Profile) => guestsOpen && p.role === 'guest' && (isAdmin || attOf.get(p.id)?.added_by === profile?.id)
   const person = (p: Profile, i?: number) => (
     <li key={p.id} className="row between" style={{ flexWrap: 'nowrap' }}>
       <span className="row" style={{ minWidth: 0, flexWrap: 'nowrap' }}>
@@ -66,11 +69,13 @@ export function SessionPage() {
       </header>
 
 
-      {open && (
+      {(open || guestsOpen) && (
         <div className="stack">
-          <div className="row">
-            <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
-          </div>
+          {open && (
+            <div className="row">
+              <AttendButton session={session} goingCount={n} mine={mine} busy={s.busyId === id} onToggle={going => void s.toggle(id, going)} />
+            </div>
+          )}
           <GuestForm sessionId={id} people={people.data} onDone={() => Promise.all([s.reload(), people.reload()])} />
         </div>
       )}
