@@ -11,6 +11,7 @@ import type { Profile } from '../../lib/types'
 import { Avatar } from '../../components/Avatar'
 import { Matches } from '../../components/Matches'
 import { GuestForm, GuestTag } from '../../components/Guest'
+import { Sun } from '../../components/Sun'
 
 export function SessionPage() {
   const { id = '' } = useParams()
@@ -57,7 +58,11 @@ export function SessionPage() {
       <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Hjem</Link>
       <header className="stack">
         <h1 className="h1">{longDate(session.starts_at)}</h1>
-        <p className="lede">{[`${time(session.starts_at)}–${endTime(session.starts_at, session.duration_min)}`, session.outdoor ? 'Ute' : null, session.location, session.outdoor ? 'gratis' : null].filter(Boolean).join(' · ')}</p>
+        {/* Sola står ved tida, ikke i tittelen: der brekker den ned på egen linje på mobil. */}
+        <p className="lede" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          {session.outdoor && <Sun size={32} className="lede-sun" />}
+          <span style={{ flex: 1, minWidth: 0 }}>{[`${time(session.starts_at)}–${endTime(session.starts_at, session.duration_min)}`, session.outdoor ? 'Ute' : null, session.location, session.outdoor ? 'gratis' : null].filter(Boolean).join(' · ')}</span>
+        </p>
         {session.note && <p>{session.note}</p>}
         <div className="row">
           {session.status === 'held' && <span className="badge badge-forest">Gjennomført</span>}

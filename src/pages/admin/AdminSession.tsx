@@ -141,8 +141,7 @@ function SessionForm({ session, locked, onSaved }: { session: Session; locked: b
         <span><strong>Vi spiller ute</strong><br /><span className="caption">Gratis. Økta, lagene og statistikken er som vanlig, men ingen får regning.</span></span>
       </label>
       {error && <Notice>{error}</Notice>}
-      {state === 'saved' && <Notice kind="ok">Lagret</Notice>}
-      <button className="btn btn-primary" disabled={state === 'saving'}>Lagre</button>
+      <button className={`btn ${state === 'saved' ? 'btn-forest' : 'btn-primary'}`} disabled={state !== 'idle'}>{state === 'saving' ? 'Lagrer…' : state === 'saved' ? 'Lagret' : 'Lagre'}</button>
     </form>
   )
 }

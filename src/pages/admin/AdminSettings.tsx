@@ -41,8 +41,7 @@ export function AdminSettings() {
       </label>
       <label className="field"><span className="label">E-post som får samle-oversikten («be om penger»-lista)</span><input className="input" type="email" value={f.admin_email ?? ''} onChange={e => set({ admin_email: e.target.value })} /></label>
       {error && <Notice>{error}</Notice>}
-      {state === 'saved' && <Notice kind="ok">Lagret</Notice>}
-      <button className="btn btn-primary" disabled={state === 'saving'}>Lagre</button>
+      <button className={`btn ${state === 'saved' ? 'btn-forest' : 'btn-primary'}`} disabled={state !== 'idle'}>{state === 'saving' ? 'Lagrer…' : state === 'saved' ? 'Lagret' : 'Lagre'}</button>
     </form>
   )
 }

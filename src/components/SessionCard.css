@@ -1,4 +1,9 @@
 .session-card { display: grid; gap: var(--space-3); }
+.session-card-date { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+/* Sola ved tida på øktsida: flytt ned så den sentreres på første tekstlinje. */
+.lede-sun { flex: none; margin-top: 0.05em; }
+/* Ute: sola i tittelen og en sandfarget flate. Solid, ingen gradient. */
+.session-card.is-outdoor { background: var(--color-stone); border-color: var(--color-stone); }
 .session-card.is-going { border-color: var(--color-forest); }
 .session-card-main { display: grid; gap: var(--space-2); }
 .session-card-title { display: grid; gap: 4px; text-decoration: none; }

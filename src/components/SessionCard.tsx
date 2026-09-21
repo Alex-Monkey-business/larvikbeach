@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import type { Profile, Session } from '../lib/types'
 import { AvatarStack } from './Avatar'
+import { Sun } from './Sun'
 import { longDate, isPast, signupOpen } from '../lib/format'
 import { payerCount, statusLine, type MyState } from '../pages/play/useSessions'
 import './SessionCard.css'
@@ -25,10 +26,13 @@ export function SessionCard({ session, goingCount, withSpot = [], waitlist = [],
   const ferskt = Date.now() - new Date(session.starts_at).getTime() < 24 * 3600_000
   const hasSpot = mine.going === true && !mine.waitlisted
   return (
-    <article className={`session-card card ${hasSpot && !played ? 'is-going' : ''}`}>
+    <article className={`session-card card ${session.outdoor ? 'is-outdoor' : ''} ${hasSpot && !played ? 'is-going' : ''}`}>
       <div className="session-card-main">
         <Link to={`/spill/okter/${session.id}`} className="session-card-title">
-          <span className="h3">{longDate(session.starts_at)}</span>
+          <span className="session-card-date">
+            <span className="h3">{longDate(session.starts_at)}</span>
+            {session.outdoor && <Sun />}
+          </span>
           {subtitle && <span className="muted">{subtitle}</span>}
           {session.note && <span className="muted">{session.note}</span>}
         </Link>
