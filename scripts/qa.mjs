@@ -481,6 +481,45 @@ try {
   ok(låst || await p.locator('section:has(h2:has-text("Oppmøte")) button:has-text("Ta med en gjest")').count() === 1, 'admin: gjesten kan legges til i oppmøtekortet på en spilt økt')
   await shot(p, 'm-admin-okt')
 
+  // Ute-økt: gjengen flytter kveldens økt ut. Alt er som før, men gratis, og
+  // oppgjøret lager ingen andeler. Tas på nærmeste kommende økt, som har påmeldte.
+  await p.goto(`${APP}/admin`); await p.waitForSelector('li.admin-session-row')
+  const nærmeste = await p.locator('li.admin-session-row a').first().getAttribute('href')
+  const uteId = nærmeste.split('/').pop()
+  await p.goto(`${APP}${nærmeste}`); await p.waitForSelector('h2:has-text("Detaljer")')
+  ok(await p.locator('label:has-text("Hallpris")').count() === 1, 'ute: hallprisen står når økta er inne')
+  await p.locator('.check:has-text("Vi spiller ute") input').check()
+  ok(await p.locator('label:has-text("Hallpris")').count() === 0, 'ute: hallprisfeltet forsvinner når økta er ute')
+  await p.fill('label:has-text("Sted") input', 'Batteristranda')
+  await p.locator('form:has(h2:has-text("Detaljer")) button:has-text("Lagre")').click()
+  await p.locator('text=Lagret').waitFor({ timeout: 5000 })
+  ok(sqlValue(`select outdoor::text || ' ' || cost from public.sessions where id = '${uteId}'`) === 'true 0', 'ute: lagret som ute og 0 kr')
+  await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')
+  const uteKort = p.locator(`article.session-card:has(a[href$="${uteId}"])`).first()
+  const uteTekst = await uteKort.locator('.session-card-title .muted').first().innerText()
+  ok(/Ute · Batteristranda · gratis/.test(uteTekst), `ute: kortet sier ute, hvor og gratis (${uteTekst})`)
+  await p.goto(`${APP}/spill/okter/${uteId}`); await p.waitForSelector('p.lede')
+  ok(/Ute · Batteristranda · gratis/.test(await p.locator('p.lede').innerText()), 'ute: øktsida sier det samme')
+  await p.goto(`${APP}/spill/kalender`); await p.waitForSelector('a[href$="' + uteId + '"]')
+  ok(/Ute, Batteristranda/.test(await p.locator(`a[href$="${uteId}"]`).innerText()), 'ute: kalenderen sier ute')
+  // Gjennomført ute: påmeldte, men ingen skylder noe.
+  await p.goto(`${APP}${nærmeste}`); await p.waitForSelector('h2:has-text("Oppmøte")')
+  await p.locator('button:has-text("Merk som gjennomført")').click()
+  await p.locator('button:has-text("Tilbake til planlagt")').waitFor({ timeout: 5000 })
+  ok(Number(sqlValue(`select count(*) from public.attendance where session_id = '${uteId}' and going`)) > 0, 'ute: økta har påmeldte')
+  ok(sqlValue(`select count(*) from public.charges where session_id = '${uteId}'`) === '0', 'ute: gjennomført ute-økt gir ingen andeler')
+  ok(await p.locator('span.badge:has-text("hver")').count() === 0, 'ute: ingen «kr hver» på oppmøtet')
+  ok(/var med|spilte/i.test(await p.locator('section:has(h2:has-text("Oppmøte"))').innerText()), 'ute: oppmøtet telles som vanlig')
+  // Og tilbake, så resten av testen møter hallen igjen.
+  await p.locator('button:has-text("Tilbake til planlagt")').click()
+  await p.locator('button:has-text("Merk som gjennomført")').waitFor({ timeout: 5000 })
+  await p.locator('.check:has-text("Vi spiller ute") input').uncheck()
+  await p.fill('label:has-text("Hallpris") input', '620')
+  await p.fill('label:has-text("Sted") input', 'Grenland Folkehøgskole')
+  await p.locator('form:has(h2:has-text("Detaljer")) button:has-text("Lagre")').click()
+  await p.locator('text=Lagret').waitFor({ timeout: 5000 })
+  ok(sqlValue(`select outdoor::text || ' ' || cost from public.sessions where id = '${uteId}'`) === 'false 62000', 'ute: tilbake i hallen med pris')
+
   await p.goto(`${APP}/admin/medlemmer`); await shot(p, 'm-admin-medlemmer')
   // Begge rollehandlingene spør: ett feiltrykk låser noen ut av appen.
   const før = dialoger.length

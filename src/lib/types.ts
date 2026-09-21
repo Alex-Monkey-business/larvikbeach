@@ -61,6 +61,7 @@ export interface Session {
   duration_min: number
   location: string | null
   cost: number
+  outdoor: boolean      // ute = gratis, holdes ute av oppgjøret
   status: SessionStatus
   note: string | null
   capacity: number | null

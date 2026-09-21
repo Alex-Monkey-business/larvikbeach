@@ -62,6 +62,10 @@ select se.id, (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval 
  where se.name = 'Vinter 2026/27'
    and not exists (select 1 from public.sessions x where x.season_id = se.id and x.starts_at > now() + interval '30 days');
 
+-- Ute-testen skal ha ryddet etter seg; dette er sikkerhetsnettet.
+update public.sessions set outdoor = false, cost = 62000, location = 'Grenland Folkehøgskole' where outdoor;
+update public.sessions set status = 'planned' where status = 'held' and starts_at > now();
+
 -- Prod deler påminnelsen i Messenger og sender ingen regnings-e-post. Testen
 -- skal kjøre på den oppsettet som faktisk er i bruk.
 update public.settings set email_invoices = false;

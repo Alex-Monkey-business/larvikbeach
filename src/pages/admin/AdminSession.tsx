@@ -85,7 +85,7 @@ export function AdminSession() {
           <p className="muted">Del i Messenger-gruppa så folk husker å melde seg på.</p>
           <ShareButton label="Del økta" text={[
             `Beachvolley ${longDate(session.starts_at).toLowerCase()}, ${time(session.starts_at)}–${endTime(session.starts_at, session.duration_min)}`,
-            session.location ?? '',
+            [session.outdoor ? 'Ute, gratis' : null, session.location].filter(Boolean).join(' · '),
             statusLine(session, going.size) + '.',
             'Meld deg på:',
             `${window.location.origin}/spill/okter/${session.id}`,
@@ -110,14 +110,14 @@ export function AdminSession() {
 }
 
 function SessionForm({ session, locked, onSaved }: { session: Session; locked: boolean; onSaved: () => Promise<void> }) {
-  const [f, setF] = useState({ when: toLocalInput(session.starts_at), duration: String(session.duration_min), location: session.location ?? '', cost: String(session.cost / 100), note: session.note ?? '',
+  const [f, setF] = useState({ when: toLocalInput(session.starts_at), duration: String(session.duration_min), location: session.location ?? '', cost: String(session.cost / 100), outdoor: session.outdoor, note: session.note ?? '',
     capacity: session.capacity ? String(session.capacity) : '', min: session.min_players ? String(session.min_players) : '' })
   const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null); setState('saving')
     try {
-      await api.saveSession({ id: session.id, starts_at: fromLocalInput(f.when), duration_min: Number(f.duration), location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null,
+      await api.saveSession({ id: session.id, starts_at: fromLocalInput(f.when), duration_min: Number(f.duration), location: f.location || null, cost: f.outdoor ? 0 : Math.round(Number(f.cost) * 100), outdoor: f.outdoor, note: f.note || null,
         capacity: f.capacity ? Number(f.capacity) : null, min_players: f.min ? Number(f.min) : null })
       if (session.status === 'held') await api.setSessionStatus(session.id, 'held')  // ny pris → regn om
       await onSaved(); setState('saved')
@@ -130,11 +130,16 @@ function SessionForm({ session, locked, onSaved }: { session: Session; locked: b
         <label className="field"><span className="label">Når</span><input className="input" type="datetime-local" required disabled={locked} value={f.when} onChange={e => { setF({ ...f, when: e.target.value }); setState('idle') }} /></label>
         <label className="field"><span className="label">Varighet (min)</span><input className="input" type="number" min={15} step={15} disabled={locked} value={f.duration} onChange={e => { setF({ ...f, duration: e.target.value }); setState('idle') }} /></label>
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => { setF({ ...f, location: e.target.value }); setState('idle') }} /></label>
-        <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} disabled={locked} value={f.cost} onChange={e => { setF({ ...f, cost: e.target.value }); setState('idle') }} /></label>
+        {!f.outdoor && <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} disabled={locked} value={f.cost} onChange={e => { setF({ ...f, cost: e.target.value }); setState('idle') }} /></label>}
         <label className="field"><span className="label">Maks antall</span><input className="input" type="number" min={1} disabled={locked} value={f.capacity} onChange={e => { setF({ ...f, capacity: e.target.value }); setState('idle') }} /></label>
         <label className="field"><span className="label">Minst antall</span><input className="input" type="number" min={1} value={f.min} onChange={e => { setF({ ...f, min: e.target.value }); setState('idle') }} /></label>
         <label className="field" style={{ gridColumn: '1 / -1' }}><span className="label">Notat til spillerne</span><input className="input" value={f.note} onChange={e => { setF({ ...f, note: e.target.value }); setState('idle') }} /></label>
       </div>
+      {/* Ute er gratis. Prisen står i hallen; her tas den ut av oppgjøret. */}
+      <label className="check">
+        <input type="checkbox" checked={f.outdoor} disabled={locked} onChange={e => { setF({ ...f, outdoor: e.target.checked }); setState('idle') }} />
+        <span><strong>Vi spiller ute</strong><br /><span className="caption">Gratis. Økta, lagene og statistikken er som vanlig, men ingen får regning.</span></span>
+      </label>
       {error && <Notice>{error}</Notice>}
       {state === 'saved' && <Notice kind="ok">Lagret</Notice>}
       <button className="btn btn-primary" disabled={state === 'saving'}>Lagre</button>

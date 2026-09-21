@@ -51,7 +51,7 @@ export function Calendar() {
                   <Link to={`/spill/okter/${s.id}`} className="row between" style={{ textDecoration: 'none', gap: 12 }}>
                     <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
                       <span style={{ fontWeight: 500 }}>{compactDate(s.starts_at)} <span className="muted">{time(s.starts_at)}</span></span>
-                      {s.note && <span className="caption">{s.note.split(':')[0]}</span>}
+                      {(s.outdoor || s.note) && <span className="caption">{[s.outdoor ? `Ute${s.location ? `, ${s.location}` : ''}` : null, s.note?.split(':')[0]].filter(Boolean).join(' · ')}</span>}
                     </span>
                     {s.status === 'cancelled' ? <span className="badge badge-ember">Avlyst</span>
                       : s.status === 'held' ? <span className="muted" style={{ whiteSpace: 'nowrap' }}>{payerCount(s, going)} spilte</span>

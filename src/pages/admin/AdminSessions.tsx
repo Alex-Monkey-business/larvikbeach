@@ -94,7 +94,8 @@ function today() { return new Date().toISOString().slice(0, 10) }
  *  setningen 34 ganger nedover. */
 function avvik(x: Session, season: Season | undefined): string {
   const deler: string[] = []
-  if (season && x.cost !== season.default_cost) deler.push(kr(x.cost))
+  if (x.outdoor) deler.push('Ute, gratis')
+  else if (season && x.cost !== season.default_cost) deler.push(kr(x.cost))
   if (x.location && x.location !== season?.default_location) deler.push(x.location)
   return deler.length ? ` · ${deler.join(' · ')}` : ''
 }
@@ -143,7 +144,7 @@ function SeasonForm({ season, onSaved }: { season?: Season; onSaved: () => Promi
 function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Promise<void> }) {
   const [open, setOpen] = useState(false)
   const next = new Date(); next.setDate(next.getDate() + 1); next.setHours(20, 0, 0, 0)
-  const [f, setF] = useState({ when: toLocalInput(next.toISOString()), duration: '120', location: season.default_location ?? '', cost: String(season.default_cost / 100), note: '', repeat: '1',
+  const [f, setF] = useState({ when: toLocalInput(next.toISOString()), duration: '120', location: season.default_location ?? '', cost: String(season.default_cost / 100), outdoor: false, note: '', repeat: '1',
     capacity: season.default_capacity ? String(season.default_capacity) : '', min: season.default_min_players ? String(season.default_min_players) : '' })
   const [error, setError] = useState<string | null>(null)
   async function submit(e: FormEvent) {
@@ -153,7 +154,7 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
       for (let i = 0; i < n; i++) {
         const d = new Date(fromLocalInput(f.when)); d.setDate(d.getDate() + 7 * i)
         await api.saveSession({ season_id: season.id, starts_at: d.toISOString(), duration_min: Number(f.duration),
-          location: f.location || null, cost: Math.round(Number(f.cost) * 100), note: f.note || null,
+          location: f.location || null, cost: f.outdoor ? 0 : Math.round(Number(f.cost) * 100), outdoor: f.outdoor, note: f.note || null,
           capacity: f.capacity ? Number(f.capacity) : null, min_players: f.min ? Number(f.min) : null })
       }
       setOpen(false); await onSaved()
@@ -167,12 +168,16 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
         <label className="field"><span className="label">Når</span><input className="input" type="datetime-local" required value={f.when} onChange={e => setF({ ...f, when: e.target.value })} /></label>
         <label className="field"><span className="label">Varighet (min)</span><input className="input" type="number" min={15} step={15} value={f.duration} onChange={e => setF({ ...f, duration: e.target.value })} /></label>
         <label className="field"><span className="label">Sted</span><input className="input" value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></label>
-        <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} value={f.cost} onChange={e => setF({ ...f, cost: e.target.value })} /></label>
+        {!f.outdoor && <label className="field"><span className="label">Hallpris (kr)</span><input className="input" type="number" min={0} value={f.cost} onChange={e => setF({ ...f, cost: e.target.value })} /></label>}
         <label className="field"><span className="label">Maks antall</span><input className="input" type="number" min={1} value={f.capacity} onChange={e => setF({ ...f, capacity: e.target.value })} /></label>
         <label className="field"><span className="label">Minst antall</span><input className="input" type="number" min={1} value={f.min} onChange={e => setF({ ...f, min: e.target.value })} /></label>
         <label className="field"><span className="label">Gjenta ukentlig, antall uker</span><input className="input" type="number" min={1} max={30} value={f.repeat} onChange={e => setF({ ...f, repeat: e.target.value })} /></label>
         <label className="field"><span className="label">Notat</span><input className="input" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></label>
       </div>
+      <label className="check">
+        <input type="checkbox" checked={f.outdoor} onChange={e => setF({ ...f, outdoor: e.target.checked })} />
+        <span><strong>Vi spiller ute</strong><br /><span className="caption">Gratis, ingen får regning.</span></span>
+      </label>
       {error && <Notice>{error}</Notice>}
       <div className="row">
         <button className="btn btn-primary">Lagre</button>

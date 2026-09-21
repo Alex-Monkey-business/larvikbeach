@@ -73,13 +73,15 @@ export function Play() {
 
 /**
  * Alle vet at det er mandag 19–21 i hallen. Undertittelen sier bare fra når
- * økta ikke er som de andre: annet sted, eller annen tid enn resten av sesongen.
+ * økta ikke er som de andre: annet sted, annen tid enn resten av sesongen,
+ * eller ute (og da gratis).
  */
 function avvik(x: Session, seasons: Season[], alle: Session[]): string | null {
-  const sted = x.location && x.location !== seasons.find(s => s.id === x.season_id)?.default_location ? x.location : null
+  // Ute: stedet står alltid, for da er det ikke hallen.
+  const sted = x.location && (x.outdoor || x.location !== seasons.find(s => s.id === x.season_id)?.default_location) ? x.location : null
   const vanlig = vanligTid(alle.filter(a => a.season_id === x.season_id))
   const tid = vanlig && time(x.starts_at) !== vanlig ? `${time(x.starts_at)}–${endTime(x.starts_at, x.duration_min)}` : null
-  return [tid, sted].filter(Boolean).join(' · ') || null
+  return [tid, x.outdoor ? 'Ute' : null, sted, x.outdoor ? 'gratis' : null].filter(Boolean).join(' · ') || null
 }
 
 function vanligTid(sesongen: Session[]): string | null {

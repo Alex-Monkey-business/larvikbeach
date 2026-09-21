@@ -57,7 +57,7 @@ export function SessionPage() {
       <Link to="/spill" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Hjem</Link>
       <header className="stack">
         <h1 className="h1">{longDate(session.starts_at)}</h1>
-        <p className="lede">{time(session.starts_at)}–{endTime(session.starts_at, session.duration_min)}{session.location ? ` · ${session.location}` : ''}</p>
+        <p className="lede">{[`${time(session.starts_at)}–${endTime(session.starts_at, session.duration_min)}`, session.outdoor ? 'Ute' : null, session.location, session.outdoor ? 'gratis' : null].filter(Boolean).join(' · ')}</p>
         {session.note && <p>{session.note}</p>}
         <div className="row">
           {session.status === 'held' && <span className="badge badge-forest">Gjennomført</span>}
