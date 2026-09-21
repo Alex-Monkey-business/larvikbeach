@@ -32,6 +32,12 @@ export const api = {
     return unwrap<Session[]>(await q)
   },
   session: async (id: string) => unwrap<Session>(await supabase.from('sessions').select('*').eq('id', id).single()),
+  /** Sist gjengen spilte ute i sesongen: sted og notat foreslås igjen. */
+  lastOutdoor: async (seasonId: string, exceptId?: string) => {
+    let q = supabase.from('sessions').select('location, note').eq('season_id', seasonId).eq('outdoor', true).order('starts_at', { ascending: false }).limit(1)
+    if (exceptId) q = q.neq('id', exceptId)
+    return unwrap<Pick<Session, 'location' | 'note'>[]>(await q).at(0) ?? null
+  },
   sessionsById: async (ids: string[]) =>
     ids.length ? unwrap<Session[]>(await supabase.from('sessions').select('*').in('id', ids)) : [],
   saveSession: async (s: Partial<Session> & { id?: string }) => {

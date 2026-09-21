@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
@@ -147,6 +147,20 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
   const [f, setF] = useState({ when: toLocalInput(next.toISOString()), duration: '120', location: season.default_location ?? '', cost: String(season.default_cost / 100), outdoor: false, note: '', repeat: '1',
     capacity: season.default_capacity ? String(season.default_capacity) : '', min: season.default_min_players ? String(season.default_min_players) : '' })
   const [error, setError] = useState<string | null>(null)
+  const foreslatt = useRef<{ location: string; note: string } | null>(null)
+  async function toggleOutdoor(on: boolean) {
+    if (!on) {
+      const r = foreslatt.current; foreslatt.current = null
+      setF(x => ({ ...x, outdoor: false, location: r && x.location === r.location ? (season.default_location ?? '') : x.location, note: r && x.note === r.note ? '' : x.note }))
+      return
+    }
+    setF(x => ({ ...x, outdoor: true }))
+    const sist = await api.lastOutdoor(season.id).catch(() => null)
+    if (!sist) return
+    const r = { location: sist.location ?? '', note: sist.note ?? '' }
+    foreslatt.current = r
+    setF(x => x.outdoor ? { ...x, location: x.location === (season.default_location ?? '') && r.location ? r.location : x.location, note: !x.note ? r.note : x.note } : x)
+  }
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(null)
     try {
@@ -175,7 +189,7 @@ function NewSessionForm({ season, onSaved }: { season: Season; onSaved: () => Pr
         <label className="field"><span className="label">Notat</span><input className="input" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></label>
       </div>
       <label className="check">
-        <input type="checkbox" checked={f.outdoor} onChange={e => setF({ ...f, outdoor: e.target.checked })} />
+        <input type="checkbox" checked={f.outdoor} onChange={e => void toggleOutdoor(e.target.checked)} />
         <span><strong>Vi spiller ute</strong><br /><span className="caption">Gratis, ingen får regning.</span></span>
       </label>
       {error && <Notice>{error}</Notice>}

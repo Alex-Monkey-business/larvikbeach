@@ -63,7 +63,7 @@ select se.id, (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval 
    and not exists (select 1 from public.sessions x where x.season_id = se.id and x.starts_at > now() + interval '30 days');
 
 -- Ute-testen skal ha ryddet etter seg; dette er sikkerhetsnettet.
-update public.sessions set outdoor = false, cost = 62000, location = 'Grenland Folkehøgskole' where outdoor;
+update public.sessions set outdoor = false, cost = 62000, location = 'Grenland Folkehøgskole', note = null where outdoor;
 update public.sessions set status = 'planned' where status = 'held' and starts_at > now();
 
 -- Prod deler påminnelsen i Messenger og sender ingen regnings-e-post. Testen

@@ -34,8 +34,9 @@ export function Play() {
 
   const matches = useQuery(() => api.matchesFor(forrige ? [forrige.id] : []), [forrige?.id])
   // Meldinga handler om å komme seg TIL neste økt. Sto den på toppen av sida,
-  // leste den som en beskjed om forrige økt det første døgnet.
-  const notice = neste ? seasons.data?.find(se => se.id === neste.season_id)?.notice : null
+  // leste den som en beskjed om forrige økt det første døgnet. Ute gjelder
+  // den ikke (felles transport til hallen); da sier øktas eget notat hvor.
+  const notice = neste && !neste.outdoor ? seasons.data?.find(se => se.id === neste.season_id)?.notice : null
   const vinnere = forrige ? topWinners(matches.data ?? [], forrige.id, byId) : []
   const feir = profile && forrige && vinnere.some(w => w.id === profile.id) ? forrige.id : null
 
