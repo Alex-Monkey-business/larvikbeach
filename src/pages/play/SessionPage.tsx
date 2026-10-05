@@ -38,9 +38,11 @@ export function SessionPage() {
   const open = session.status === 'planned' && signupOpen(session.starts_at, windowDays)
   const notYet = session.status === 'planned' && !isPast(session.starts_at) && !open
   const attOf = new Map(att.map(a => [a.profile_id, a]))
-  // Gjester: alle mens påmeldingen er åpen. Admin også etterpå, for den som
-  // var med i går men ikke ble registrert; oppgjøret regnes om.
-  const guestsOpen = open || (isAdmin && session.status === 'held')
+  // Gjester: alle mens påmeldingen er åpen, og mens økta pågår – gjesten
+  // dukker opp på hallen, ikke i admin-panelet. Admin også etterpå, for den
+  // som var med i går men ikke ble registrert; oppgjøret regnes om.
+  const running = session.status === 'planned' && isPast(session.starts_at)
+  const guestsOpen = open || running || (isAdmin && session.status === 'held')
   // Gjesten kan fjernes av den som tok hen med, og av admin.
   const canRemove = (p: Profile) => guestsOpen && p.role === 'guest' && (isAdmin || attOf.get(p.id)?.added_by === profile?.id)
   const person = (p: Profile, i?: number) => (
@@ -74,7 +76,7 @@ export function SessionPage() {
       </header>
 
 
-      {(open || guestsOpen) && (
+      {guestsOpen && (
         <div className="stack">
           {open && (
             <div className="row">
