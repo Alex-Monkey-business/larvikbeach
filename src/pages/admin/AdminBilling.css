@@ -1,0 +1,75 @@
+/* Betalingstabellen. Én rad per person: navn, beløp, status, handling.
+   Tallene er høyrestilte og i samme bredde, så kolonnen kan skummes. */
+.table-wrap { overflow-x: auto; }
+
+.money { width: 100%; border-collapse: collapse; }
+.money th, .money td { padding: var(--space-2) 0; border-top: 1px solid var(--color-stone); text-align: left; vertical-align: middle; }
+.money thead th { border-top: 0; padding-top: 0; font-size: var(--text-caption); font-weight: 500; color: var(--color-fog); }
+.money tbody tr:first-child th, .money tbody tr:first-child td { border-top: 0; }
+.money th[scope="row"] { font-weight: 500; }
+
+.money .num-col { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: var(--space-2); }
+.money .act-col { text-align: right; padding-left: var(--space-2); white-space: nowrap; }
+.money .status-col { padding-left: var(--space-2); white-space: nowrap; }
+
+/* Navnet er knappen som folder ut hva beløpet består av. */
+.row-name {
+  display: block; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; font-weight: 500; text-align: left; cursor: pointer;
+}
+.row-name:hover { text-decoration: underline; }
+.row-name:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 2px; }
+.money tr.is-open th[scope="row"] .row-name { text-decoration: underline; }
+
+.money tr.detail td { border-top: 0; padding-top: 0; }
+.money tr.detail .list > * { padding: 10px 0; }
+
+/* Statusen står i egen kolonne når det er plass, ellers under navnet. */
+.status-inline { display: none; }
+@media (max-width: 599px) {
+  .money .status-col { display: none; }
+  .status-inline { display: block; margin-top: 6px; }
+}
+
+/* Oppgjørskortet: overskriften er knappen som folder det ut. */
+.run-head {
+  width: 100%; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; cursor: pointer; text-align: left; align-items: flex-start;
+}
+.run-head:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 4px; }
+
+/* Skolen tok / priset til / krevd inn, side om side. */
+.run-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-bottom: 0; }
+.run-sums div { display: grid; gap: 4px; }
+.run-sums dd { margin: 0; font-size: var(--text-subheading); line-height: 1.1; }
+@media (max-width: 479px) { .run-sums { grid-template-columns: 1fr; } }
+
+/* .num er husets heltall på 48px. Inne i en tabell er det feil: navnet er det
+   du leter etter, beløpet er det du leser. */
+.money .num { font-size: var(--text-subheading); }
+.money tr.detail .num { font-size: var(--text-body); }
+
+.money .acts { flex-wrap: nowrap; justify-content: flex-end; }
+
+/* Spennene i oppgjørsoverskriften er inline av natur; uten dette havner
+   undertittelen på samme linje som datoene. */
+.run-head .h3, .run-head .caption { display: block; }
+
+/* Under 600 px er fire kolonner for mye. Raden blir en blokk: navn og status
+   til venstre, beløpet til høyre, knappene på egen linje under – de skal ikke
+   ligge utenfor skjermen der ingen finner dem. */
+@media (max-width: 599px) {
+  .money thead { display: none; }
+  .money, .money tbody { display: block; }
+  .money tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px var(--space-2); align-items: baseline;
+    padding: var(--space-2) 0; border-top: 1px solid var(--color-stone);
+  }
+  .money tbody tr:first-child { border-top: 0; padding-top: 0; }
+  .money th, .money td { display: block; border-top: 0; padding: 0; }
+  .money .num-col { text-align: right; }
+  .money .act-col { grid-column: 1 / -1; margin-top: 6px; }
+  .money .acts { justify-content: flex-start; }
+  .money tbody tr.detail { display: block; padding-top: 0; border-top: 0; }
+}

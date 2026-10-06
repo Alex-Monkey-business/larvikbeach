@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
 import { useQuery } from '../../lib/useQuery'
 import { kr } from '../../lib/money'
-import { periodLabel } from '../../lib/format'
+import { periodLabel, runLabel } from '../../lib/format'
 import { Notice } from '../../components/Notice'
 import { InvoiceBadge } from '../../components/InvoiceBadge'
 
@@ -13,6 +13,12 @@ export function Billing() {
   const inv = useQuery(() => api.invoices({ profileId: profile!.id }), [profile?.id])
   const bal = useQuery(() => api.myBalance(profile!.id), [profile?.id])
   const settings = useQuery(() => api.settings(), [])
+  const runs = useQuery(() => api.billingRuns(), [])
+  // Regningen heter det oppgjøret den hører til: datoene øktene spenner over.
+  const label = (i: { run_id: string | null; period: string }) => {
+    const b = (runs.data ?? []).find(x => x.id === i.run_id)
+    return b ? runLabel(b.from_date, b.to_date, b.closed_at) : periodLabel(i.period)
+  }
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,7 +52,7 @@ export function Billing() {
         )}
         {palopt > 0 && (
           <p style={{ color: owed > 0 ? 'var(--color-ink)' : undefined }}>
-            {faktura > 0 ? `Av dette er ${kr(palopt)} økter du har spilt siden forrige regning.` : `${kr(palopt)} for økter du har spilt.`} Det kommer på regningen den {settings.data?.billing_day ?? 1}.
+            {faktura > 0 ? `Av dette er ${kr(palopt)} økter du har spilt siden forrige regning.` : `${kr(palopt)} for økter du har spilt.`} Det kommer på neste regning.
           </p>
         )}
         {meldt > 0 && <p className="muted">{kr(meldt)} er meldt betalt og venter på bekreftelse.</p>}
@@ -60,7 +66,7 @@ export function Billing() {
           {open.map(i => (
             <div key={i.id} className="card row between">
               <div>
-                <p style={{ fontWeight: 500 }}>{periodLabel(i.period)}</p>
+                <p style={{ fontWeight: 500 }}>{label(i)}</p>
                 <p className="muted">{kr(i.amount)}</p>
               </div>
               <button type="button" className="btn btn-primary" disabled={busy === i.id} onClick={() => void claim(i.id)}>{busy === i.id ? 'Lagrer…' : 'Jeg har vippset'}</button>
@@ -75,7 +81,7 @@ export function Billing() {
         <ul className="list">
           {rest.map(i => (
             <li key={i.id} className="row between">
-              <span>{periodLabel(i.period)}</span>
+              <span>{label(i)}</span>
               <span className="row"><span>{kr(i.amount)}</span><InvoiceBadge status={i.status} /></span>
             </li>
           ))}
