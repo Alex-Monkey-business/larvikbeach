@@ -39,13 +39,16 @@ export function AdminSession() {
   const spotOf = (id: string) => queue.indexOf(id) + 1
   const cap = session.capacity
   const answered = new Set(attendance.map(a => a.profile_id))
-  const invoiced = charges.some(c => c.invoice_id)
+  // Noen har betalt for økta. Oppmøte og gjester kan fortsatt rettes: betalte
+  // andeler står fast, resten regnes om. Pris, avlysning og sletting låses.
+  const gjester = new Set(profiles.filter(p => p.role === 'guest').map(p => p.id))
+  const invoiced = charges.some(c => c.invoice_id && !gjester.has(c.profile_id))
 
   return (
     <div className="stack-lg" style={{ maxWidth: 720 }}>
       <Link to="/admin" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>← Alle økter</Link>
       <h1 className="h2">{longDate(session.starts_at)} {time(session.starts_at)}</h1>
-      {invoiced && <Notice kind="ok">Andelene fra denne økta står på en regning som er sendt. Oppmøtet er låst.</Notice>}
+      {invoiced && <Notice kind="ok">Noen har betalt for denne økta. Retter du oppmøtet, regnes bare de ubetalte andelene om.</Notice>}
       {error && <Notice>{error}</Notice>}
 
       <section className="card stack">
@@ -64,19 +67,17 @@ export function AdminSession() {
             return (
               <li key={p.id} className="row between">
                 <span>{p.name}{p.role === 'guest' && <span className="caption"> · gjest</span>}{!answered.has(p.id) && <span className="caption"> · ikke svart</span>}{isGoing && cap && spotOf(p.id) > cap && <span className="caption"> · venteliste {spotOf(p.id) - cap}</span>}</span>
-                {invoiced
-                  ? <span className={`badge ${svar.plass ? 'badge-forest' : svar.kø ? 'badge-stone' : 'badge-outline muted'}`}>{svar.tekst}</span>
-                  : <button type="button" className={`btn btn-sm ${svar.plass ? 'btn-forest' : svar.kø ? 'btn-dark' : ''}`} disabled={busy === p.id}
-                      onClick={() => void run(p.id, () => api.setAttendance(id, !isGoing, p.id))}>
-                      {svar.tekst}
-                    </button>}
+                <button type="button" className={`btn btn-sm ${svar.plass ? 'btn-forest' : svar.kø ? 'btn-dark' : ''}`} disabled={busy === p.id}
+                  onClick={() => void run(p.id, () => api.setAttendance(id, !isGoing, p.id))}>
+                  {svar.tekst}
+                </button>
               </li>
             )
           })}
         </ul>
         {/* Gjesten som var med men ikke ble registrert. På en spilt økt får
             hen plass, og andelene regnes om. */}
-        {!invoiced && session.status !== 'cancelled' && <GuestForm sessionId={id} people={alle} present={going} onDone={q.reload} />}
+        {session.status !== 'cancelled' && <GuestForm sessionId={id} people={alle} present={going} onDone={q.reload} />}
       </section>
 
       {session.status === 'planned' && (

@@ -1,6 +1,6 @@
 /* Betalingslista. Én rad per person: navn og tilstand til venstre, beløp og
    den ene handlingen til høyre. Samme form på 320 px som på desktop. */
-.pay-list { list-style: none; margin: 0; padding: 0; }
+.pay-list { list-style: none; margin-bottom: 0; padding: 0; }
 .pay-row { border-top: 1px solid var(--color-stone); }
 .pay-row:first-child { border-top: 0; }
 
@@ -47,21 +47,5 @@
 .pay-lines .tab { text-align: right; font-variant-numeric: tabular-nums; }
 .pay-lines .muted { font-size: var(--text-caption); }
 
-/* Hvor mye som er betalt, som en strek i overskriftskortet. */
-.pay-bar { height: 8px; border-radius: 4px; background: var(--color-cream); border: 1.5px solid var(--color-ink); overflow: hidden; }
-.pay-bar span { display: block; height: 100%; background: var(--color-forest); }
-.card:not(.card-lavender) .pay-bar { background: var(--color-stone); }
+.pay-lines li.is-paid { color: var(--color-fog); }
 .ink { color: var(--color-ink); }
-
-/* Oppgjørskortet: overskriften er knappen som folder det ut. */
-.run-head {
-  width: 100%; padding: 0; border: 0; background: transparent; color: inherit;
-  font: inherit; cursor: pointer; text-align: left; align-items: flex-start;
-}
-.run-head:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 4px; }
-.run-head .h3, .run-head .caption { display: block; }
-
-/* Skolen tok / priset til / krevd inn, side om side. */
-.run-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-bottom: 0; }
-.run-sums div { display: grid; gap: 4px; }
-.run-sums dd { margin: 0; font-size: var(--text-subheading); line-height: 1.1; }

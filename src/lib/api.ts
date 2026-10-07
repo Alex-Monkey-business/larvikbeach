@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { unwrap } from './useQuery'
-import type { Attendance, BillingRun, Balance, Charge, Invite, InviteRole, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, SessionTeam, Settings } from './types'
+import type { Attendance, Balance, Charge, Invite, InviteRole, Invoice, JoinRequest, Match, Profile, Season, SeasonStat, Session, SessionTeam, Settings } from './types'
 
 // Alle skriv som kan filtreres bort av RLS har .select(): en update som
 // treffer null rader gir ellers «ok» uten feil.
@@ -78,12 +78,9 @@ export const api = {
   claimInvoice: async (id: string) => unwrap<Invoice>(await supabase.rpc('claim_invoice', { p_invoice: id })),
   setInvoiceStatus: async (id: string, status: 'notified' | 'confirmed' | 'waived', ref?: string) =>
     unwrap<Invoice>(await supabase.rpc('set_invoice_status', { p_invoice: id, p_status: status, ...(ref ? { p_ref: ref } : {}) })),
-  billingRuns: async () =>
-    unwrap<BillingRun[]>(await supabase.from('billing_runs').select('*').order('closed_at', { ascending: false })),
-  closeBillingRun: async (schoolAmount: number | null, note: string) =>
-    unwrap<BillingRun>(await supabase.rpc('close_billing_run', { p_school_amount: schoolAmount, p_note: note })),
-  updateBillingRun: async (id: string, schoolAmount: number | null, note: string) =>
-    unwrap<BillingRun>(await supabase.rpc('update_billing_run', { p_run: id, p_school_amount: schoolAmount, p_note: note })),
+  // Løpende saldo: «Betalt» og «Jeg har vippset» gjelder alt fram til nå.
+  markPaid: async (profileId: string) => unwrap<number>(await supabase.rpc('mark_paid', { p_profile: profileId })),
+  claimBalance: async () => unwrap<number>(await supabase.rpc('claim_balance')),
 
   balances: async () => unwrap<Balance[]>(await supabase.from('balances').select('*')),
   myBalance: async (profileId: string) =>

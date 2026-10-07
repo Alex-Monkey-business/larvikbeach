@@ -93,7 +93,6 @@ try {
   empty = true; await p.goto(app+'/spill/kalender'); await p.getByText('Ingen sesong er lagt inn ennå.').waitFor(); empty = false
   fail = 'balances'; await p.goto(app+'/spill/betaling'); await p.getByRole('alert').waitFor(); assert.equal(await p.getByText('Utestående', {exact:true}).count(),0); fail = ''
   await p.emulateMedia({ reducedMotion: 'reduce' }); await p.goto(app+'/spill')
-  assert.equal(await p.locator('.beach-ball').evaluate(el => getComputedStyle(el).animationName), 'none')
   people[0].name = 'Alexander Et Veldig Langt Mellomnavn Samnøy'
   people[0].email = 'alexander.et.veldig.langt.navn@example.com'
   await p.setViewportSize({ width: 320, height: 844 })

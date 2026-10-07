@@ -2,20 +2,8 @@
 -- Kjøres av scripts/qa.mjs via docker exec. Rører ikke Alex' innlogging.
 delete from public.matches;
 
--- Oppgjørsrunden forrige QA-kjøring lukket: andelene tilbake til ufakturert,
--- så «Lukk runde og krev inn» har noe å ta neste gang. Kjennes på notatet.
-update public.charges set invoice_id = null
- where invoice_id in (select id from public.invoices
-                       where run_id in (select id from public.billing_runs where note = 'QA'));
-delete from public.invoices
- where session_id is null and run_id in (select id from public.billing_runs where note = 'QA');
-update public.invoices set run_id = null
- where run_id in (select id from public.billing_runs where note = 'QA');
-update public.sessions set run_id = null
- where run_id in (select id from public.billing_runs where note = 'QA');
-delete from public.billing_runs where note = 'QA';
 delete from public.session_teams;
-delete from public.session_teams;
+-- Betalt og meldt betalt tilbake til ubetalt, så saldoene har noe å vise.
 update public.invoices set status = 'open', claimed_at = null, confirmed_at = null where status in ('claimed', 'confirmed');
 delete from public.join_requests where email like 'test%@example.com' or name = 'Test Testesen';
 delete from public.invites where email like 'test%@example.com';

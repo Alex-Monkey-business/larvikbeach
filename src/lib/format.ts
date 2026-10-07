@@ -76,24 +76,3 @@ export function fromLocalInput(v: string): string {
   return new Date(v).toISOString()
 }
 
-/**
- * Navnet på et oppgjør: datoene øktene faktisk spenner over. «1.–5. oktober»
- * sier mer enn «oktober» når runden styres av fakturaen fra skolen og ikke av
- * kalenderen. Gamle runder fra månedsmodellen har ingen datoer, og får
- * måneden de ble lukket i.
- */
-export function runLabel(from: string | null, to: string | null, closedAt: string): string {
-  if (!from || !to) return periodLabel(closedAt.slice(0, 7))
-  const d = (s: string) => new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)))
-  const a = d(from), b = d(to)
-  const long = (x: Date) => x.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', timeZone: 'UTC' })
-  const short = (x: Date) => x.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-  if (from === to) return `${long(a)} ${a.getUTCFullYear()}`
-  if (a.getUTCFullYear() !== b.getUTCFullYear()) {
-    return `${short(a)} ${a.getUTCFullYear()}–${short(b)} ${b.getUTCFullYear()}`
-  }
-  if (a.getUTCMonth() === b.getUTCMonth()) {
-    return `${a.getUTCDate()}.–${long(b)} ${b.getUTCFullYear()}`
-  }
-  return `${short(a)}–${short(b)} ${b.getUTCFullYear()}`
-}

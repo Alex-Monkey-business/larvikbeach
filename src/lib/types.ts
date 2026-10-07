@@ -66,7 +66,6 @@ export interface Session {
   note: string | null
   capacity: number | null
   min_players: number | null
-  run_id: string | null   // oppgjøret økta ble gjort opp i
 }
 
 export interface Attendance {
@@ -99,23 +98,7 @@ export interface Invoice {
   confirmed_at: string | null
   external_ref: string | null
   session_id: string | null      // satt = gjesteregning for én økt
-  run_id: string | null          // oppgjørsrunden regningen hører til
   created_at: string
-}
-
-/**
- * Ett oppgjør: øktene som ble gjort opp da fakturaen fra skolen kom.
- * school_amount er det skolen tok, så det kan holdes opp mot det som kreves
- * inn. Gamle runder fra månedsmodellen har beløpet tomt.
- */
-export interface BillingRun {
-  id: string
-  closed_at: string
-  from_date: string | null
-  to_date: string | null
-  school_amount: number | null
-  note: string | null
-  closed_by: string | null
 }
 
 export interface Balance {
