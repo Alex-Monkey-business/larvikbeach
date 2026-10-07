@@ -84,8 +84,6 @@ export const api = {
     unwrap<BillingRun>(await supabase.rpc('close_billing_run', { p_school_amount: schoolAmount, p_note: note })),
   updateBillingRun: async (id: string, schoolAmount: number | null, note: string) =>
     unwrap<BillingRun>(await supabase.rpc('update_billing_run', { p_run: id, p_school_amount: schoolAmount, p_note: note })),
-  createInvoices: async (period?: string) =>
-    unwrap<number>(await supabase.rpc('create_invoices', period ? { p_period: period } : {})),
 
   balances: async () => unwrap<Balance[]>(await supabase.from('balances').select('*')),
   myBalance: async (profileId: string) =>
@@ -132,11 +130,6 @@ export const api = {
     const { data, error } = await supabase.functions.invoke('invite-member', { body })
     if (error) throw new Error(await edgeError(error))
     return data as { email: string; activated: boolean; mail: { sent: boolean; error?: string } }
-  },
-  sendInvoices: async (body: { period?: string; dry_run?: boolean } = {}) => {
-    const { data, error } = await supabase.functions.invoke('send-invoices', { body })
-    if (error) throw new Error(await edgeError(error))
-    return data as { created: number; sent: number; admin_summary: string }
   },
 }
 

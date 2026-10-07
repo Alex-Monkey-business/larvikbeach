@@ -1,35 +1,57 @@
-/* Betalingstabellen. Én rad per person: navn, beløp, status, handling.
-   Tallene er høyrestilte og i samme bredde, så kolonnen kan skummes. */
-.table-wrap { overflow-x: auto; }
+/* Betalingslista. Én rad per person: navn og tilstand til venstre, beløp og
+   den ene handlingen til høyre. Samme form på 320 px som på desktop. */
+.pay-list { list-style: none; margin: 0; padding: 0; }
+.pay-row { border-top: 1px solid var(--color-stone); }
+.pay-row:first-child { border-top: 0; }
 
-.money { width: 100%; border-collapse: collapse; }
-.money th, .money td { padding: var(--space-2) 0; border-top: 1px solid var(--color-stone); text-align: left; vertical-align: middle; }
-.money thead th { border-top: 0; padding-top: 0; font-size: var(--text-caption); font-weight: 500; color: var(--color-fog); }
-.money tbody tr:first-child th, .money tbody tr:first-child td { border-top: 0; }
-.money th[scope="row"] { font-weight: 500; }
-
-.money .num-col { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: var(--space-2); }
-.money .act-col { text-align: right; padding-left: var(--space-2); white-space: nowrap; }
-.money .status-col { padding-left: var(--space-2); white-space: nowrap; }
-
-/* Navnet er knappen som folder ut hva beløpet består av. */
-.row-name {
-  display: block; padding: 0; border: 0; background: transparent; color: inherit;
-  font: inherit; font-weight: 500; text-align: left; cursor: pointer;
+.pay-main {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 76px;
+  align-items: center; gap: var(--space-2); padding: 14px 0;
 }
-.row-name:hover { text-decoration: underline; }
-.row-name:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 2px; }
-.money tr.is-open th[scope="row"] .row-name { text-decoration: underline; }
+.pay-row:first-child .pay-main { padding-top: 0; }
 
-.money tr.detail td { border-top: 0; padding-top: 0; }
-.money tr.detail .list > * { padding: 10px 0; }
-
-/* Statusen står i egen kolonne når det er plass, ellers under navnet. */
-.status-inline { display: none; }
-@media (max-width: 599px) {
-  .money .status-col { display: none; }
-  .status-inline { display: block; margin-top: 6px; }
+/* Navnet er knappen som folder ut øktene. */
+.pay-who {
+  display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
+.pay-who:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 2px; }
+.pay-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-row.is-open .pay-name { text-decoration: underline; text-underline-offset: 3px; }
+.pay-state { font-size: var(--text-caption); color: var(--color-fog); }
+.pay-state.is-claimed { color: var(--color-ink); font-weight: 500; }
+
+.pay-amount { font-family: var(--font-serif); font-size: var(--text-subheading); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.pay-act { display: flex; justify-content: flex-end; }
+.pay-act .btn { width: 100%; padding-left: 0; padding-right: 0; }
+
+/* Betalt: raden blir stående, men trer tilbake. Haken sier resten. */
+.pay-row.is-done .pay-name, .pay-row.is-done .pay-amount { color: var(--color-fog); }
+.pay-check {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--color-forest); position: relative; margin-right: 24px;
+}
+.pay-check::after {
+  content: ''; position: absolute; left: 10px; top: 6px; width: 6px; height: 12px;
+  border: solid var(--color-cream); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+}
+
+.pay-detail { padding: 0 0 var(--space-3); gap: var(--space-2); }
+
+/* Linjene i detaljen: hva, tilstand, beløp. Beløpene står i kolonne. */
+.pay-lines { list-style: none; margin: 0; padding: 0; }
+.pay-lines li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 72px; gap: var(--space-2);
+  padding: 8px 0; border-top: 1px solid var(--color-stone); align-items: baseline;
+}
+.pay-lines li:first-child { border-top: 0; }
+.pay-lines .tab { text-align: right; font-variant-numeric: tabular-nums; }
+.pay-lines .muted { font-size: var(--text-caption); }
+
+/* Hvor mye som er betalt, som en strek i overskriftskortet. */
+.pay-bar { height: 8px; border-radius: 4px; background: var(--color-cream); border: 1.5px solid var(--color-ink); overflow: hidden; }
+.pay-bar span { display: block; height: 100%; background: var(--color-forest); }
+.card:not(.card-lavender) .pay-bar { background: var(--color-stone); }
+.ink { color: var(--color-ink); }
 
 /* Oppgjørskortet: overskriften er knappen som folder det ut. */
 .run-head {
@@ -37,39 +59,9 @@
   font: inherit; cursor: pointer; text-align: left; align-items: flex-start;
 }
 .run-head:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 4px; }
+.run-head .h3, .run-head .caption { display: block; }
 
 /* Skolen tok / priset til / krevd inn, side om side. */
 .run-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-bottom: 0; }
 .run-sums div { display: grid; gap: 4px; }
 .run-sums dd { margin: 0; font-size: var(--text-subheading); line-height: 1.1; }
-@media (max-width: 479px) { .run-sums { grid-template-columns: 1fr; } }
-
-/* .num er husets heltall på 48px. Inne i en tabell er det feil: navnet er det
-   du leter etter, beløpet er det du leser. */
-.money .num { font-size: var(--text-subheading); }
-.money tr.detail .num { font-size: var(--text-body); }
-
-.money .acts { flex-wrap: nowrap; justify-content: flex-end; }
-
-/* Spennene i oppgjørsoverskriften er inline av natur; uten dette havner
-   undertittelen på samme linje som datoene. */
-.run-head .h3, .run-head .caption { display: block; }
-
-/* Under 600 px er fire kolonner for mye. Raden blir en blokk: navn og status
-   til venstre, beløpet til høyre, knappene på egen linje under – de skal ikke
-   ligge utenfor skjermen der ingen finner dem. */
-@media (max-width: 599px) {
-  .money thead { display: none; }
-  .money, .money tbody { display: block; }
-  .money tbody tr {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px var(--space-2); align-items: baseline;
-    padding: var(--space-2) 0; border-top: 1px solid var(--color-stone);
-  }
-  .money tbody tr:first-child { border-top: 0; padding-top: 0; }
-  .money th, .money td { display: block; border-top: 0; padding: 0; }
-  .money .num-col { text-align: right; }
-  .money .act-col { grid-column: 1 / -1; margin-top: 6px; }
-  .money .acts { justify-content: flex-start; }
-  .money tbody tr.detail { display: block; padding-top: 0; border-top: 0; }
-}

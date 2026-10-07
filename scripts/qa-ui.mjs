@@ -18,7 +18,7 @@ const data = {
   profiles: people, seasons: [season], sessions,
   season_stats: people.map((p, i) => ({ profile_id: p.id, season_id: season.id, sessions: 7-i, games: 12, wins: 8-i, points_for: 130, points_against: 100, points_diff: 30 })),
   balances: [{ profile_id: 'p0', invoiced_open: 100, uninvoiced: 50, claimed: 0 }],
-  invoices: [{ id: 'invoice1', profile_id: 'p0', amount: 100, period: '2026-08-01', status: 'open' }],
+  invoices: [{ id: 'invoice1', profile_id: 'p0', amount: 100, period: '2026-08-01', status: 'open', created_at: '2026-09-01T10:00:00Z' }],
   public_upcoming_sessions: [{ ...sessions[1], kind: 'indoor', going_count: 6 }],
 }
 const browser = await chromium.launch()

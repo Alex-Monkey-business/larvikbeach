@@ -28,7 +28,6 @@ Testdata (`supabase/seed.sql`): Alex er admin (`alexander.samnoy@gmail.com`), 12
    ```
    npx supabase secrets set RESEND_API_KEY=re_... SITE_URL=https://<domene> MAIL_FROM="Larvik Beach Volley <ikke-svar@<domene>>"
    npx supabase functions deploy invite-member
-   npx supabase functions deploy send-invoices
    ```
    Resend-domenet må være verifisert (DNS hos Cloudflare, samme oppskrift som BenchBoss).
 5. Cron-nøkler i vault (SQL-editor i dashbordet):

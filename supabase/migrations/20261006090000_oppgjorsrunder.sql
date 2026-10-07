@@ -166,21 +166,11 @@ begin
 end
 $$;
 
--- create_invoices het det før, og Edge-funksjonen send-invoices kaller den
--- fortsatt. Perioden den får betyr ingenting lenger: begge veier lager nå
--- samme runde, så de ikke kan komme i utakt.
-create or replace function public.create_invoices(p_period text default null)
-returns int
-language plpgsql security definer
-set search_path = public
-as $$
-declare
-  run public.billing_runs;
-begin
-  run := public.close_billing_run();
-  return (select count(*) from public.invoices where run_id = run.id and session_id is null);
-end
-$$;
+-- Månedsregningene og e-posten med dem er borte. Admin krever inn selv, med
+-- påminnelse i Messenger og Vipps. Edge-funksjonen send-invoices er slettet,
+-- og det eneste som kalte create_invoices var den og den gamle knappen.
+drop function if exists public.create_invoices(text);
+drop function if exists public.call_send_invoices();
 
 -- Regningene lages ikke lenger på en fast dag. Runden lukkes når fakturaen
 -- fra skolen kommer.

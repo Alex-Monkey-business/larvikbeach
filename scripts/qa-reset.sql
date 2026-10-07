@@ -79,6 +79,3 @@ select se.id, (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval 
 update public.sessions set outdoor = false, cost = 62000, location = 'Grenland Folkehøgskole', note = null where outdoor;
 update public.sessions set status = 'planned' where status = 'held' and starts_at > now();
 
--- Prod deler påminnelsen i Messenger og sender ingen regnings-e-post. Testen
--- skal kjøre på den oppsettet som faktisk er i bruk.
-update public.settings set email_invoices = false;
