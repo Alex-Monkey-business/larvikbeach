@@ -41,8 +41,8 @@ begin
   values ('Sommer 2026', 'outdoor', '2026-05-01', '2026-08-31', 0, 'Batteristranda')
   returning id into s_summer;
 
-  -- Fire økter bakover, to planlagte framover. Den ferskeste spilte står som
-  -- planlagt til oppgjøret under er lukket, så den havner i neste runde.
+  -- Fire økter bakover, to planlagte framover. Den ferskeste spilte settes
+  -- til spilt under, når gjesten er lagt til.
   for i in -4..1 loop
     insert into public.sessions (season_id, starts_at, duration_min, location, cost, status, capacity, min_players)
     values (s_winter, base + (i * interval '1 week'), 120, 'Grenland Folkehøgskole', 62000,
@@ -58,17 +58,7 @@ begin
   end loop;
 end $$;
 
--- Ett lukket oppgjør, så betalingsflyten har noe å vise. Runden lukkes av
--- admin, så seeden later som den er Alex.
-select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'alexander.samnoy@gmail.com'))::text, true);
-select public.close_billing_run(186000, 'Faktura fra skolen');
--- To har betalt, én sier hen har vippset.
-update public.invoices set status = 'confirmed', confirmed_at = now()
- where id in (select i.id from public.invoices i join public.profiles p on p.id = i.profile_id order by p.name limit 2);
-update public.invoices set status = 'claimed'
- where id = (select i.id from public.invoices i join public.profiles p on p.id = i.profile_id where i.status = 'open' order by p.name limit 1);
-
--- Den siste økta er spilt etter oppgjøret.
+-- Den siste økta er spilt, men ikke regnet ut ennå (regnes ut av gjesteblokka under).
 update public.sessions set status = 'held'
  where status = 'planned'
    and starts_at = (select max(starts_at) + interval '1 week' from public.sessions where status = 'held');
@@ -86,3 +76,10 @@ begin
   values (sid, simen, true, 'host', ola, now() - interval '2 days');
   perform public.settle_session(sid);
 end $$;
+
+-- To har betalt alt fram til nå, én sier hen har vippset. Betalt-knappen
+-- krever admin, så seeden later som den er Alex.
+select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'alexander.samnoy@gmail.com'))::text, true);
+select public.mark_paid(id) from public.profiles where email in ('alexander.samnoy@gmail.com', 'ingrid4@example.com');
+select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'jonas5@example.com'))::text, true);
+select public.claim_balance();

@@ -471,14 +471,16 @@ try {
   // salvie og blekk til grumsebrunt, og fjorten av dem så ut som en feil.
   const holdt = await p.locator('li.admin-session-row a').filter({ hasText: 'var med' }).first().getAttribute('href')
   await p.goto(`${APP}${holdt}`); await p.waitForSelector('h2:has-text("Oppmøte")')
-  const låst = await p.locator('text=Oppmøtet er låst').count() === 1
-  if (låst) {
-    ok(await p.locator('section:has(h2:has-text("Oppmøte")) button').count() === 0, 'admin: låst økt viser oppmøtet som merkelapper, ikke sperrede knapper')
+  // Har noen betalt, låses pris og sletting, men oppmøtet og gjestene kan
+  // fortsatt rettes: betalte andeler står fast, resten regnes om.
+  const betalt = await p.locator('text=Noen har betalt for denne økta').count() === 1
+  if (betalt) {
     const bg = await p.locator('input:disabled').first().evaluate(el => getComputedStyle(el).backgroundColor)
     ok(bg !== 'rgb(255, 255, 255)', `admin: sperret felt ser sperret ut (${bg})`)
   }
+  ok(await p.locator('section:has(h2:has-text("Oppmøte")) li button').count() > 0, 'admin: oppmøtet kan rettes på en spilt økt')
   ok(await p.locator('.farlig button:has-text("Slett økta")').count() === 1, 'admin: sletting står for seg selv under en strek')
-  ok(låst || await p.locator('section:has(h2:has-text("Oppmøte")) button:has-text("Ta med en gjest")').count() === 1, 'admin: gjesten kan legges til i oppmøtekortet på en spilt økt')
+  ok(await p.locator('section:has(h2:has-text("Oppmøte")) button:has-text("Ta med en gjest")').count() === 1, 'admin: gjesten kan legges til i oppmøtekortet på en spilt økt')
   await shot(p, 'm-admin-okt')
 
   // Ute-økt: gjengen flytter kveldens økt ut. Alt er som før, men gratis, og
@@ -562,29 +564,32 @@ try {
        on conflict (session_id, profile_id) do update set going = true, updated_at = excluded.updated_at;
        select public.settle_session((select id from public.sessions where status = 'held' order by starts_at desc limit 1));`)
   await p.goto(`${APP}/admin/betaling`); await shot(p, 'm-admin-betaling')
-  // Én liste, én rad per person. Gjesten står i samme liste, merket.
+  // Én liste, én saldo per person. Gjesten står i samme liste, merket.
   const liste = p.locator('ul.pay-list')
   await liste.waitFor({ timeout: 5000 })
+  ok(await p.locator('text=Lukk runde').count() === 0, 'betaling: ingen runder å lukke')
   const gjestKrav = liste.locator('li.pay-row:has-text("Gjest Gjestesen")').first()
   ok(await gjestKrav.count() === 1, 'betaling: gjesten står i samme liste som medlemmene')
   ok((await gjestKrav.innerText()).includes('gjest'), 'betaling: gjesten er merket som gjest')
-  // Nummeret og Vipps ligger i detaljen under navnet. Raden har én handling.
   ok(await gjestKrav.locator('.pay-main button.btn').count() === 1, 'betaling: én knapp per rad')
   await gjestKrav.locator('button.pay-who').click()
   await gjestKrav.locator('.pay-detail').waitFor({ timeout: 5000 })
   ok((await gjestKrav.innerText()).includes('999 99 999'), 'betaling: nummeret står i detaljen')
   await gjestKrav.locator('button:has-text("Be om")').click()
-  await gjestKrav.locator('.pay-state:text-is("Varslet")').waitFor({ timeout: 5000 })
+  await p.locator('text=er kopiert').waitFor({ timeout: 5000 }).catch(() => {})
   const klipp = await p.evaluate(() => navigator.clipboard.readText())
   ok(klipp === '99999999', `betaling: Vipps-knappen kopierer nummeret slik Vipps søker (${klipp})`)
   await gjestKrav.locator('.pay-act button:has-text("Betalt")').click()
-  await gjestKrav.locator('.pay-check').waitFor({ timeout: 5000 }).catch(() => {})
-  ok(await gjestKrav.locator('.pay-check').count() === 1, 'betaling: betalt gjest blir stående med hake')
+  await p.waitForFunction(() => !document.querySelector('ul.pay-list')?.textContent?.includes('Gjest Gjestesen'), null, { timeout: 5000 }).catch(() => {})
+  ok(await liste.locator('li.pay-row:has-text("Gjest Gjestesen")').count() === 0, 'betaling: betalt gjest går ut av lista')
+  // Medlemmet: saldoen tar med økter som ikke er regnet inn noe sted ennå.
   const olaKravRad = liste.locator('li.pay-row:has-text("Ola Nordmann")').first()
   ok(await olaKravRad.count() === 1, 'betaling: medlemmet står med egen rad')
+  const olaFor = await olaKravRad.locator('.pay-amount').innerText()
+  ok(olaFor !== '' && olaFor !== '0 kr', `betaling: Ola har en saldo (${olaFor})`)
   await olaKravRad.locator('button.pay-who').click()
   await olaKravRad.locator('button:has-text("Be om")').click()
-  await olaKravRad.locator('.pay-state:text-is("Varslet")').waitFor({ timeout: 5000 })
+  await p.locator('text=er kopiert').waitFor({ timeout: 5000 }).catch(() => {})
   ok(await p.evaluate(() => navigator.clipboard.readText()) === '48000001', 'betaling: Vipps-knappen for medlem kopierer nummeret')
   // Påminnelsen: teksten skal inneholde navn, beløp, Vipps-nummer og lenke
   await p.locator('button:has-text("Del påminnelse")').click()
@@ -593,26 +598,14 @@ try {
   ok(/kr/.test(delt) && delt.includes('/spill/betaling'), 'påminnelse: beløp og lenke er med')
   ok(delt.includes('900 00 000') || /\d{6,}/.test(delt), 'påminnelse: Vipps-nummeret er med')
   ok(!delt.includes('Gjestesen'), 'påminnelse: gjestene står ikke i Messenger-lista')
-  // Oppgjøret lukkes når fakturaen fra skolen kommer, ikke på en fast dag.
-  ok(await p.locator('h2:has-text("Neste oppgjør")').count() === 1, 'betaling: «Neste oppgjør» står under lista')
-  ok(await p.locator('button:has-text("Lag og send")').count() === 0, 'betaling: ingen månedsknapp lenger')
-  const lukk = p.locator('button:has-text("Lukk runde og krev inn")')
-  if (await lukk.count() === 1) {
-    await lukk.click()
-    await p.fill('input[inputmode=decimal]', '1200')
-    await p.fill('input[placeholder^="Fakturanummer"]', 'QA')
-    await p.locator('button:has-text("Lukk runde")').click()
-    await p.locator('text=er lukket').waitFor({ timeout: 8000 })
-    ok(true, 'betaling: runden kan lukkes med beløpet fra skolen')
-    const runde = p.locator('section:has(> h2:has-text("Oppgjør")) .card:has-text("QA")').first()
-    await runde.locator('button.run-head').click()
-    await runde.locator('dt:text-is("Skolen tok")').waitFor({ timeout: 5000 })
-    ok((await runde.innerText()).includes('QA'), 'betaling: notatet står på runden')
-    ok((await runde.innerText()).includes('Krevd inn'), 'betaling: avstemmingen viser hva som kreves inn')
-    await shot(p, 'm-admin-oppgjor')
-  } else {
-    ok(true, 'betaling: ingenting å gjøre opp (alt er fakturert)')
-  }
+  // Betalt nuller saldoen. Raden blir stående med hake og dato.
+  await olaKravRad.locator('.pay-act button:has-text("Betalt")').click()
+  await olaKravRad.locator('.pay-check').waitFor({ timeout: 5000 }).catch(() => {})
+  ok(await olaKravRad.locator('.pay-check').count() === 1 && (await olaKravRad.innerText()).includes('Betalt'), 'betaling: Betalt nuller saldoen, raden står med hake')
+  // Detaljen står fortsatt åpen fra Vipps-trykket.
+  await olaKravRad.locator('button:has-text("Angre siste betaling")').click()
+  await olaKravRad.locator('.pay-act button:has-text("Betalt")').waitFor({ timeout: 5000 }).catch(() => {})
+  ok(await olaKravRad.locator('.pay-act button:has-text("Betalt")').count() === 1, 'betaling: angre setter saldoen tilbake')
   await p.goto(`${APP}/admin/innstillinger`); await shot(p, 'm-admin-innstillinger')
   await loggUt(p)
 
