@@ -16,7 +16,7 @@ export function AdminSettings() {
     setState('saving'); setError(null)
     try {
       const { id: _id, ...patch } = f
-      await api.saveSettings({ ...patch, vipps_number: patch.vipps_number || null, vipps_display_name: patch.vipps_display_name || null, admin_email: patch.admin_email || null })
+      await api.saveSettings({ ...patch, vipps_number: patch.vipps_number || null, vipps_display_name: patch.vipps_display_name || null })
       setState('saved')
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt'); setState('idle') }
   }
@@ -31,15 +31,9 @@ export function AdminSettings() {
       <div className="grid-2">
         <label className="field"><span className="label">Vipps-nummer det skal betales til</span><input className="input" inputMode="tel" value={f.vipps_number ?? ''} onChange={e => set({ vipps_number: e.target.value })} /></label>
         <label className="field"><span className="label">Navn som vises i Vipps</span><input className="input" value={f.vipps_display_name ?? ''} onChange={e => set({ vipps_display_name: e.target.value })} /></label>
-        <label className="field"><span className="label">Regningen lages den (dag i måneden)</span><input className="input" type="number" min={1} max={28} value={f.billing_day} onChange={e => set({ billing_day: Number(e.target.value) })} /></label>
         <label className="field"><span className="label">Regn ut økta automatisk, minutter etter slutt</span><input className="input" type="number" min={0} max={1440} step={15} value={f.settle_after_minutes} onChange={e => set({ settle_after_minutes: Number(e.target.value) })} /></label>
         <label className="field"><span className="label">Påmeldingen åpner, dager før økta</span><input className="input" type="number" min={1} max={365} value={f.signup_window_days} onChange={e => set({ signup_window_days: Number(e.target.value) })} /></label>
       </div>
-      <label className="check">
-        <input type="checkbox" checked={f.email_invoices} onChange={e => set({ email_invoices: e.target.checked })} />
-        <span><strong>Send regningen på e-post</strong><br /><span className="caption">Av: regningene lages som før, men ingenting sendes. Da deler du påminnelsen selv fra Betaling.</span></span>
-      </label>
-      <label className="field"><span className="label">E-post som får samle-oversikten («be om penger»-lista)</span><input className="input" type="email" value={f.admin_email ?? ''} onChange={e => set({ admin_email: e.target.value })} /></label>
       {error && <Notice>{error}</Notice>}
       <button className={`btn ${state === 'saved' ? 'btn-forest' : 'btn-primary'}`} disabled={state !== 'idle'}>{state === 'saving' ? 'Lagrer…' : state === 'saved' ? 'Lagret' : 'Lagre'}</button>
     </form>

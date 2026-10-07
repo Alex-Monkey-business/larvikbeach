@@ -1,6 +1,19 @@
 -- Nullstiller det QA-kjøringen endrer, så `npm run qa` kan kjøres igjen uten db reset.
 -- Kjøres av scripts/qa.mjs via docker exec. Rører ikke Alex' innlogging.
 delete from public.matches;
+
+-- Oppgjørsrunden forrige QA-kjøring lukket: andelene tilbake til ufakturert,
+-- så «Lukk runde og krev inn» har noe å ta neste gang. Kjennes på notatet.
+update public.charges set invoice_id = null
+ where invoice_id in (select id from public.invoices
+                       where run_id in (select id from public.billing_runs where note = 'QA'));
+delete from public.invoices
+ where session_id is null and run_id in (select id from public.billing_runs where note = 'QA');
+update public.invoices set run_id = null
+ where run_id in (select id from public.billing_runs where note = 'QA');
+update public.sessions set run_id = null
+ where run_id in (select id from public.billing_runs where note = 'QA');
+delete from public.billing_runs where note = 'QA';
 delete from public.session_teams;
 delete from public.session_teams;
 update public.invoices set status = 'open', claimed_at = null, confirmed_at = null where status in ('claimed', 'confirmed');
@@ -66,6 +79,3 @@ select se.id, (date_trunc('week', (now() at time zone 'Europe/Oslo') + interval 
 update public.sessions set outdoor = false, cost = 62000, location = 'Grenland Folkehøgskole', note = null where outdoor;
 update public.sessions set status = 'planned' where status = 'held' and starts_at > now();
 
--- Prod deler påminnelsen i Messenger og sender ingen regnings-e-post. Testen
--- skal kjøre på den oppsettet som faktisk er i bruk.
-update public.settings set email_invoices = false;

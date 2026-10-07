@@ -1,0 +1,67 @@
+/* Betalingslista. Én rad per person: navn og tilstand til venstre, beløp og
+   den ene handlingen til høyre. Samme form på 320 px som på desktop. */
+.pay-list { list-style: none; margin: 0; padding: 0; }
+.pay-row { border-top: 1px solid var(--color-stone); }
+.pay-row:first-child { border-top: 0; }
+
+.pay-main {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 76px;
+  align-items: center; gap: var(--space-2); padding: 14px 0;
+}
+.pay-row:first-child .pay-main { padding-top: 0; }
+
+/* Navnet er knappen som folder ut øktene. */
+.pay-who {
+  display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.pay-who:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 2px; }
+.pay-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-row.is-open .pay-name { text-decoration: underline; text-underline-offset: 3px; }
+.pay-state { font-size: var(--text-caption); color: var(--color-fog); }
+.pay-state.is-claimed { color: var(--color-ink); font-weight: 500; }
+
+.pay-amount { font-family: var(--font-serif); font-size: var(--text-subheading); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.pay-act { display: flex; justify-content: flex-end; }
+.pay-act .btn { width: 100%; padding-left: 0; padding-right: 0; }
+
+/* Betalt: raden blir stående, men trer tilbake. Haken sier resten. */
+.pay-row.is-done .pay-name, .pay-row.is-done .pay-amount { color: var(--color-fog); }
+.pay-check {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--color-forest); position: relative; margin-right: 24px;
+}
+.pay-check::after {
+  content: ''; position: absolute; left: 10px; top: 6px; width: 6px; height: 12px;
+  border: solid var(--color-cream); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+}
+
+.pay-detail { padding: 0 0 var(--space-3); gap: var(--space-2); }
+
+/* Linjene i detaljen: hva, tilstand, beløp. Beløpene står i kolonne. */
+.pay-lines { list-style: none; margin: 0; padding: 0; }
+.pay-lines li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 72px; gap: var(--space-2);
+  padding: 8px 0; border-top: 1px solid var(--color-stone); align-items: baseline;
+}
+.pay-lines li:first-child { border-top: 0; }
+.pay-lines .tab { text-align: right; font-variant-numeric: tabular-nums; }
+.pay-lines .muted { font-size: var(--text-caption); }
+
+/* Hvor mye som er betalt, som en strek i overskriftskortet. */
+.pay-bar { height: 8px; border-radius: 4px; background: var(--color-cream); border: 1.5px solid var(--color-ink); overflow: hidden; }
+.pay-bar span { display: block; height: 100%; background: var(--color-forest); }
+.card:not(.card-lavender) .pay-bar { background: var(--color-stone); }
+.ink { color: var(--color-ink); }
+
+/* Oppgjørskortet: overskriften er knappen som folder det ut. */
+.run-head {
+  width: 100%; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; cursor: pointer; text-align: left; align-items: flex-start;
+}
+.run-head:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 4px; }
+.run-head .h3, .run-head .caption { display: block; }
+
+/* Skolen tok / priset til / krevd inn, side om side. */
+.run-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-bottom: 0; }
+.run-sums div { display: grid; gap: 4px; }
+.run-sums dd { margin: 0; font-size: var(--text-subheading); line-height: 1.1; }

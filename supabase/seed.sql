@@ -41,11 +41,12 @@ begin
   values ('Sommer 2026', 'outdoor', '2026-05-01', '2026-08-31', 0, 'Batteristranda')
   returning id into s_summer;
 
-  -- Fire holdte økter bakover (én i forrige måned), to planlagte framover.
+  -- Fire økter bakover, to planlagte framover. Den ferskeste spilte står som
+  -- planlagt til oppgjøret under er lukket, så den havner i neste runde.
   for i in -4..1 loop
     insert into public.sessions (season_id, starts_at, duration_min, location, cost, status, capacity, min_players)
     values (s_winter, base + (i * interval '1 week'), 120, 'Grenland Folkehøgskole', 62000,
-            case when i < 0 then 'held' else 'planned' end, 6, 4)
+            case when i < -1 then 'held' else 'planned' end, 6, 4)
     returning id into sid;
     -- Varierende oppmøte: 5, 7, 8, 11 på de holdte; 6 og 4 påmeldt framover
     n := case i when -4 then 3 when -3 then 5 when -2 then 6 when -1 then 9 when 0 then 6 else 3 end; -- pluss Alex
@@ -53,12 +54,24 @@ begin
     select sid, ids[k], true, 'self', now() - interval '1 day' + (k * interval '1 minute') from generate_series(1, n) k;
     insert into public.attendance (session_id, profile_id, going, source)
     values (sid, alex, i <> -3, 'self');
-    if i < 0 then perform public.settle_session(sid); end if;
+    if i < -1 then perform public.settle_session(sid); end if;
   end loop;
 end $$;
 
--- Forrige måneds regninger, så betalingsflyten har noe å vise.
-select public.create_invoices(to_char((now() at time zone 'Europe/Oslo') - interval '1 month', 'YYYY-MM'));
+-- Ett lukket oppgjør, så betalingsflyten har noe å vise. Runden lukkes av
+-- admin, så seeden later som den er Alex.
+select set_config('request.jwt.claims', json_build_object('sub', (select id from public.profiles where email = 'alexander.samnoy@gmail.com'))::text, true);
+select public.close_billing_run(186000, 'Faktura fra skolen');
+-- To har betalt, én sier hen har vippset.
+update public.invoices set status = 'confirmed', confirmed_at = now()
+ where id in (select i.id from public.invoices i join public.profiles p on p.id = i.profile_id order by p.name limit 2);
+update public.invoices set status = 'claimed'
+ where id = (select i.id from public.invoices i join public.profiles p on p.id = i.profile_id where i.status = 'open' order by p.name limit 1);
+
+-- Den siste økta er spilt etter oppgjøret.
+update public.sessions set status = 'held'
+ where status = 'planned'
+   and starts_at = (select max(starts_at) + interval '1 week' from public.sessions where status = 'held');
 
 -- En gjest: Ola tok med Simen på den ferskeste spilte økta. Han fikk plass
 -- (køplass før de andre), så han har en andel og en gjesteregning.
