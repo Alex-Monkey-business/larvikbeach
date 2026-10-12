@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { useQuery } from '../lib/useQuery'
 import type { Match, Profile, Session } from '../lib/types'
+import { isKing, roundSize, standings } from '../lib/standings'
 import { Avatar } from './Avatar'
 import { Notice } from './Notice'
 import './Matches.css'
@@ -16,9 +17,10 @@ const first = (p: Profile) => p.name.split(' ')[0]
 
 /**
  * Kamper for økta. Vises på øktdagen og etterpå, når det er 4–6 med plass.
- * Lagene settes opp for hånd eller trekkes. Trykk på laget som vant, eller
- * skriv poengene. «Ny runde» legger nye kamper under – med lag satt opp for
- * hånd er det de samme lagene igjen, ellers nye trekk.
+ * Fire og fem spiller king of the beach: parene roterer, og stillingen er
+ * poengdifferanse. Seks spiller tre faste lag, satt opp for hånd eller
+ * trukket. Trykk på laget som vant, eller skriv poengene. «Ny runde» legger
+ * nye kamper under og rører ikke det som er spilt.
  */
 export function Matches({ session, players, canAct }: Props) {
   const q = useQuery(() => api.matches(session.id), [session.id])
@@ -41,11 +43,20 @@ export function Matches({ session, players, canAct }: Props) {
   }
 
   const matches = q.data ?? []
-  const anyResult = matches.some(m => m.winner)
-  const format = n === 5 ? 'King of the beach: alle spiller med alle, én sitter per runde.' : n === 6 ? 'Tre lag, alle møter alle.' : 'To lag.'
-  // Med fem spilles hvert par nøyaktig én gang uansett, så da er det ingenting
-  // å sette opp.
-  const canPick = n === 4 || n === 6
+  const anyResult = matches.some(played)
+  const king = matches.length > 0 ? isKing(matches) : n !== 6
+  const format = n === 5 ? 'Alle spiller med alle, én sitter per kamp. Fem kamper per runde.' : n === 6 ? 'Tre lag, alle møter alle.' : 'Alle spiller med alle. Tre kamper per runde.'
+  // Med fire og fem spiller alle med alle uansett, så da er det ingenting å
+  // sette opp.
+  const canPick = n === 6
+  // Etter kvelden er kamper uten resultat bare støy. De som kan føre ser dem
+  // fortsatt, så et glemt resultat kan legges inn dagen etter.
+  const over = session.status === 'held' && !today
+  const shown = over && !canAct ? matches.filter(played) : matches
+  const next = !over && canAct ? matches.find(m => !played(m))?.id : undefined
+  const size = king ? roundSize(n) : 0
+  const rounds: Match[][] = []
+  shown.forEach((m, i) => { if (!size || i % size === 0) rounds.push([]); rounds[rounds.length - 1].push(m) })
   const saved = (t.data ?? []).filter(x => x.members.every(id => byId.has(id))).map(x => x.members)
   const hasTeams = saved.length === n / 2
 
@@ -77,17 +88,29 @@ export function Matches({ session, players, canAct }: Props) {
               {canAct && (
                 <div className="row">
                   {canPick && <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setPicking(true)}>Sett opp lag</button>}
-                  <button type="button" className="btn" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id))}>Trekk tilfeldig</button>
+                  {king
+                    ? <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id))}>Start King of the Beach</button>
+                    : <button type="button" className="btn" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id))}>Trekk tilfeldig</button>}
                 </div>
               )}
             </div>
-          : <ol className="matches">
-              {matches.map(m => <MatchRow key={m.id} m={m} byId={byId} canAct={canAct} busy={busy}
-                onWin={w => void run(() => api.setMatchWinner(m.id, m.winner === w ? null : w))}
-                onScore={(a, b) => void run(() => api.setMatchScore(m.id, a, b))} />)}
-            </ol>}
+          : <div className="stack">
+              {rounds.map((r, i) => (
+                <div key={r[0].id} className="round">
+                  {size > 0 && rounds.length > 1 && <h3 className="caption round-title">Runde {i + 1}</h3>}
+                  <ol className="matches">
+                    {r.map(m => <MatchRow key={m.id} m={m} label={size ? `Kamp ${matches.indexOf(m) % size + 1}` : `Runde ${m.round}`}
+                      next={m.id === next} byId={byId} canAct={canAct} busy={busy}
+                      onWin={w => void run(() => api.setMatchWinner(m.id, m.winner === w ? null : w))}
+                      onScore={(a, b) => void run(() => api.setMatchScore(m.id, a, b))} />)}
+                  </ol>
+                </div>
+              ))}
+            </div>}
 
-      {!picking && anyResult && <Standings matches={matches} byId={byId} />}
+      {!picking && anyResult && (king
+        ? <KingStandings matches={matches} byId={byId} />
+        : <Standings matches={matches} byId={byId} />)}
     </section>
   )
 }
@@ -160,8 +183,10 @@ function TeamPicker({ players, initial, busy, hasMatches, onSave, onCancel }: {
   )
 }
 
-function MatchRow({ m, byId, canAct, busy, onWin, onScore }: {
-  m: Match; byId: Map<string, Profile>; canAct: boolean; busy: boolean
+const played = (m: Match) => m.winner != null || (m.score_a != null && m.score_b != null)
+
+function MatchRow({ m, label, next, byId, canAct, busy, onWin, onScore }: {
+  m: Match; label: string; next: boolean; byId: Map<string, Profile>; canAct: boolean; busy: boolean
   onWin: (w: 'a' | 'b') => void; onScore: (a: number | null, b: number | null) => void
 }) {
   const team = (ids: string[]) => ids.map(id => byId.get(id)).filter(Boolean) as Profile[]
@@ -175,8 +200,8 @@ function MatchRow({ m, byId, canAct, busy, onWin, onScore }: {
     onScore(na, nb)
   }
   return (
-    <li className="match">
-      <span className="caption">Runde {m.round}{m.resting.length ? ` · ${team(m.resting).map(first).join(' og ')} sitter` : ''}</span>
+    <li className={`match ${next ? 'match-next' : ''}`}>
+      <span className="caption">{label}{next ? ' · neste' : ''}{m.resting.length ? ` · ${team(m.resting).map(first).join(' og ')} sitter` : ''}</span>
       <div className="match-teams">
         <TeamBox players={team(m.team_a)} won={m.winner === 'a'} lost={m.winner === 'b'} value={a} onChange={setA} onCommit={commit} onWin={() => onWin('a')} canAct={canAct} busy={busy} label="Poeng lag 1" />
         <TeamBox players={team(m.team_b)} won={m.winner === 'b'} lost={m.winner === 'a'} value={b} onChange={setB} onCommit={commit} onWin={() => onWin('b')} canAct={canAct} busy={busy} label="Poeng lag 2" />
@@ -235,6 +260,35 @@ function Standings({ matches, byId }: { matches: Match[]; byId: Map<string, Prof
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/**
+ * King of the beach: poengdifferansen er tallet, poeng scoret skiller de like.
+ * Seire står ikke her: de teller ikke, og et tall som ikke teller leses som
+ * om det gjør det.
+ */
+function KingStandings({ matches, byId }: { matches: Match[]; byId: Map<string, Profile> }) {
+  const rows = standings(matches, [...byId.keys()], true)
+  if (!matches.some(m => m.score_a != null && m.score_b != null)) return null
+  const sign = (d: number) => d > 0 ? `+${d}` : d < 0 ? `\u2212${Math.abs(d)}` : '0'
+  return (
+    <div className="stack">
+      <div className="row between"><span className="caption">Stillingen</span><span className="caption">+/− · poeng</span></div>
+      <ol className="list king-table" aria-label="Stillingen">
+        {rows.map(r => {
+          const p = byId.get(r.id)!
+          return (
+            <li key={r.id} className={`king-row ${r.rank === 1 ? 'king-first' : ''}`}>
+              <span className="num king-rank">{r.rank}</span>
+              <span className="row" style={{ gap: 8, minWidth: 0, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span className="team-name">{first(p)}</span></span>
+              <span className="num king-diff">{sign(r.diff)}</span>
+              <span className="num muted king-pf">{r.pointsFor}</span>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }

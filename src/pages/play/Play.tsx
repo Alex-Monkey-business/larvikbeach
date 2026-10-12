@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { useAuth } from '../../auth/AuthProvider'
 import { api } from '../../lib/api'
+import { isKing, standings } from '../../lib/standings'
 import { useQuery } from '../../lib/useQuery'
 import { SessionCard } from '../../components/SessionCard'
 import { Notice } from '../../components/Notice'
@@ -93,14 +94,16 @@ function vanligTid(sesongen: Session[]): string | null {
   return n > 1 ? best : null
 }
 
-/** De med flest seire på økta. Ingen resultater gir ingen vinnere. */
+/**
+ * Dagens vinner: toppen av stillingen. King of the beach rangerer på
+ * poengdifferanse (der har alle ofte like mange seire), faste lag på seire.
+ * Ingen resultater gir ingen vinnere.
+ */
 function topWinners(matches: Match[], sessionId: string, byId: Map<string, Profile>): Profile[] {
-  const wins = new Map<string, number>()
-  for (const m of matches) {
-    if (m.session_id !== sessionId || !m.winner) continue
-    for (const id of m.winner === 'a' ? m.team_a : m.team_b) wins.set(id, (wins.get(id) ?? 0) + 1)
-  }
-  const best = Math.max(0, ...wins.values())
-  if (best === 0) return []
-  return [...wins.entries()].filter(([, n]) => n === best).map(([id]) => byId.get(id)).filter(Boolean) as Profile[]
+  const own = matches.filter(m => m.session_id === sessionId)
+  const king = isKing(own)
+  const counted = own.filter(m => king ? m.score_a != null && m.score_b != null : m.winner)
+  if (counted.length === 0) return []
+  const ids = [...new Set(own.flatMap(m => [...m.team_a, ...m.team_b]))]
+  return standings(own, ids, king).filter(r => r.rank === 1).map(r => byId.get(r.id)).filter(Boolean) as Profile[]
 }

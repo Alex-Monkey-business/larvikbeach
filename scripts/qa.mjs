@@ -302,6 +302,61 @@ try {
   ok(await p.locator('.match').count() === 6, 'kamper: «Ny runde» la til tre nye kamper')
   ok(await p.locator('button:has-text("Trekk på nytt")').count() === 0, 'kamper: «Trekk på nytt» skjult når resultater finnes')
   await shot(p, 'm-kamper')
+
+  // King of the beach med fire, på en egen økt som pågår nå. Ny økt så
+  // seks-testene over ikke rører den, og den slettes til slutt.
+  const kingId = sqlValue(`with x as (insert into public.sessions (season_id, starts_at, duration_min, location, cost, status, capacity, min_players)
+    select season_id, now() - interval '30 minutes', 120, 'QA-hallen', 0, 'planned', 6, 4 from public.sessions limit 1 returning id) select id from x`)
+  sql(`insert into public.attendance (session_id, profile_id, going, updated_at)
+       select '${kingId}', id, true, now() - make_interval(mins => rn::int) from (
+         select id, row_number() over (order by email = '${ADMIN}' desc, name) rn
+           from public.profiles where active and role <> 'guest' limit 4) x`)
+  await p.goto(`${APP}/spill/okter/${kingId}`)
+  await p.locator('text=Alle spiller med alle. Tre kamper per runde.').waitFor({ timeout: 5000 })
+  ok(await p.locator('button:has-text("Sett opp lag")').count() === 0, 'king: fire setter ikke opp faste lag')
+  await p.locator('button:has-text("Start King of the Beach")').click()
+  await p.waitForFunction(() => document.querySelectorAll('.match').length === 3, null, { timeout: 5000 })
+  ok(await p.locator('.match-next').count() === 1, 'king: neste kamp er markert')
+  const score = async (i, a, b) => {
+    const r = p.locator('.match').nth(i)
+    await r.locator('input.score').nth(0).fill(String(a)); await r.locator('input.score').nth(1).fill(String(b)); await r.locator('input.score').nth(1).blur()
+    await r.locator('.team-won').waitFor({ timeout: 5000 })
+  }
+  // Fasit regnet fra basen, ikke fra appen: differanse, så poeng scoret.
+  const fasit = () => {
+    const rader = JSON.parse(sqlValue(`select coalesce(json_agg(x), '[]') from (
+      select p.name, sum(f - a) d, sum(f) pf from (
+        select unnest(team_a) id, score_a f, score_b a from public.matches where session_id = '${kingId}' and score_a is not null
+        union all select unnest(team_b), score_b, score_a from public.matches where session_id = '${kingId}' and score_a is not null) s
+      join public.profiles p on p.id = s.id group by p.name order by d desc, pf desc) x`))
+    return rader.map(r => `${r.name.split(' ')[0]} ${r.d > 0 ? '+' : r.d < 0 ? '−' : ''}${Math.abs(r.d)} ${r.pf}`)
+  }
+  const tabell = () => p.locator('.king-row').evaluateAll(rows => rows.map(r => ['.team-name', '.king-diff', '.king-pf'].map(c => r.querySelector(c).textContent.trim()).join(' ')))
+  // Like rader kan stå i begge rekkefølger, så sammenlign som mengde og sjekk
+  // at appens egen rekkefølge følger differanse, så poeng.
+  const tall = r => { const [, d, pf] = r.match(/([+\u2212]?\d+) (\d+)$/); return [Number(d.replace('\u2212', '-').replace('+', '')), Number(pf)] }
+  const stemmer = async () => {
+    const app = await tabell(), f = fasit()
+    const sortert = app.every((r, i) => i === 0 || (([d0, p0], [d1, p1]) => d0 > d1 || (d0 === d1 && p0 >= p1))(tall(app[i - 1]), tall(r)))
+    return sortert && JSON.stringify([...app].sort()) === JSON.stringify([...f].sort())
+  }
+  await score(0, 21, 11); await score(1, 15, 21); await score(2, 15, 21)
+  ok(await stemmer(), `king: stillingen er differanse, så poeng (${(await tabell()).join(', ')} / ${fasit().join(', ')})`)
+  const runde1 = await p.locator('.team-names').allInnerTexts()
+  await p.locator('button:has-text("Ny runde")').click()
+  await p.waitForFunction(() => document.querySelectorAll('.match').length === 6, null, { timeout: 5000 })
+  const alle = await p.locator('.team-names').allInnerTexts()
+  ok(alle.slice(0, 6).join('|') === runde1.join('|') && alle.slice(6).join('|') === runde1.join('|'), 'king: ny runde gjentar samme rotasjon')
+  ok(await p.locator('.match').nth(0).locator('input.score').nth(0).inputValue() === '21', 'king: ny runde rører ikke spilte kamper')
+  ok(await p.locator('.round-title').count() === 2, 'king: rundene står under hver sin overskrift')
+  await score(3, 17, 21)
+  await p.reload(); await p.locator('.king-row').first().waitFor({ timeout: 5000 })
+  ok(await stemmer(), 'king: stillingen står etter ny innlasting, med en halv runde')
+  await p.locator('.match').nth(0).locator('input.score').nth(0).fill('9'); await p.locator('.match').nth(0).locator('input.score').nth(0).blur()
+  await p.waitForFunction(() => document.querySelector('.match .team-won') && document.querySelectorAll('.match')[0].querySelectorAll('.team')[1].classList.contains('team-won'), null, { timeout: 5000 })
+  ok(await stemmer(), 'king: rettet resultat regner stillingen om')
+  await shot(p, 'm-king')
+  sql(`delete from public.sessions where id = '${kingId}'`)
   // Et tydelig resultat, satt i basen så det ikke avhenger av tilfeldige lag:
   // tre runder der lag 1 vinner to og lag 2 én. Da er toppen to spillere.
   // Alex vinner alt han spiller: da er toppen to spillere, og han er en av dem.

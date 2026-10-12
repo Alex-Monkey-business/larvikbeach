@@ -15,7 +15,9 @@
     "db:reset": "supabase db reset",
     "db:functions": "supabase functions serve --no-verify-jwt",
     "qa:widths": "node scripts/qa-viewports.mjs",
-    "qa:pwa": "node scripts/qa-pwa.mjs"
+    "qa:pwa": "node scripts/qa-pwa.mjs",
+    "test": "node --test 'tests/*.test.ts'",
+    "qa:king": "node scripts/qa-king.mjs"
   },
   "dependencies": {
     "@supabase/auth-js": "^2.115.0",
