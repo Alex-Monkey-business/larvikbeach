@@ -2,11 +2,12 @@
 .leader-controls { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 12px; align-items: center; margin-bottom: 20px; }
 .leader-replay { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--color-stone); border-radius: 50%; color: var(--color-forest); background: transparent; cursor: pointer; transition: transform 300ms var(--leader-ease); }
 .leader-replay:hover { transform: rotate(-35deg); }
-.leader-switch { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; background: var(--color-stone); border-radius: 14px; }
+.leader-switch { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px; background: var(--color-stone); border-radius: 14px; }
 .leader-switch button { min-height: 44px; background: none; border: 0; color: var(--color-fog); font: 500 16px var(--font-sans); cursor: pointer; }
 .leader-switch button[aria-pressed=true] { color: var(--color-cream); }
-.leader-switch-track { position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 4px); border-radius: 10px; background: var(--color-forest); transition: transform 420ms var(--leader-ease); }
-.leader-switch-track.is-attendance { transform: translateX(100%); }
+.leader-switch-track { position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: var(--color-forest); transition: transform 420ms var(--leader-ease); }
+.leader-switch-track.is-wins { transform: translateX(100%); }
+.leader-switch-track.is-sessions { transform: translateX(200%); }
 .leader-spotlight { position: relative; isolation: isolate; overflow: hidden; border-radius: 28px; background: var(--color-forest); color: var(--color-cream); padding: clamp(24px, 5vw, 40px); animation: leader-reveal 850ms var(--leader-ease) both; }
 .leader-spotlight::after { content: ''; position: absolute; inset: -60% -10%; z-index: -1; background: linear-gradient(110deg, transparent 42%, color-mix(in srgb, var(--color-cream) 9%, transparent) 49%, transparent 56%); transform: translateX(90%); animation: leader-sheen 1600ms 350ms var(--leader-ease) both; pointer-events: none; }
 .leader-watermark { position: absolute; right: -12px; bottom: -44px; z-index: -1; color: color-mix(in srgb, var(--color-cream) 4.5%, transparent); font: 600 clamp(190px, 32vw, 290px)/1 var(--font-sans); letter-spacing: -.09em; pointer-events: none; }
@@ -57,6 +58,8 @@
 
 .leader-numbers { display: grid; grid-template-columns: 44px; align-items: center; text-align: right; }
 .leader-numbers.with-diff { grid-template-columns: 44px 56px; gap: 12px; }
+/* +/− som hovedtall trenger plass til fortegn og tre siffer. */
+.leader-numbers.with-diff.is-diff { grid-template-columns: 68px 40px; }
 .leader-numbers abbr { text-decoration: none; }
 .leader-diff { font: 500 17px/1 var(--font-sans); font-variant-numeric: tabular-nums; color: var(--color-fog); }
 .leader-diff.is-positive { color: var(--color-forest); }
@@ -66,6 +69,7 @@
   .leader-list-heading { padding-inline: 8px; }
   .leader-numbers { grid-template-columns: 34px; }
   .leader-numbers.with-diff { grid-template-columns: 34px 44px; gap: 8px; }
+  .leader-numbers.with-diff.is-diff { grid-template-columns: 58px 34px; }
   .leader-diff { font-size: 15px; }
   .leader-score { font-size: 25px; }
 }

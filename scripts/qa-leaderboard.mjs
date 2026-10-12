@@ -14,7 +14,7 @@ const sessions = [process.env.QA_UI_RECENT ? -.5 : -7, 3, 10].map((days, i) => (
 let attendance = people.slice(0, 6).flatMap((p, i) => [0, 1].map(n => ({ session_id: `s${n}`, profile_id: p.id, going: true, updated_at: new Date(Date.now() - (20 - i) * 60000).toISOString() })))
 let fail = '', empty = false
 const data = {
-  settings: { id: true, signup_window_days: 14, billing_day: 1, vipps_number: '12345678', vipps_display_name: 'Testgjengen', group_name: 'Larvik Beach Volley' },
+  settings: { id: true, signup_window_days: 14, vipps_number: '12345678', vipps_display_name: 'Testgjengen', group_name: 'Larvik Beach Volley' },
   profiles: people, seasons: [season], sessions,
   season_stats: people.map((p, i) => ({ profile_id: p.id, season_id: season.id, sessions: 7-i, games: 12, wins: 8-i, points_for: 130, points_against: 100, points_diff: 30 })),
   balances: [{ profile_id: 'p0', invoiced_open: 100, uninvoiced: 50, claimed: 0 }],
@@ -55,7 +55,8 @@ async function context(auth, width) {
 try {
   sessions.splice(0, sessions.length, ...Array.from({length: 7}, (_, i) => ({id: `s${i}`, season_id: season.id, starts_at: new Date(Date.now() - (7-i) * 86400000).toISOString(), duration_min: 120, location: 'Grenland Folkehøgskole', cost: 600, status: 'held', capacity: 10, min_players: 4, note: null})))
   attendance = people.flatMap((p, i) => sessions.slice(0, 7-i).map(s => ({session_id: s.id, profile_id: p.id, going: true, updated_at: new Date(Date.now()-864000000).toISOString()})))
-  data.season_stats.forEach((r, i) => { r.wins = [5, 9, 7, 3, 6, 2, 1][i] })
+  // +/− er standard, så p1 leder der også. Seire gir samme leder, oppmøte p0.
+  data.season_stats.forEach((r, i) => { r.wins = [5, 9, 7, 3, 6, 2, 1][i]; r.points_diff = [12, 41, 30, -4, 18, -9, -22][i]; r.points_for = 130 + r.points_diff })
   for (const width of [320, 390, 768, 1440]) {
     const c = await context(true, width), p = await c.newPage()
     p.on('pageerror', e => errors.push(e.message))
@@ -81,7 +82,8 @@ try {
   }
   const c = await context(true, 320), p = await c.newPage()
   p.on('pageerror', e => errors.push(e.message))
-  data.season_stats[0].wins = 9
+  // Delt førsteplass på standardvisningen (+/−): likt på differanse OG poeng.
+  Object.assign(data.season_stats[0], { wins: 9, points_diff: 41, points_for: 171 })
   people[0].name = 'Alexander Et Veldig Langt Mellomnavn Samnøy'
   await p.goto(app + '/spill/statistikk'); await p.locator('.leader-list').waitFor()
   assert.equal(await p.locator('.leader-winner').count(), 2)
@@ -91,7 +93,7 @@ try {
   assert.equal(await p.locator('.leader-row .leader-rank .visually-hidden').first().textContent(), '1. plass')
   assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
   await p.getByRole('button',{name:'Spill lederanimasjonen på nytt'}).focus(); await p.keyboard.press('Enter')
-  data.season_stats.forEach(r => { r.wins = 0 })
+  data.season_stats.forEach(r => { r.wins = 0; r.points_for = 0; r.points_diff = 0 })
   await p.reload(); await p.locator('.leader-empty').waitFor()
   assert.equal(await p.locator('.leader-winner').count(), 0)
   fail = 'season_stats'; await p.reload(); await p.getByRole('alert').waitFor()

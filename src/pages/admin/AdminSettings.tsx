@@ -15,8 +15,12 @@ export function AdminSettings() {
     e.preventDefault(); if (!f) return
     setState('saving'); setError(null)
     try {
-      const { id: _id, ...patch } = f
-      await api.saveSettings({ ...patch, vipps_number: patch.vipps_number || null, vipps_display_name: patch.vipps_display_name || null })
+      // Bare feltene skjemaet eier. Hele raden tilbake ville sendt kolonner
+      // basen kan ha mistet siden siden ble lastet.
+      await api.saveSettings({
+        group_name: f.group_name, settle_after_minutes: f.settle_after_minutes, signup_window_days: f.signup_window_days,
+        vipps_number: f.vipps_number || null, vipps_display_name: f.vipps_display_name || null,
+      })
       setState('saved')
     } catch (err) { setError(err instanceof Error ? err.message : 'Noe gikk galt'); setState('idle') }
   }

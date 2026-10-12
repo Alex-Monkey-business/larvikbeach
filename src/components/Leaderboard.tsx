@@ -5,12 +5,22 @@ import type { Profile, SeasonStat } from '../lib/types'
 import './Leaderboard.css'
 
 type Entry = SeasonStat & { p: Profile }
-type Metric = 'wins' | 'sessions'
+type Metric = 'points_diff' | 'wins' | 'sessions'
 
-/** «seier»/«seire», «økt»/«økter» — bøyd etter tallet. */
+const signed = (n: number) => n > 0 ? `+${n}` : n < 0 ? `\u2212${Math.abs(n)}` : '0'
+
+/** «seier»/«seire», «økt»/«økter», «poeng» — bøyd etter tallet. */
 function enhetsord(n: number, metric: Metric): string {
+  if (metric === 'points_diff') return 'poeng'
   return metric === 'wins' ? (n === 1 ? 'seier' : 'seire') : (n === 1 ? 'økt' : 'økter')
 }
+
+/**
+ * Har personen noe å stå på i denne kategorien? +/− kan være null eller
+ * negativt og likevel bety noe, så der er det poeng ført som teller.
+ */
+const harTall = (r: SeasonStat, metric: Metric) => metric === 'points_diff' ? r.points_for > 0 : r[metric] > 0
+const vis = (n: number, metric: Metric) => metric === 'points_diff' ? signed(n) : String(n)
 /** «1 seier», «3 seire», «1 økt», «4 økter». */
 function enhet(n: number, metric: Metric): string {
   return `${n} ${enhetsord(n, metric)}`
@@ -36,24 +46,28 @@ function Spotlight({ leaders, metric, score, gap }: { leaders: Entry[]; metric: 
         </div>)}
       </div>
       <div className="leader-spotlight-bottom">
-        <p className="leader-total"><strong>{count}</strong><span>{enhetsord(score, metric)}</span></p>
-        <span className="leader-gap">{gap > 0 ? `${enhet(gap, metric)} foran neste` : 'Helt likt i toppen'}</span>
+        <p className="leader-total"><strong>{vis(count, metric)}</strong><span>{enhetsord(score, metric)}</span></p>
+        <span className="leader-gap">{gap > 0 ? `${enhet(gap, metric)} foran neste` : leaders.length > 1 ? 'Helt likt i toppen' : 'Skilt på poeng scoret'}</span>
       </div>
     </div>
   )
 }
 
 export function Leaderboard({ rows, me }: { rows: Entry[]; me?: string }) {
-  const [metric, setMetric] = useState<Metric>(rows.some(r => r.games > 0) ? 'wins' : 'sessions')
+  // +/− først: seire vokser med antall kamper, så den som er med oftest
+  // vinner. Differansen er mer rettferdig mellom folk som har spilt ulikt mye.
+  const [metric, setMetric] = useState<Metric>(rows.some(r => r.points_for > 0) ? 'points_diff' : rows.some(r => r.games > 0) ? 'wins' : 'sessions')
   const [replay, setReplay] = useState(0)
   const list = useRef<HTMLOListElement>(null)
   const positions = useRef(new Map<string, number>())
   // Delt plassering er konkurranserangering: like tall gir samme nummer, og
   // den neste hopper over plassene som er brukt opp (1, 1, 3). Navnet avgjør
-  // bare rekkefølgen i visninga, aldri plasseringen.
+  // bare rekkefølgen i visninga, aldri plasseringen. På +/− skiller poeng
+  // scoret de like, og først når begge er like deles plassen.
   const ranked = useMemo(() => {
-    const sorted = [...rows].sort((a, b) => b[metric] - a[metric] || a.p.name.localeCompare(b.p.name, 'nb'))
-    return sorted.map(r => ({ ...r, rank: sorted.findIndex(x => x[metric] === r[metric]) + 1 }))
+    const tie = (a: Entry, b: Entry) => metric === 'points_diff' ? b.points_for - a.points_for : 0
+    const sorted = [...rows].sort((a, b) => b[metric] - a[metric] || tie(a, b) || a.p.name.localeCompare(b.p.name, 'nb'))
+    return sorted.map(r => ({ ...r, rank: sorted.findIndex(x => x[metric] === r[metric] && tie(x, r) === 0) + 1 }))
   }, [rows, metric])
   const order = ranked.map(r => r.profile_id).join(',')
   useLayoutEffect(() => {
@@ -72,7 +86,7 @@ export function Leaderboard({ rows, me }: { rows: Entry[]; me?: string }) {
     return () => animations.forEach(animation => animation.cancel())
   }, [order])
   const score = ranked[0]?.[metric] ?? 0
-  const leaders = score > 0 ? ranked.filter(r => r.rank === 1) : []
+  const leaders = ranked[0] && harTall(ranked[0], metric) ? ranked.filter(r => r.rank === 1) : []
   const runnerUp = ranked.find(r => r.rank !== 1)
   const mine = ranked.find(r => r.profile_id === me)
 
@@ -81,7 +95,8 @@ export function Leaderboard({ rows, me }: { rows: Entry[]; me?: string }) {
       <h2 id="leaderboard-title" className="visually-hidden">Rangering</h2>
       <div className="leader-controls">
         <div className="leader-switch" role="group" aria-label="Ranger etter">
-          <span className={`leader-switch-track ${metric === 'sessions' ? 'is-attendance' : ''}`} aria-hidden="true" />
+          <span className={`leader-switch-track is-${metric}`} aria-hidden="true" />
+          <button type="button" aria-pressed={metric === 'points_diff'} onClick={() => setMetric('points_diff')}>+/−</button>
           <button type="button" aria-pressed={metric === 'wins'} onClick={() => setMetric('wins')}>Seire</button>
           <button type="button" aria-pressed={metric === 'sessions'} onClick={() => setMetric('sessions')}>Oppmøte</button>
         </div>
@@ -90,33 +105,35 @@ export function Leaderboard({ rows, me }: { rows: Entry[]; me?: string }) {
         </button>
       </div>
       {leaders.length > 0 ? <Spotlight key={`${metric}-${replay}`} leaders={leaders} metric={metric} score={score} gap={runnerUp ? score - runnerUp[metric] : 0} />
-        : <div className="leader-empty"><p>Ingen leder ennå.</p><span>{metric === 'wins' ? 'Ingen seire er registrert.' : 'Ingen oppmøter er registrert.'}</span></div>}
+        : <div className="leader-empty"><p>Ingen leder ennå.</p><span>{metric === 'points_diff' ? 'Ingen poeng er ført.' : metric === 'wins' ? 'Ingen seire er registrert.' : 'Ingen oppmøter er registrert.'}</span></div>}
       {mine && <p className="leader-personal">
-        {mine[metric] > 0
+        {harTall(mine, metric)
           ? <>
               <strong>Du er på {mine.rank}. plass</strong>
-              {mine.rank !== 1 && <span>{enhet(score - mine[metric], metric)} opp til toppen.</span>}
+              {mine.rank !== 1 && <span>{score - mine[metric] > 0 ? `${enhet(score - mine[metric], metric)} opp til toppen.` : 'Likt på +/−, skilt på poeng scoret.'}</span>}
             </>
-          : <span>Ingen {metric === 'wins' ? 'seire' : 'oppmøter'} er registrert på deg.</span>}
+          : <span>{metric === 'points_diff' ? 'Ingen poeng er ført på deg.' : `Ingen ${metric === 'wins' ? 'seire' : 'oppmøter'} er registrert på deg.`}</span>}
       </p>}
-      {metric === 'wins' && <div className="leader-list-heading">
+      {metric !== 'sessions' && <div className="leader-list-heading">
         <span className="leader-numbers with-diff">
-          <span>Seire</span>
-          <abbr title="Poengdifferanse: poeng scoret minus poeng sluppet inn">+/−</abbr>
+          {metric === 'wins'
+            ? <><span>Seire</span><abbr title="Poengdifferanse: poeng scoret minus poeng sluppet inn">+/−</abbr></>
+            : <><abbr title="Poengdifferanse: poeng scoret minus poeng sluppet inn">+/−</abbr><span>Poeng</span></>}
         </span>
       </div>}
-      <ol ref={list} className="leader-list" aria-label={metric === 'wins' ? 'Rangering etter seire' : 'Rangering etter oppmøte'}>
-        {ranked.map((r, index) => <li key={r.profile_id} data-player={r.profile_id} className={`leader-row ${r.rank <= 3 && r[metric] > 0 ? `leader-rank-${r.rank}` : ''} ${r.profile_id === me ? 'leader-is-me' : ''}`}>
+      <ol ref={list} className="leader-list" aria-label={metric === 'points_diff' ? 'Rangering etter poengdifferanse' : metric === 'wins' ? 'Rangering etter seire' : 'Rangering etter oppmøte'}>
+        {ranked.map((r, index) => <li key={r.profile_id} data-player={r.profile_id} className={`leader-row ${r.rank <= 3 && harTall(r, metric) ? `leader-rank-${r.rank}` : ''} ${r.profile_id === me ? 'leader-is-me' : ''}`}>
           <div className="leader-row-content" key={`${metric}-${replay}`} style={{ '--row': Math.min(index, 12) } as CSSProperties}>
             <span className="leader-rank"><span aria-hidden="true">{String(r.rank).padStart(2, '0')}</span><span className="visually-hidden">{r.rank}. plass</span></span>
             <Avatar profile={r.p} size={40} />
             <div className="leader-player">
               <p>{r.p.name}{r.profile_id === me && <span className="leader-you">du</span>}</p>
-              {metric === 'wins' && <span>{r.games} {r.games === 1 ? 'kamp' : 'kamper'} spilt</span>}
+              {metric !== 'sessions' && <span>{r.games} {r.games === 1 ? 'kamp' : 'kamper'} spilt</span>}
             </div>
-            <span className={`leader-numbers ${metric === 'wins' ? 'with-diff' : ''}`}>
-              <strong className="leader-score">{r[metric]}</strong>
-              {metric === 'wins' && <span className={`leader-diff ${r.points_diff > 0 ? 'is-positive' : ''}`} title={`Poengdifferanse: ${r.points_for} scoret, ${r.points_against} sluppet inn`}>{r.points_diff > 0 ? `+${r.points_diff}` : r.points_diff < 0 ? `−${Math.abs(r.points_diff)}` : '0'}</span>}
+            <span className={`leader-numbers ${metric !== 'sessions' ? 'with-diff' : ''} ${metric === 'points_diff' ? 'is-diff' : ''}`}>
+              <strong className="leader-score">{vis(r[metric], metric)}</strong>
+              {metric === 'wins' && <span className={`leader-diff ${r.points_diff > 0 ? 'is-positive' : ''}`} title={`Poengdifferanse: ${r.points_for} scoret, ${r.points_against} sluppet inn`}>{signed(r.points_diff)}</span>}
+              {metric === 'points_diff' && <span className="leader-diff" title={`${r.points_for} scoret, ${r.points_against} sluppet inn`}>{r.points_for}</span>}
             </span>
           </div>
         </li>)}

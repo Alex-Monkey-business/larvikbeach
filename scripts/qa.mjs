@@ -384,10 +384,10 @@ try {
   await p.goto(`${APP}/spill/statistikk`)
   await p.locator('.leader-spotlight').waitFor({ timeout: 5000 })
 
-  // Standardvalget er seire så snart det finnes kamper. Det valget tok Codex,
-  // ikke Alex — testen fester det så en endring blir synlig.
-  ok(await p.locator('.leader-switch button[aria-pressed="true"]').innerText() === 'Seire',
-    'statistikk: seire er valgt når det finnes kamper')
+  // Standardvalget er +/− så snart noen har ført poeng (Alex 12. okt): seire
+  // vokser med antall kamper, differansen gjør ikke det.
+  ok(await p.locator('.leader-switch button[aria-pressed="true"]').innerText() === '+/−',
+    'statistikk: +/− er valgt når det finnes poeng')
 
   // Delt plassering er konkurranserangering: 1, 1, 3 — ikke 1, 2, 3. To med
   // like mange seire skal ha samme nummer, og neste skal hoppe over plassen.
@@ -426,7 +426,7 @@ try {
   ok(await p.locator('.leader-list .leader-row:has-text("Simen")').count() === 1, 'statistikk: gjesten teller i oppmøtet som alle andre')
   ok(await p.locator('.leader-list .leader-diff').count() === 0
     && await p.locator('.leader-list-heading').count() === 0,
-    'statistikk: +/− og kolonnetittelen hører bare til seire')
+    'statistikk: oppmøte har verken +/− eller kolonnetittel')
 
   // Fasit for oppmøtet er databasens egen telling. Rutene og leaderboardet må
   // ende på samme sum, ellers regner klienten oppmøte etter en annen regel

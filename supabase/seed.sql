@@ -31,8 +31,7 @@ begin
     ids := ids || pg_temp.mk_user(lower(replace(split_part(names[i], ' ', 1), 'ø', 'o')) || i || '@example.com', names[i], 'player', '48 00 00 ' || lpad(i::text, 2, '0'));
   end loop;
 
-  update public.settings set vipps_number = '900 00 000', vipps_display_name = 'Alex Samnøy',
-    admin_email = 'alexander.samnoy@gmail.com';
+  update public.settings set vipps_number = '900 00 000', vipps_display_name = 'Alex Samnøy';
 
   insert into public.seasons (name, kind, starts_on, ends_on, default_cost, default_location, default_capacity, default_min_players, notice)
   values ('Vinter 2026/27', 'indoor', '2026-09-01', '2027-04-30', 62000, 'Grenland Folkehøgskole', 6, 4, 'Oppmøte Kiwi Farriseidet kl. 18 for felles transport.')

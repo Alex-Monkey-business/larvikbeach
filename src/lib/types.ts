@@ -19,11 +19,8 @@ export interface Settings {
   group_name: string
   vipps_number: string | null
   vipps_display_name: string | null
-  billing_day: number
   settle_after_minutes: number
   signup_window_days: number
-  email_invoices: boolean
-  admin_email: string | null
 }
 
 export interface JoinRequest {

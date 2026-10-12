@@ -14,7 +14,7 @@ const sessions = [process.env.QA_UI_RECENT ? -.5 : -7, 3, 10].map((days, i) => (
 let attendance = people.slice(0, 6).flatMap((p, i) => [0, 1].map(n => ({ session_id: `s${n}`, profile_id: p.id, going: true, updated_at: new Date(Date.now() - (20 - i) * 60000).toISOString() })))
 let fail = '', empty = false
 const data = {
-  settings: { id: true, signup_window_days: 14, billing_day: 1, vipps_number: '12345678', vipps_display_name: 'Testgjengen', group_name: 'Larvik Beach Volley' },
+  settings: { id: true, signup_window_days: 14, vipps_number: '12345678', vipps_display_name: 'Testgjengen', group_name: 'Larvik Beach Volley' },
   profiles: people, seasons: [season], sessions,
   season_stats: people.map((p, i) => ({ profile_id: p.id, season_id: season.id, sessions: 7-i, games: 12, wins: 8-i, points_for: 130, points_against: 100, points_diff: 30 })),
   balances: [{ profile_id: 'p0', invoiced_open: 100, uninvoiced: 50, claimed: 0 }],
