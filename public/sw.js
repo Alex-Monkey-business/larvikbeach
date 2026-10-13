@@ -50,14 +50,15 @@ self.addEventListener('fetch', e => {
 
 // Push. Sendefunksjonen (supabase/functions/send-push) sender
 // { title, body, url, svar?: { billett, url } }.
-// Ikke `icon`: Android viser det som et stort bilde til høyre, i tillegg til
-// merket til venstre. Én gang holder.
+// `icon` er det fargede appikonet, til høyre i varselet. `badge` er det hvite
+// merket i statuslinja: Android gjør det alltid til en hvit silhuett.
 // iOS krever at hvert push faktisk viser et varsel, ellers trekkes tillatelsen.
 self.addEventListener('push', e => {
   let data = {}
   try { data = e.data ? e.data.json() : {} } catch { data = { title: e.data?.text() ?? '' } }
   e.waitUntil(self.registration.showNotification(data.title || 'Larvik Beach Volley', {
     body: data.body || '',
+    icon: '/brand/lbv-192.png',
     badge: '/brand/lbv-badge-96.png',
     // Knapper under teksten på Android og desktop. iPhone viser dem ikke, så
     // trykk på selve varselet åpner økta, der valget kan tas.
@@ -89,6 +90,7 @@ async function svarPa(svar, going, tittel, url) {
     if (!res.ok) throw new Error(String(res.status))
     await self.registration.showNotification(tittel, {
       body: going ? 'Du er påmeldt.' : 'Du er meldt av.',
+      icon: '/brand/lbv-192.png',
       badge: '/brand/lbv-badge-96.png',
       tag: 'svar',
       data: { url },
