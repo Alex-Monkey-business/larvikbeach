@@ -41,7 +41,7 @@ declare s uuid := (select t.s from t_ctx t); r1 text; r2 text; foer text; etter 
 begin
   -- Fire: tre kamper med alle par.
   perform pg_temp.lag(4);
-  perform public.draw_matches(s, false);
+  perform public.draw_matches(s);
   perform pg_temp.sjekk_runde(1);
 
   -- Resultater på to kamper, så to nye runder.
@@ -78,7 +78,7 @@ begin
 
   -- Fem: uendret, fem kamper, én sitter per kamp, hvert par én gang.
   perform pg_temp.lag(5);
-  perform public.draw_matches(s, false);
+  perform public.draw_matches(s);
   if (select count(*) from public.matches where session_id = s and cardinality(resting) = 1) <> 5 then raise exception 'fem: ventet fem kamper med én som sitter'; end if;
   if (select count(*) from (select least(t[1], t[2]), greatest(t[1], t[2]) from public.matches m, lateral (values (m.team_a), (m.team_b)) v(t) where m.session_id = s group by 1, 2) x) <> 10 then
     raise exception 'fem: ikke alle ti par'; end if;
@@ -87,7 +87,7 @@ begin
 
   -- Seks: tre faste lag, satt opp for hånd, og «Ny runde» bruker dem igjen.
   perform pg_temp.lag(6);
-  perform public.draw_matches(s, false);
+  perform public.draw_matches(s);
   if (select count(*) from public.matches where session_id = s) <> 3 then raise exception 'seks: ventet tre kamper'; end if;
   perform public.set_session_teams(s, (select jsonb_build_array(jsonb_build_array(p[1], p[2]), jsonb_build_array(p[3], p[4]), jsonb_build_array(p[5], p[6])) from (select public.session_players(s) p) x));
   perform public.draw_matches(s, true);
