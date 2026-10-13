@@ -21,3 +21,7 @@
 .session-card-title .muted { font-size: var(--text-caption); line-height: 1.5; }
 .session-card-actions .attendance-control:has(> .badge) { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 720px) { .session-card-actions .attendance-control:has(> .badge) { flex-direction: column; } }
+/* Ikke svart: statusen over, to valg side om side med lik størrelse. */
+.attendance-control.attendance-valg { display: grid; justify-items: stretch; }
+.attendance-valg > .badge { justify-self: start; }
+.attendance-knapper { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

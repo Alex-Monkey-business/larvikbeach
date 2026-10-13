@@ -5,6 +5,7 @@
 // fjernes.
 import webpush from 'npm:web-push@3.6.7'
 import { adminClient, authorize, CORS, fail, json } from '../_shared/common.ts'
+import { lagBillett } from '../_shared/billett.ts'
 
 webpush.setVapidDetails(
   Deno.env.get('VAPID_SUBJECT') ?? 'mailto:ikke-svar@larvikbeach.no',
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
   const who = await authorize(req, admin)
   if (!who) return fail('Kun admin', 403)
 
-  let body: { profile_id?: string; title?: string; body?: string; url?: string; actions?: { action: string; title: string; url: string }[] }
+  let body: { profile_id?: string; title?: string; body?: string; url?: string; session_id?: string }
   try { body = await req.json() } catch { return fail('Ugyldig JSON') }
   if (!body.profile_id || !body.title) return fail('profile_id og title må med')
 
@@ -29,7 +30,16 @@ Deno.serve(async (req) => {
   if (error) return fail(error.message, 500)
   if (!subs?.length) return json({ sent: 0, reason: 'Ingen telefoner med varsler på' })
 
-  const payload = JSON.stringify({ title: body.title, body: body.body ?? '', url: body.url ?? '/spill', actions: body.actions ?? [] })
+  // Med økt: knappene «Kommer» og «Kommer ikke», som svarer uten å åpne appen.
+  const svar = body.session_id ? {
+    billett: await lagBillett(body.profile_id, body.session_id),
+    url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/svar`,
+  } : null
+  const payload = JSON.stringify({
+    title: body.title, body: body.body ?? '',
+    url: body.url ?? (body.session_id ? `/spill/okter/${body.session_id}` : '/spill'),
+    svar,
+  })
   const results = await Promise.all(subs.map(async s => {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 })

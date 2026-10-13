@@ -240,7 +240,7 @@ try {
   await p.goto(`${APP}${langt}`)
   await p.locator('main >> text=Påmeldingen åpner').first().waitFor({ timeout: 5000 })
   ok(await p.locator('text=Påmeldingen åpner').count() >= 1, 'økt langt fram: sier når påmeldingen åpner')
-  ok(await p.locator('button:has-text("Jeg kommer")').count() === 0, 'økt langt fram: ingen påmeldingsknapp')
+  ok(await p.locator('button:text-is("Kommer")').count() === 0, 'økt langt fram: ingen påmeldingsknapp')
   // Spilt økt: admin kan legge til gjesten som var med men ikke ble registrert.
   // Andelen regnes om, og gjesten får regning med én gang.
   await p.goto(`${APP}/spill`); await p.waitForSelector('article.session-card')

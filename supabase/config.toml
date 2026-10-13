@@ -415,3 +415,7 @@ enabled = true
 [auth.email.template.magic_link]
 subject = "Din innloggingskode til Larvik Beach Volley"
 content_path = "./supabase/templates/magic_link.html"
+
+[functions.svar]
+# Kalles fra tjenestearbeideren uten innlogging. Billetten er beviset.
+verify_jwt = false

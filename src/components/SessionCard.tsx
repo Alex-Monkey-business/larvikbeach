@@ -69,15 +69,34 @@ function names(people: Profile[]): string {
   return f.length < 2 ? (f[0] ?? '') : `${f.slice(0, -1).join(', ')} og ${f[f.length - 1]}`
 }
 
-/** Status og handling skilles, slik at avmelding aldri er skjult i en statusknapp. */
+/**
+ * Status og handling skilles, slik at avmelding aldri er skjult i en statusknapp.
+ * Ikke svart = to like tydelige valg. Et «Kommer ikke» er et svar, ikke
+ * fravær av ett, og admin ser forskjellen.
+ */
 export function AttendButton({ session, goingCount, mine, busy, onToggle, block }: {
   session: Session; goingCount: number; mine: MyState; busy?: boolean; onToggle: (going: boolean) => void; block?: boolean
 }) {
   const full = session.capacity != null && goingCount >= session.capacity
   const hasSpot = mine.going === true && !mine.waitlisted
+
+  if (mine.going === null) {
+    return (
+      <div className={`attendance-control attendance-valg ${block ? 'attendance-block' : ''}`}>
+        <span role="status" className="badge badge-stone">Ikke svart</span>
+        <div className="attendance-knapper">
+          <button type="button" className="btn btn-primary" disabled={busy} aria-busy={busy || undefined} onClick={() => onToggle(true)}>
+            {busy ? 'Lagrer…' : full ? 'Venteliste' : 'Kommer'}
+          </button>
+          <button type="button" className="btn" disabled={busy} onClick={() => onToggle(false)}>Kommer ikke</button>
+        </div>
+      </div>
+    )
+  }
+
   const label = hasSpot ? 'Du har plass'
     : mine.going === true ? `Venteliste nr. ${mine.spot - (session.capacity ?? 0)}`
-    : full ? 'Sett meg på venteliste' : 'Jeg kommer'
+    : 'Kommer ikke'
   function click() {
     if (mine.going !== true) return onToggle(true)
     // Bekreft avmelding, særlig når noen andre overtar plassen.
@@ -87,10 +106,10 @@ export function AttendButton({ session, goingCount, mine, busy, onToggle, block 
   }
   return (
     <div className={`attendance-control ${block ? 'attendance-block' : ''}`}>
-      {mine.going === true && <span role="status" className={`badge ${hasSpot ? 'badge-forest' : 'badge-stone'}`}>{label}</span>}
-      <button type="button" className={`btn ${mine.going === true ? 'btn-ghost btn-sm' : 'btn-primary'} ${block ? 'btn-block' : ''}`}
+      <span role="status" className={`badge ${hasSpot ? 'badge-forest' : 'badge-stone'}`}>{label}</span>
+      <button type="button" className={`btn btn-ghost btn-sm ${block ? 'btn-block' : ''}`}
         disabled={busy} aria-busy={busy || undefined} onClick={click}>
-        {busy ? 'Lagrer…' : mine.going === true ? 'Meld meg av' : label}
+        {busy ? 'Lagrer…' : mine.going === true ? 'Meld meg av' : full ? 'Sett meg på venteliste' : 'Kommer likevel'}
       </button>
     </div>
   )

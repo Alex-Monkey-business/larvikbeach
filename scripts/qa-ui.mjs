@@ -84,8 +84,8 @@ try {
   assert.equal(await p.getByRole('button', {name:'Meld meg av',exact:true}).count(),1)
   p.once('dialog', d => d.accept())
   await p.getByRole('button', {name:'Meld meg av',exact:true}).click()
-  await p.getByRole('button', {name:'Jeg kommer',exact:true}).waitFor()
-  await p.getByRole('button', {name:'Jeg kommer',exact:true}).click()
+  await p.getByRole('button', {name:'Kommer likevel',exact:true}).waitFor()
+  await p.getByRole('button', {name:'Kommer likevel',exact:true}).click()
   await p.getByRole('button', {name:'Meld meg av',exact:true}).waitFor()
   fail = 'season_stats'
   await p.goto(app+'/spill/statistikk'); await p.getByRole('alert').waitFor()
