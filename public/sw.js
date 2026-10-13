@@ -48,23 +48,29 @@ self.addEventListener('fetch', e => {
   }
 })
 
-// Push. Sendefunksjonen (supabase/functions/send-push) sender { title, body, url }.
+// Push. Sendefunksjonen (supabase/functions/send-push) sender
+// { title, body, url, actions?: [{ action, title, url }] }.
+// Ikke `icon`: Android viser det som et stort bilde til høyre, i tillegg til
+// merket til venstre. Én gang holder.
 // iOS krever at hvert push faktisk viser et varsel, ellers trekkes tillatelsen.
 self.addEventListener('push', e => {
   let data = {}
   try { data = e.data ? e.data.json() : {} } catch { data = { title: e.data?.text() ?? '' } }
   e.waitUntil(self.registration.showNotification(data.title || 'Larvik Beach Volley', {
     body: data.body || '',
-    icon: '/brand/lbv-192.png',
     badge: '/brand/lbv-192.png',
-    data: { url: data.url || '/spill' },
+    // Knapper under teksten på Android og desktop. iPhone viser dem ikke, så
+    // trykk på selve varselet må alltid gå et sted som gir mening alene.
+    actions: (data.actions || []).map(a => ({ action: a.action, title: a.title })),
+    data: { url: data.url || '/spill', actions: data.actions || [] },
   }))
 })
 
 // Trykk på varselet: bruk en åpen app hvis den finnes, ellers åpne en ny.
 self.addEventListener('notificationclick', e => {
   e.notification.close()
-  const url = new URL(e.notification.data?.url || '/spill', self.location.origin).href
+  const knapp = (e.notification.data?.actions || []).find(a => a.action === e.action)
+  const url = new URL(knapp?.url || e.notification.data?.url || '/spill', self.location.origin).href
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(vinduer => {
     const apen = vinduer.find(v => v.url.startsWith(self.location.origin))
     if (apen) return apen.focus().then(v => v.navigate ? v.navigate(url) : v)

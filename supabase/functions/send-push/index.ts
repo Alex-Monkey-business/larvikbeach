@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   const who = await authorize(req, admin)
   if (!who) return fail('Kun admin', 403)
 
-  let body: { profile_id?: string; title?: string; body?: string; url?: string }
+  let body: { profile_id?: string; title?: string; body?: string; url?: string; actions?: { action: string; title: string; url: string }[] }
   try { body = await req.json() } catch { return fail('Ugyldig JSON') }
   if (!body.profile_id || !body.title) return fail('profile_id og title må med')
 
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   if (error) return fail(error.message, 500)
   if (!subs?.length) return json({ sent: 0, reason: 'Ingen telefoner med varsler på' })
 
-  const payload = JSON.stringify({ title: body.title, body: body.body ?? '', url: body.url ?? '/spill' })
+  const payload = JSON.stringify({ title: body.title, body: body.body ?? '', url: body.url ?? '/spill', actions: body.actions ?? [] })
   const results = await Promise.all(subs.map(async s => {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 })
