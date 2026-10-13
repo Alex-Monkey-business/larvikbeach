@@ -6,6 +6,7 @@ import { useQuery } from '../../lib/useQuery'
 import { Avatar } from '../../components/Avatar'
 import { Notice } from '../../components/Notice'
 import { Installer } from '../../components/Installer'
+import { Varsler } from '../../components/Varsler'
 
 function signed(n: number): string {
   return n > 0 ? `+${n}` : n < 0 ? `\u2212${Math.abs(n)}` : '0'
@@ -76,6 +77,7 @@ export function Me() {
         )}
 
       <Installer />
+      <Varsler />
 
       <button type="button" className="btn btn-ghost btn-sm" style={{ justifySelf: 'start', paddingLeft: 0 }} onClick={() => void signOut()}>Logg ut</button>
 

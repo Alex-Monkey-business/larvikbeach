@@ -47,3 +47,27 @@ self.addEventListener('fetch', e => {
     })))
   }
 })
+
+// Push. Sendefunksjonen (supabase/functions/send-push) sender { title, body, url }.
+// iOS krever at hvert push faktisk viser et varsel, ellers trekkes tillatelsen.
+self.addEventListener('push', e => {
+  let data = {}
+  try { data = e.data ? e.data.json() : {} } catch { data = { title: e.data?.text() ?? '' } }
+  e.waitUntil(self.registration.showNotification(data.title || 'Larvik Beach Volley', {
+    body: data.body || '',
+    icon: '/brand/lbv-192.png',
+    badge: '/brand/lbv-192.png',
+    data: { url: data.url || '/spill' },
+  }))
+})
+
+// Trykk på varselet: bruk en åpen app hvis den finnes, ellers åpne en ny.
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = new URL(e.notification.data?.url || '/spill', self.location.origin).href
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(vinduer => {
+    const apen = vinduer.find(v => v.url.startsWith(self.location.origin))
+    if (apen) return apen.focus().then(v => v.navigate ? v.navigate(url) : v)
+    return self.clients.openWindow(url)
+  }))
+})
