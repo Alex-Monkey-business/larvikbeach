@@ -58,7 +58,7 @@ self.addEventListener('push', e => {
   try { data = e.data ? e.data.json() : {} } catch { data = { title: e.data?.text() ?? '' } }
   e.waitUntil(self.registration.showNotification(data.title || 'Larvik Beach Volley', {
     body: data.body || '',
-    badge: '/brand/lbv-192.png',
+    badge: '/brand/lbv-badge-96.png',
     // Knapper under teksten på Android og desktop. iPhone viser dem ikke, så
     // trykk på selve varselet åpner økta, der valget kan tas.
     actions: data.svar ? [{ action: 'kommer', title: 'Kommer' }, { action: 'kommer-ikke', title: 'Kommer ikke' }] : [],
@@ -89,7 +89,7 @@ async function svarPa(svar, going, tittel, url) {
     if (!res.ok) throw new Error(String(res.status))
     await self.registration.showNotification(tittel, {
       body: going ? 'Du er påmeldt.' : 'Du er meldt av.',
-      badge: '/brand/lbv-192.png',
+      badge: '/brand/lbv-badge-96.png',
       tag: 'svar',
       data: { url },
     })

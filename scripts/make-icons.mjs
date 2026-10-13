@@ -42,4 +42,16 @@ for (const [sti, px] of filer) {
   writeFileSync(sti, await side.screenshot({ type: 'png' }))
   console.log(`${sti}  ${px}x${px}`)
 }
+
+// Merket i statuslinja og til venstre i varselet på Android (`badge`). Android
+// bruker bare alfa-kanalen: alt som ikke er gjennomsiktig blir hvitt. Den
+// fargede kvadrat-PNG-en blir derfor en hvit firkant, eller ingenting. Her:
+// hvitt merke på gjennomsiktig, nesten full bredde fordi merket er så lavt.
+const BADGE = 96
+await side.setViewportSize({ width: BADGE, height: BADGE })
+const s = (BADGE * 0.92) / 1203
+await side.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block}</style>`
+  + `<svg xmlns="http://www.w3.org/2000/svg" width="${BADGE}" height="${BADGE}"><g fill="#fff" transform="translate(${((BADGE - 1203 * s) / 2).toFixed(2)} ${((BADGE - 337 * s) / 2).toFixed(2)}) scale(${s.toFixed(5)})">${MERKE}</g></svg>`)
+writeFileSync('public/brand/lbv-badge-96.png', await side.screenshot({ type: 'png', omitBackground: true }))
+console.log(`public/brand/lbv-badge-96.png  ${BADGE}x${BADGE}`)
 await nettleser.close()
