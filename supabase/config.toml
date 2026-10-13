@@ -419,3 +419,6 @@ content_path = "./supabase/templates/magic_link.html"
 [functions.svar]
 # Kalles fra tjenestearbeideren uten innlogging. Billetten er beviset.
 verify_jwt = false
+
+[functions.push-kvittering]
+verify_jwt = false

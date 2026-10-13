@@ -35,8 +35,12 @@ Deno.serve(async (req) => {
     billett: await lagBillett(body.profile_id, body.session_id),
     url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/svar`,
   } : null
+  // Kvittering: arbeideren melder tilbake når pushet kommer fram og vises.
+  const sending = crypto.randomUUID()
+  await admin.from('push_logg').insert({ sending, profile_id: body.profile_id, hendelse: 'sendt', detalj: `${subs.length} telefon(er)` })
+  const kvittering = { sending, url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/push-kvittering` }
   const payload = JSON.stringify({
-    title: body.title, body: body.body ?? '',
+    title: body.title, body: body.body ?? '', kvittering,
     url: body.url ?? (body.session_id ? `/spill/okter/${body.session_id}` : '/spill'),
     svar,
   })
@@ -53,5 +57,5 @@ Deno.serve(async (req) => {
     }
   }))
 
-  return json({ sent: results.filter(r => r.ok).length, results })
+  return json({ sending, sent: results.filter(r => r.ok).length, results })
 })

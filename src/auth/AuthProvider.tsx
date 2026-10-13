@@ -3,6 +3,7 @@ import type { Provider, Session } from '@supabase/auth-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
 import { meldPwa } from '../lib/pwa'
+import { fornyPush } from '../lib/push'
 
 interface AuthState {
   session: Session | null
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReady(false)
     await loadProfile(uid ?? undefined)
     // Ikke await: telemetri skal aldri forsinke at flaten blir klar.
-    if (uid) void meldPwa()
+    if (uid) { void meldPwa(); void fornyPush() }
     setReady(true)
   }, [loadProfile])
 

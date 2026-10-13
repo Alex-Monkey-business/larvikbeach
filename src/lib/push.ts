@@ -33,6 +33,24 @@ export async function slaPa(): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+/**
+ * Kjøres hver gang appen åpnes av en innlogget bruker. Har personen sagt ja
+ * til varsler, sørger den for at abonnementet finnes og at basen har den
+ * gjeldende adressen. Google kan bytte adressen uten å si fra, og da kom
+ * varslene aldri fram før man skrudde av og på selv.
+ */
+export async function fornyPush(): Promise<void> {
+  try {
+    if (!stottes() || Notification.permission !== 'granted') return
+    const reg = await registrering()
+    if (!reg) return
+    const sub = await reg.pushManager.getSubscription()
+      ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: tilBytes(VAPID_PUBLIC) })
+    const j = sub.toJSON()
+    await supabase.rpc('lagre_push', { p_endpoint: sub.endpoint, p_p256dh: j.keys!.p256dh, p_auth: j.keys!.auth })
+  } catch { /* neste åpning prøver igjen */ }
+}
+
 export async function slaAv(): Promise<void> {
   const sub = await (await registrering())?.pushManager.getSubscription()
   if (!sub) return

@@ -56,16 +56,39 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = {}
   try { data = e.data ? e.data.json() : {} } catch { data = { title: e.data?.text() ?? '' } }
-  e.waitUntil(self.registration.showNotification(data.title || 'Larvik Beach Volley', {
-    body: data.body || '',
-    icon: '/brand/lbv-192.png',
-    badge: '/brand/lbv-badge-96.png',
-    // Knapper under teksten på Android og desktop. iPhone viser dem ikke, så
-    // trykk på selve varselet åpner økta, der valget kan tas.
-    actions: data.svar ? [{ action: 'kommer', title: 'Kommer' }, { action: 'kommer-ikke', title: 'Kommer ikke' }] : [],
-    data: { url: data.url || '/spill', svar: data.svar || null },
-  }))
+  e.waitUntil((async () => {
+    await kvitter(data, 'mottatt')
+    try {
+      await self.registration.showNotification(data.title || 'Larvik Beach Volley', {
+        body: data.body || '',
+        icon: '/brand/lbv-192.png',
+        badge: '/brand/lbv-badge-96.png',
+        // Knapper under teksten på Android og desktop. iPhone viser dem ikke, så
+        // trykk på selve varselet åpner økta, der valget kan tas.
+        actions: data.svar ? [{ action: 'kommer', title: 'Kommer' }, { action: 'kommer-ikke', title: 'Kommer ikke' }] : [],
+        data: { url: data.url || '/spill', svar: data.svar || null },
+      })
+      const vist = await self.registration.getNotifications()
+      await kvitter(data, 'vist', `${vist.length} i varselfeltet · tillatelse ${Notification.permission}`)
+    } catch (err) {
+      await kvitter(data, 'feilet', String(err && err.message || err))
+      throw err
+    }
+  })())
 })
+
+// Melder tilbake til basen hva som skjedde. Feiler aldri høyt: et varsel skal
+// vises selv om kvitteringen ikke kommer fram.
+async function kvitter(data, hendelse, detalj) {
+  if (!data.kvittering) return
+  try {
+    await fetch(data.kvittering.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sending: data.kvittering.sending, hendelse, detalj }),
+    })
+  } catch { /* ingen nett, ingen kvittering */ }
+}
 
 self.addEventListener('notificationclick', e => {
   const n = e.notification
