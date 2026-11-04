@@ -49,8 +49,8 @@ begin
   update public.matches set score_a = 15, score_b = 21, winner = 'b' where session_id = s and round = 2;
   select string_agg(format('%s|%s|%s|%s|%s', round, team_a, team_b, score_a, score_b), ';' order by round) into foer
     from public.matches where session_id = s;
-  perform public.draw_matches(s, true);
-  perform public.draw_matches(s, true);
+  perform public.draw_matches(s, true, true);
+  perform public.draw_matches(s, true, true);
   if (select count(*) from public.matches where session_id = s) <> 9 then raise exception 'ny runde: ventet 9 kamper'; end if;
   perform pg_temp.sjekk_runde(4); perform pg_temp.sjekk_runde(7);
 
@@ -82,17 +82,43 @@ begin
   if (select count(*) from public.matches where session_id = s and cardinality(resting) = 1) <> 5 then raise exception 'fem: ventet fem kamper med én som sitter'; end if;
   if (select count(*) from (select least(t[1], t[2]), greatest(t[1], t[2]) from public.matches m, lateral (values (m.team_a), (m.team_b)) v(t) where m.session_id = s group by 1, 2) x) <> 10 then
     raise exception 'fem: ikke alle ti par'; end if;
-  perform public.draw_matches(s, true);
+  perform public.draw_matches(s, true, true);
   if (select count(*) from public.matches where session_id = s) <> 10 then raise exception 'fem: ny runde ga ikke fem til'; end if;
+  -- Samme som forrige: runde 2 er runde 1, kamp for kamp, også den som sitter.
+  select string_agg(format('%s v %s / %s', team_a, team_b, resting), ',' order by round) into r1 from public.matches where session_id = s and round <= 5;
+  select string_agg(format('%s v %s / %s', team_a, team_b, resting), ',' order by round) into r2 from public.matches where session_id = s and round between 6 and 10;
+  if r1 <> r2 then raise exception 'fem: samme som forrige ga et annet oppsett (% / %)', r1, r2; end if;
+  -- Nye par: fem nye kamper, hvert par én gang, og den som satt sist sitter ikke først.
+  perform public.draw_matches(s, true, false);
+  if (select count(*) from public.matches where session_id = s) <> 15 then raise exception 'fem: nye par ga ikke fem til'; end if;
+  if (select count(*) from (select least(t[1], t[2]), greatest(t[1], t[2]) from public.matches m, lateral (values (m.team_a), (m.team_b)) v(t) where m.session_id = s and round > 10 group by 1, 2) x) <> 10 then
+    raise exception 'fem: nye par mangler par'; end if;
+  if (select resting[1] from public.matches where session_id = s and round = 10) = (select resting[1] from public.matches where session_id = s and round = 11) then
+    raise exception 'fem: samme sitter to kamper på rad'; end if;
+  -- Samme som forrige når en har kommet til: stopp, ikke gjett.
+  insert into public.attendance (session_id, profile_id, going, updated_at)
+  select s, id, true, now() from public.profiles where active and role <> 'guest' order by name offset 5 limit 1;
+  begin
+    perform public.draw_matches(s, true, true);
+    raise exception 'fem til seks: samme som forrige ble godtatt';
+  exception when others then
+    if sqlerrm not like 'Det er ikke de samme spillerne%' then raise; end if;
+  end;
 
   -- Seks: tre faste lag, satt opp for hånd, og «Ny runde» bruker dem igjen.
   perform pg_temp.lag(6);
   perform public.draw_matches(s);
   if (select count(*) from public.matches where session_id = s) <> 3 then raise exception 'seks: ventet tre kamper'; end if;
   perform public.set_session_teams(s, (select jsonb_build_array(jsonb_build_array(p[1], p[2]), jsonb_build_array(p[3], p[4]), jsonb_build_array(p[5], p[6])) from (select public.session_players(s) p) x));
-  perform public.draw_matches(s, true);
+  perform public.draw_matches(s, true, true);
   if (select count(*) from (select distinct least(t[1], t[2]), greatest(t[1], t[2]) from public.matches m, lateral (values (m.team_a), (m.team_b)) v(t) where m.session_id = s) x) <> 3 then
     raise exception 'seks: lagene byttet seg i ny runde'; end if;
+  -- Seks, trukket: samme som forrige beholder lagene også uten oppsett for hånd.
+  perform pg_temp.lag(6);
+  perform public.draw_matches(s);
+  perform public.draw_matches(s, true, true);
+  if (select count(*) from (select distinct least(t[1], t[2]), greatest(t[1], t[2]) from public.matches m, lateral (values (m.team_a), (m.team_b)) v(t) where m.session_id = s) x) <> 3 then
+    raise exception 'seks trukket: lagene byttet seg i samme som forrige'; end if;
   raise notice 'qa-king: alt grønt';
 end $$;
 rollback;
