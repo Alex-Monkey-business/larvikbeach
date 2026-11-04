@@ -20,8 +20,8 @@ const first = (p: Profile) => p.name.split(' ')[0]
  * Fire og fem spiller king of the beach: parene roterer, og stillingen er
  * poengdifferanse. Seks spiller tre faste lag, satt opp for hånd eller
  * trukket. Trykk på laget som vant, eller skriv poengene. «Ny runde» legger
- * nye kamper under og rører ikke det som er spilt: samme oppsett som forrige
- * runde, eller nye par.
+ * nye kamper under og rører ikke det som er spilt. Den gjentar forrige runde;
+ * «Nye par» trekker på nytt.
  */
 export function Matches({ session, players, canAct }: Props) {
   const q = useQuery(() => api.matches(session.id), [session.id])
@@ -29,7 +29,6 @@ export function Matches({ session, players, canAct }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
-  const [choosing, setChoosing] = useState(false)
   const byId = new Map(players.map(p => [p.id, p]))
   const n = players.length
   const today = new Date(session.starts_at).toDateString() === new Date().toDateString()
@@ -62,12 +61,6 @@ export function Matches({ session, players, canAct }: Props) {
   const saved = (t.data ?? []).filter(x => x.members.every(id => byId.has(id))).map(x => x.members)
   const hasTeams = saved.length === n / 2
 
-  // Ny runde: samme oppsett som forrige, eller nye par. Valget lukkes først
-  // når runden er lagt ut, så en feil står ved knappene som ga den.
-  async function newRound(same: boolean) {
-    if (await run(() => api.drawMatches(session.id, true, same))) setChoosing(false)
-  }
-
   // Går det galt står feilen i kortet, og oppsettet blir stående til retting.
   async function savePairs(pairs: string[][]) {
     if (await run(() => api.setSessionTeams(session.id, pairs))) setPicking(false)
@@ -77,17 +70,11 @@ export function Matches({ session, players, canAct }: Props) {
     <section className="card stack">
       <div className="row between">
         <h2 className="h3">Kamper</h2>
-        {canAct && !picking && matches.length > 0 && choosing && (
+        {canAct && !picking && matches.length > 0 && (
           <div className="row">
-            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void newRound(true)}>Samme som forrige</button>
-            <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void newRound(false)}>Nye par</button>
-            <button type="button" className="btn btn-sm btn-ghost" disabled={busy} onClick={() => { setChoosing(false); setError(null) }}>Avbryt</button>
-          </div>
-        )}
-        {canAct && !picking && matches.length > 0 && !choosing && (
-          <div className="row">
-            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => { setChoosing(true); setError(null) }}>Ny runde</button>
-            {canPick && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => { setPicking(true); setChoosing(false) }}>{hasTeams ? 'Endre lag' : 'Sett opp lag'}</button>}
+            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id, true, true))}>Ny runde</button>
+            {anyResult && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id, true, false))}>Nye par</button>}
+            {canPick && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => setPicking(true)}>{hasTeams ? 'Endre lag' : 'Sett opp lag'}</button>}
             {!anyResult && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id))}>Trekk på nytt</button>}
           </div>
         )}
