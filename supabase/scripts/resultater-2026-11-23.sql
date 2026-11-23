@@ -2,8 +2,9 @@
 -- to runder. R = Roy, M = Mathias, U = Ulrik, B = den fjerde med plass.
 -- Kjøres én gang: `npx supabase db query --linked -f supabase/scripts/resultater-2026-11-23.sql`.
 --
--- Kamper uten resultat på økta slettes. Har økta alt kamper med resultat,
--- stopper skriptet uten å endre noe.
+-- Alle kamper på økta erstattes. Appen hadde 12 trukne kamper uten poeng og
+-- én vinner satt ved et uhell. Har økta kamper med poeng, stopper skriptet
+-- uten å endre noe.
 --
 -- Lagt inn i samme form som draw_matches lager dem (p = R, B, U, M), så
 -- «Ny runde» gjentar rekkefølgen de spilte:
@@ -40,8 +41,8 @@ begin
   select x into b from unnest(players) x where x not in (r, m, u);
 
   if exists (select 1 from public.matches where session_id = sid
-              and (winner is not null or score_a is not null or score_b is not null)) then
-    raise exception 'Økta har alt kamper med resultat. Ingenting endret.';
+              and (score_a is not null or score_b is not null)) then
+    raise exception 'Økta har kamper med poeng. Ingenting endret.';
   end if;
   delete from public.matches where session_id = sid;
 
