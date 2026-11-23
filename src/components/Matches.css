@@ -20,7 +20,7 @@
 }
 .team-names > * { min-width: 0; }
 .team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.team-names:disabled { cursor: default; }
+.team-names:disabled, .team-names-static { cursor: default; }
 .team-won { background: var(--color-forest); color: var(--color-cream); }
 .team-lost { opacity: 0.5; }
 

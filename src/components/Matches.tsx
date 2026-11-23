@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { useQuery } from '../lib/useQuery'
 import type { Match, Profile, Session } from '../lib/types'
@@ -29,6 +29,16 @@ export function Matches({ session, players, canAct }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
+  // Indeksen til første kamp i en runde som nettopp er lagt ut. Runden havner
+  // nederst, utenfor skjermen; uten å vise den trykker folk igjen.
+  const reveal = useRef<number | null>(null)
+  useEffect(() => {
+    const i = reveal.current
+    const m = i == null ? undefined : q.data?.[i]
+    if (!m) return
+    reveal.current = null
+    document.getElementById(`match-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [q.data])
   const byId = new Map(players.map(p => [p.id, p]))
   const n = players.length
   const today = new Date(session.starts_at).toDateString() === new Date().toDateString()
@@ -56,10 +66,19 @@ export function Matches({ session, players, canAct }: Props) {
   const shown = over && !canAct ? matches.filter(played) : matches
   const next = !over && canAct ? matches.find(m => !played(m))?.id : undefined
   const size = king ? roundSize(n) : 0
+  // «Nye par» først når en hel runde er spilt. Én kamp med resultat er ikke
+  // nok: før det er det «Trekk på nytt» som gjelder.
+  const per = roundSize(n)
+  const roundPlayed = matches.some((_, i) => i % per === 0 && matches.length >= i + per && matches.slice(i, i + per).every(played))
   const rounds: Match[][] = []
   shown.forEach((m, i) => { if (!size || i % size === 0) rounds.push([]); rounds[rounds.length - 1].push(m) })
   const saved = (t.data ?? []).filter(x => x.members.every(id => byId.has(id))).map(x => x.members)
   const hasTeams = saved.length === n / 2
+
+  async function newRound(same: boolean) {
+    reveal.current = matches.length
+    if (!await run(() => api.drawMatches(session.id, true, same))) reveal.current = null
+  }
 
   // Går det galt står feilen i kortet, og oppsettet blir stående til retting.
   async function savePairs(pairs: string[][]) {
@@ -72,8 +91,8 @@ export function Matches({ session, players, canAct }: Props) {
         <h2 className="h3">Kamper</h2>
         {canAct && !picking && matches.length > 0 && (
           <div className="row">
-            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id, true, true))}>Ny runde</button>
-            {anyResult && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id, true, false))}>Nye par</button>}
+            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => void newRound(true)}>Ny runde</button>
+            {roundPlayed && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void newRound(false)}>Nye par</button>}
             {canPick && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => setPicking(true)}>{hasTeams ? 'Endre lag' : 'Sett opp lag'}</button>}
             {!anyResult && <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void run(() => api.drawMatches(session.id))}>Trekk på nytt</button>}
           </div>
@@ -102,7 +121,7 @@ export function Matches({ session, players, canAct }: Props) {
                   {size > 0 && rounds.length > 1 && <h3 className="caption round-title">Runde {i + 1}</h3>}
                   <ol className="matches">
                     {r.map(m => <MatchRow key={m.id} m={m} label={size ? `Kamp ${matches.indexOf(m) % size + 1}` : `Runde ${m.round}`}
-                      next={m.id === next} byId={byId} canAct={canAct} busy={busy}
+                      next={m.id === next} byId={byId} canAct={canAct} busy={busy} tapWin={!king}
                       onWin={w => void run(() => api.setMatchWinner(m.id, m.winner === w ? null : w))}
                       onScore={(a, b) => void run(() => api.setMatchScore(m.id, a, b))} />)}
                   </ol>
@@ -187,8 +206,8 @@ function TeamPicker({ players, initial, busy, hasMatches, onSave, onCancel }: {
 
 const played = (m: Match) => m.winner != null || (m.score_a != null && m.score_b != null)
 
-function MatchRow({ m, label, next, byId, canAct, busy, onWin, onScore }: {
-  m: Match; label: string; next: boolean; byId: Map<string, Profile>; canAct: boolean; busy: boolean
+function MatchRow({ m, label, next, byId, canAct, busy, tapWin, onWin, onScore }: {
+  m: Match; label: string; next: boolean; byId: Map<string, Profile>; canAct: boolean; busy: boolean; tapWin: boolean
   onWin: (w: 'a' | 'b') => void; onScore: (a: number | null, b: number | null) => void
 }) {
   const team = (ids: string[]) => ids.map(id => byId.get(id)).filter(Boolean) as Profile[]
@@ -202,11 +221,11 @@ function MatchRow({ m, label, next, byId, canAct, busy, onWin, onScore }: {
     onScore(na, nb)
   }
   return (
-    <li className={`match ${next ? 'match-next' : ''}`}>
+    <li id={`match-${m.id}`} className={`match ${next ? 'match-next' : ''}`}>
       <span className="caption">{label}{next ? ' · neste' : ''}{m.resting.length ? ` · ${team(m.resting).map(first).join(' og ')} sitter` : ''}</span>
       <div className="match-teams">
-        <TeamBox players={team(m.team_a)} won={m.winner === 'a'} lost={m.winner === 'b'} value={a} onChange={setA} onCommit={commit} onWin={() => onWin('a')} canAct={canAct} busy={busy} label="Poeng lag 1" />
-        <TeamBox players={team(m.team_b)} won={m.winner === 'b'} lost={m.winner === 'a'} value={b} onChange={setB} onCommit={commit} onWin={() => onWin('b')} canAct={canAct} busy={busy} label="Poeng lag 2" />
+        <TeamBox players={team(m.team_a)} won={m.winner === 'a'} lost={m.winner === 'b'} value={a} onChange={setA} onCommit={commit} onWin={() => onWin('a')} canAct={canAct} busy={busy} tapWin={tapWin} label="Poeng lag 1" />
+        <TeamBox players={team(m.team_b)} won={m.winner === 'b'} lost={m.winner === 'a'} value={b} onChange={setB} onCommit={commit} onWin={() => onWin('b')} canAct={canAct} busy={busy} tapWin={tapWin} label="Poeng lag 2" />
       </div>
     </li>
   )
@@ -214,16 +233,20 @@ function MatchRow({ m, label, next, byId, canAct, busy, onWin, onScore }: {
 
 // Egen komponent på toppnivå: definert inne i raden ville React bygget den på
 // nytt for hvert tastetrykk, og feltet mistet fokus før poengene ble lagret.
-function TeamBox({ players, won, lost, value, onChange, onCommit, onWin, canAct, busy, label }: {
+// I king avgjør poengene, så navnene er bare navn: et trykk på laget satte
+// vinner uten poeng, og det skjedde ved et uhell (23. nov). Med faste lag kan
+// et trykk fortsatt markere vinneren.
+function TeamBox({ players, won, lost, value, onChange, onCommit, onWin, canAct, busy, tapWin, label }: {
   players: Profile[]; won: boolean; lost: boolean; value: string
-  onChange: (s: string) => void; onCommit: () => void; onWin: () => void; canAct: boolean; busy: boolean; label: string
+  onChange: (s: string) => void; onCommit: () => void; onWin: () => void; canAct: boolean; busy: boolean; tapWin: boolean; label: string
 }) {
+  const names = players.map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span className="team-name">{first(p)}</span></span>)
   return (
     <div className={`team ${won ? 'team-won' : ''} ${lost ? 'team-lost' : ''}`}>
-      <button type="button" className="team-names" disabled={!canAct || busy} onClick={onWin} aria-pressed={won}
-        title={canAct ? 'Trykk for å markere som vinner' : undefined}>
-        {players.map(p => <span key={p.id} className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><Avatar profile={p} size={28} /><span className="team-name">{first(p)}</span></span>)}
-      </button>
+      {tapWin
+        ? <button type="button" className="team-names" disabled={!canAct || busy} onClick={onWin} aria-pressed={won}
+            title={canAct ? 'Trykk for å markere som vinner' : undefined}>{names}</button>
+        : <div className="team-names team-names-static">{names}</div>}
       <input className="score num" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={label}
         disabled={!canAct || busy} placeholder={canAct ? '–' : ''}
         value={value} onChange={e => onChange(e.target.value.replace(/\D/g, ''))} onBlur={onCommit}

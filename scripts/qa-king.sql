@@ -50,7 +50,8 @@ begin
   select string_agg(format('%s|%s|%s|%s|%s', round, team_a, team_b, score_a, score_b), ';' order by round) into foer
     from public.matches where session_id = s;
   perform public.draw_matches(s, true, true);
-  perform public.draw_matches(s, true, true);
+  -- Uten p_same (gammel app): samme som forrige.
+  perform public.draw_matches(s, true);
   if (select count(*) from public.matches where session_id = s) <> 9 then raise exception 'ny runde: ventet 9 kamper'; end if;
   perform pg_temp.sjekk_runde(4); perform pg_temp.sjekk_runde(7);
 
