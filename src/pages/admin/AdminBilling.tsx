@@ -6,22 +6,29 @@ import { compactDate, shortDate } from '../../lib/format'
 import { openVipps, prettyPhone } from '../../lib/phone'
 import { Notice } from '../../components/Notice'
 import { ShareButton } from '../../components/Share'
-import type { Balance, Charge, Invoice, InvoiceStatus, Profile, Session, Settings } from '../../lib/types'
+import type { Balance, Charge, Invoice, Profile, Session, Settings } from '../../lib/types'
 import './AdminBilling.css'
-
-const UBETALT: InvoiceStatus[] = ['open', 'notified', 'claimed']
 
 /**
  * Én person, én saldo: alt som er spilt og ikke betalt. «Betalt» nuller den,
  * og den teller fra null igjen ved neste økt.
  */
+/** Én økt for én person: beløpet og hvor betalingen står. */
+interface Line {
+  key: string
+  session: Session | undefined
+  amount: number
+  state: 'open' | 'claimed' | 'paid' | 'waived'
+  paidAt: string | null
+}
+
 interface Row {
   profile: Profile
   owed: number
   claimed: boolean
   lastPaid: string | null
   invoices: Invoice[]
-  lines: { key: string; session: Session | undefined; amount: number }[]
+  lines: Line[]
   guest: boolean
 }
 
@@ -34,10 +41,17 @@ function rowsFrom(profiles: Profile[], balances: Balance[], invoices: Invoice[],
     const guest = profile.role === 'guest'
     // Med: alle som skylder, og medlemmer som har betalt noe en gang.
     if (owed === 0 && (guest || mine.length === 0)) continue
-    const unpaid = new Set(mine.filter(i => UBETALT.includes(i.status)).map(i => i.id))
-    const lines = charges
-      .filter(c => c.profile_id === profile.id && (c.invoice_id == null || unpaid.has(c.invoice_id)))
-      .map(c => ({ key: c.id, session: sessions.find(s => s.id === c.session_id), amount: c.amount }))
+    // Alle øktene, også de som er betalt: admin vil kunne svare på «har hen
+    // betalt for den kvelden?», ikke bare se hva som står igjen.
+    const byInvoice = new Map(mine.map(i => [i.id, i]))
+    const lines: Line[] = charges
+      .filter(c => c.profile_id === profile.id)
+      .map(c => {
+        const inv = c.invoice_id ? byInvoice.get(c.invoice_id) : undefined
+        const state: Line['state'] = !inv || inv.status === 'open' || inv.status === 'notified' ? 'open'
+          : inv.status === 'claimed' ? 'claimed' : inv.status === 'confirmed' ? 'paid' : 'waived'
+        return { key: c.id, session: sessions.find(s => s.id === c.session_id), amount: c.amount, state, paidAt: inv?.confirmed_at ?? null }
+      })
       .sort((x, y) => (y.session?.starts_at ?? '').localeCompare(x.session?.starts_at ?? ''))
     const paidAt = mine.map(i => i.confirmed_at).filter(Boolean) as string[]
     rows.push({
@@ -136,14 +150,17 @@ function PersonRow({ row: r, open, onToggle, busy, onPaid, onVipps, onNotReceive
   const done = r.owed === 0
   const tilstand = done
     ? (r.lastPaid ? `Betalt ${shortDate(r.lastPaid)}` : 'Betalt')
-    : r.claimed ? 'Sier hen har vippset' : 'Ikke betalt'
+    : r.claimed ? 'Sier betalt' : 'Ikke betalt'
 
   return (
     <li className={`pay-row${done ? ' is-done' : ''}${open ? ' is-open' : ''}`}>
       <div className="pay-main">
         <button type="button" className="pay-who" aria-expanded={open} onClick={onToggle}>
           <span className="pay-name">{r.profile.name}{r.guest && <span className="caption"> · gjest</span>}</span>
-          <span className={`pay-state${r.claimed && !done ? ' is-claimed' : ''}`}>{tilstand}</span>
+          <span className={`pay-state${r.claimed && !done ? ' is-claimed' : ''}`}>
+            {tilstand}
+            <span className="pay-count">{r.lines.length > 0 && `${r.lines.length} ${r.lines.length === 1 ? 'økt' : 'økter'}`}<span className="pay-more" aria-hidden="true" /></span>
+          </span>
         </button>
         <span className="pay-amount">{done ? '' : kr(r.owed)}</span>
         <span className="pay-act">
@@ -158,9 +175,9 @@ function PersonRow({ row: r, open, onToggle, busy, onPaid, onVipps, onNotReceive
           {r.lines.length > 0 && (
             <ul className="pay-lines">
               {r.lines.map(l => (
-                <li key={l.key}>
+                <li key={l.key} className={l.state === 'paid' || l.state === 'waived' ? 'is-paid' : ''}>
                   <span>{l.session ? compactDate(l.session.starts_at) : 'Økt'}</span>
-                  <span />
+                  <span className={`pay-line-state${l.state === 'claimed' ? ' is-claimed' : ''}`}>{lineState(l)}</span>
                   <span className="tab">{kr(l.amount)}</span>
                 </li>
               ))}
@@ -176,6 +193,15 @@ function PersonRow({ row: r, open, onToggle, busy, onPaid, onVipps, onNotReceive
       )}
     </li>
   )
+}
+
+function lineState(l: Line): string {
+  switch (l.state) {
+    case 'paid': return l.paidAt ? `Betalt ${shortDate(l.paidAt)}` : 'Betalt'
+    case 'waived': return 'Ettergitt'
+    case 'claimed': return 'Sier betalt'
+    default: return 'Ikke betalt'
+  }
 }
 
 /** Meldingen som deles: hvem skylder hva, hvor det vippses, og lenke inn. */

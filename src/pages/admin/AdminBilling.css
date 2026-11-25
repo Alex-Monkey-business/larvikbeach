@@ -20,6 +20,17 @@
 .pay-row.is-open .pay-name { text-decoration: underline; text-underline-offset: 3px; }
 .pay-state { font-size: var(--text-caption); color: var(--color-fog); }
 .pay-state.is-claimed { color: var(--color-ink); font-weight: 500; }
+.pay-count { display: inline-block; margin-left: 12px; font-weight: 400; color: var(--color-fog); white-space: nowrap; }
+/* Brytes linja, står antallet først på neste: da uten innrykk. */
+.pay-state { display: flex; flex-wrap: wrap; column-gap: 12px; }
+.pay-state .pay-count { margin-left: 0; }
+/* Pila sier at navnet kan åpnes. Den snur når raden er åpen. */
+.pay-more {
+  display: inline-block; width: 6px; height: 6px; margin-left: 8px; vertical-align: 2px;
+  border: solid var(--color-fog); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+.pay-row.is-open .pay-more { transform: rotate(-135deg); vertical-align: -1px; }
 
 .pay-amount { font-family: var(--font-serif); font-size: var(--text-subheading); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 .pay-act { display: flex; justify-content: flex-end; }
@@ -48,4 +59,7 @@
 .pay-lines .muted { font-size: var(--text-caption); }
 
 .pay-lines li.is-paid { color: var(--color-fog); }
+.pay-line-state { font-size: var(--text-caption); color: var(--color-ink); white-space: nowrap; }
+.pay-lines li.is-paid .pay-line-state { color: var(--color-fog); }
+.pay-line-state.is-claimed { color: var(--color-ink); font-weight: 500; }
 .ink { color: var(--color-ink); }
